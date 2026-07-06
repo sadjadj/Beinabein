@@ -26,7 +26,7 @@ export default function FacilitatorProfile() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="w-8 h-8 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-gray-200 border-t-gray-700 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -46,14 +46,14 @@ export default function FacilitatorProfile() {
           {facilitator.photo_url ? (
             <img src={facilitator.photo_url} alt={facilitator.full_name} className="w-20 h-20 rounded-full object-cover flex-shrink-0" />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <User className="w-10 h-10 text-amber-600" />
+            <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+              <User className="w-10 h-10 text-gray-700" />
             </div>
           )}
           <div className="min-w-0">
             <h1 className="text-xl font-bold">{facilitator.full_name}</h1>
             {facilitator.bio && <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{facilitator.bio}</p>}
-            <p className="text-xs text-amber-600 mt-3 flex items-center gap-1">
+            <p className="text-xs text-gray-700 mt-3 flex items-center gap-1">
               <GraduationCap className="w-3.5 h-3.5" /> {toPersianNum(workshops.length)} کارگاه برگزار کرده
             </p>
           </div>
@@ -78,7 +78,7 @@ export default function FacilitatorProfile() {
                   <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
                     <Calendar className="w-3.5 h-3.5" /> {new Date(w.date).toLocaleDateString('fa-IR')}
                   </p>
-                  <p className="text-xs text-amber-600 mt-1">{toPersianNum(w.participant_count || 0)} شرکت‌کننده</p>
+                  <p className="text-xs text-gray-700 mt-1">{toPersianNum(w.participant_count || 0)} شرکت‌کننده</p>
                 </div>
               </div>
             ))}

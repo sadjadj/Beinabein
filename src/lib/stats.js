@@ -24,6 +24,19 @@ export function getDateRange(preset, customStart, customEnd) {
       const end = new Date(today.getFullYear(), today.getMonth(), 0);
       return { start: formatDate(start), end: formatDate(end) };
     }
+    case 'quarter': {
+      const qMonth = Math.floor(today.getMonth() / 3) * 3;
+      const start = new Date(today.getFullYear(), qMonth, 1);
+      return { start: formatDate(start), end: formatDate(today) };
+    }
+    case 'year': {
+      const start = new Date(today.getFullYear(), 0, 1);
+      return { start: formatDate(start), end: formatDate(today) };
+    }
+    case 'all_time':
+      return null;
+    case 'specific_date':
+      return { start: customStart, end: customStart };
     case 'custom':
       return { start: customStart, end: customEnd };
     default:
@@ -75,6 +88,38 @@ export async function bulkCreatePersons(phones) {
   if (newPhones.length > 0) {
     await base44.entities.Person.bulkCreate(newPhones.map(phone => ({ phone, full_name: '' })));
   }
+}
+
+// ─── Sync people from activity records ───
+export async function syncPeopleFromActivities(workspaceVisits, cafePurchases, workshops, events, existingPeople) {
+  const existingPhones = new Set(existingPeople.map(p => p.phone));
+  const allPhones = new Set();
+  workspaceVisits.forEach(v => { if (v.person_phone) allPhones.add(v.person_phone); });
+  cafePurchases.forEach(p => { if (p.person_phone) allPhones.add(p.person_phone); });
+  workshops.forEach(w => (w.participant_phones || []).forEach(p => allPhones.add(p)));
+  events.forEach(e => (e.participant_phones || []).forEach(p => allPhones.add(p)));
+  const newPhones = [...allPhones].filter(p => p && !existingPhones.has(p));
+  if (newPhones.length > 0) {
+    await base44.entities.Person.bulkCreate(newPhones.map(phone => ({ phone, full_name: '' })));
+  }
+  return newPhones.length;
+}
+
+// ─── Last non-cafe service for a person ───
+export function computeLastNonCafeService(phone, workspaceVisits, workshops, events) {
+  const activities = [];
+  workspaceVisits.filter(v => v.person_phone === phone).forEach(v => {
+    activities.push({ type: 'فضای کار', date: v.visit_date, label: v.visit_date });
+  });
+  workshops.filter(w => (w.participant_phones || []).includes(phone)).forEach(w => {
+    activities.push({ type: 'کارگاه', date: w.date, label: w.title });
+  });
+  events.filter(e => (e.participant_phones || []).includes(phone)).forEach(e => {
+    activities.push({ type: 'رویداد', date: e.date, label: e.title });
+  });
+  if (activities.length === 0) return null;
+  activities.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return activities[0];
 }
 
 // ─── Time calculation ───

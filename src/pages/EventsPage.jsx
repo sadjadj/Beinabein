@@ -65,7 +65,7 @@ export default function EventsPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-amber-600" /> ثبت رویداد جدید</h3>
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-gray-700" /> ثبت رویداد جدید</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input type="text" placeholder="عنوان رویداد" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
@@ -74,7 +74,7 @@ export default function EventsPage() {
           </div>
           <textarea placeholder="شماره تلفن شرکت‌کنندگان (هر خط یک شماره)" value={form.participants} onChange={e => setForm({ ...form, participants: e.target.value })} rows={5} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
           <div className="flex items-center gap-3">
-            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50">
+            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50">
               {submitting ? 'در حال ثبت...' : 'ثبت رویداد'}
             </button>
             {message && <span className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message.text}</span>}

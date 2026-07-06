@@ -32,7 +32,7 @@ export default function PersonProfile() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="w-8 h-8 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-gray-200 border-t-gray-700 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -56,8 +56,8 @@ export default function PersonProfile() {
 
       <div className="bg-white rounded-xl border border-border p-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <User className="w-8 h-8 text-amber-600" />
+          <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+            <User className="w-8 h-8 text-gray-700" />
           </div>
           <div>
             <h1 className="text-xl font-bold">{person.full_name || 'بدون نام'}</h1>
@@ -66,7 +66,7 @@ export default function PersonProfile() {
             </p>
           </div>
           <div className="mr-auto text-left">
-            <p className="text-2xl font-bold text-amber-600">{toPersianNum(totalCount)}</p>
+            <p className="text-2xl font-bold text-gray-700">{toPersianNum(totalCount)}</p>
             <p className="text-xs text-muted-foreground">کل خدمات استفاده شده</p>
           </div>
         </div>
@@ -75,7 +75,7 @@ export default function PersonProfile() {
       {wsVisits.length > 0 && (
         <div className="bg-white rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-amber-600" />
+            <Briefcase className="w-4 h-4 text-gray-700" />
             <h3 className="text-sm font-semibold">فضای کار ({toPersianNum(wsVisits.length)})</h3>
           </div>
           <div className="divide-y divide-border">
@@ -93,7 +93,7 @@ export default function PersonProfile() {
       {cafePurchases.length > 0 && (
         <div className="bg-white rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border flex items-center gap-2">
-            <Coffee className="w-4 h-4 text-amber-600" />
+            <Coffee className="w-4 h-4 text-gray-700" />
             <h3 className="text-sm font-semibold">کافه ({toPersianNum(cafePurchases.length)})</h3>
           </div>
           <div className="divide-y divide-border">
@@ -110,7 +110,7 @@ export default function PersonProfile() {
       {workshops.length > 0 && (
         <div className="bg-white rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-amber-600" />
+            <GraduationCap className="w-4 h-4 text-gray-700" />
             <h3 className="text-sm font-semibold">کارگاه‌ها ({toPersianNum(workshops.length)})</h3>
           </div>
           <div className="divide-y divide-border">
@@ -127,7 +127,7 @@ export default function PersonProfile() {
       {events.length > 0 && (
         <div className="bg-white rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border flex items-center gap-2">
-            <PartyPopper className="w-4 h-4 text-amber-600" />
+            <PartyPopper className="w-4 h-4 text-gray-700" />
             <h3 className="text-sm font-semibold">رویدادها ({toPersianNum(events.length)})</h3>
           </div>
           <div className="divide-y divide-border">

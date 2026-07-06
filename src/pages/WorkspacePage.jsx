@@ -58,7 +58,7 @@ export default function WorkspacePage() {
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-amber-600" /> ثبت حضور جدید</h3>
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-gray-700" /> ثبت حضور جدید</h3>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <input type="tel" placeholder="شماره تلفن" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
           <input type="text" placeholder="نام" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
@@ -66,7 +66,7 @@ export default function WorkspacePage() {
           <input type="time" value={form.entry_time} onChange={e => setForm({ ...form, entry_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
           <input type="time" value={form.exit_time} onChange={e => setForm({ ...form, exit_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
           <div className="sm:col-span-2 lg:col-span-5 flex items-center gap-3">
-            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50">
+            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50">
               {submitting ? 'در حال ثبت...' : 'ثبت'}
             </button>
             {message && <span className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message.text}</span>}

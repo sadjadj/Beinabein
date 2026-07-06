@@ -133,7 +133,7 @@ ${JSON.stringify(peopleList)}
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-amber-600" /> ثبت کارگاه جدید</h3>
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-gray-700" /> ثبت کارگاه جدید</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input type="text" placeholder="عنوان کارگاه" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -147,17 +147,17 @@ ${JSON.stringify(peopleList)}
           <textarea placeholder="توضیحات کارگاه" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
 
           <div className="flex items-center gap-3">
-            <button type="button" onClick={handleSuggest} disabled={suggesting} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-50 text-purple-700 text-sm font-medium hover:bg-purple-100 disabled:opacity-50 border border-purple-200">
+            <button type="button" onClick={handleSuggest} disabled={suggesting} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 disabled:opacity-50 border border-gray-200">
               {suggesting ? <><Loader2 className="w-4 h-4 animate-spin" /> در حال تحلیل...</> : <><Sparkles className="w-4 h-4" /> پیشنهاد شرکت‌کنندگان</>}
             </button>
             {message && <span className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message.text}</span>}
           </div>
 
           {suggestions.length > 0 && (
-            <div className="bg-purple-50 rounded-lg border border-purple-200 p-4 space-y-2">
+            <div className="bg-gray-100 rounded-lg border border-gray-200 p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-purple-700">پیشنهاد هوش مصنوعی ({toPersianNum(suggestions.length)} نفر)</p>
-                <button type="button" onClick={addSuggestedToParticipants} className="text-xs px-3 py-1 rounded-lg bg-purple-600 text-white hover:bg-purple-700">افزودن همه به شرکت‌کنندگان</button>
+                <p className="text-sm font-medium text-gray-700">پیشنهاد هوش مصنوعی ({toPersianNum(suggestions.length)} نفر)</p>
+                <button type="button" onClick={addSuggestedToParticipants} className="text-xs px-3 py-1 rounded-lg bg-gray-900 text-white hover:bg-gray-800">افزودن همه به شرکت‌کنندگان</button>
               </div>
               {suggestions.map((s, i) => (
                 <div key={i} className="bg-white rounded-lg p-3 text-sm flex items-start justify-between gap-2">
@@ -172,7 +172,7 @@ ${JSON.stringify(peopleList)}
           )}
 
           <textarea placeholder="شماره تلفن شرکت‌کنندگان (هر خط یک شماره)" value={form.participants} onChange={e => setForm({ ...form, participants: e.target.value })} rows={5} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-          <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50">
+          <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50">
             {submitting ? 'در حال ثبت...' : 'ثبت کارگاه'}
           </button>
         </form>

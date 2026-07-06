@@ -1,15 +1,18 @@
 import React from 'react';
 
 const colorMap = {
-  amber: { bg: 'bg-amber-50', text: 'text-amber-600' },
-  blue: { bg: 'bg-blue-50', text: 'text-blue-600' },
-  green: { bg: 'bg-green-50', text: 'text-green-600' },
-  purple: { bg: 'bg-purple-50', text: 'text-purple-600' },
-  rose: { bg: 'bg-rose-50', text: 'text-rose-600' },
+  dark: { bg: 'bg-gray-100', text: 'text-gray-700' },
+  medium: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  light: { bg: 'bg-gray-50', text: 'text-gray-500' },
+  amber: { bg: 'bg-gray-100', text: 'text-gray-700' },
+  blue: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  green: { bg: 'bg-gray-100', text: 'text-gray-700' },
+  purple: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  rose: { bg: 'bg-gray-100', text: 'text-gray-600' },
 };
 
-export default function StatCard({ label, value, sublabel, icon: Icon, color = 'amber' }) {
-  const c = colorMap[color] || colorMap.amber;
+export default function StatCard({ label, value, sublabel, icon: Icon, color = 'dark' }) {
+  const c = colorMap[color] || colorMap.dark;
   return (
     <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3">

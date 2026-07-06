@@ -47,7 +47,7 @@ export default function FacilitatorsPage() {
           <h1 className="text-2xl font-bold">تسهیلگرها</h1>
           <p className="text-sm text-muted-foreground mt-1">فهرست تسهیلگرهای بینابین</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700">
+        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800">
           <Plus className="w-4 h-4" /> ثبت تسهیلگر
         </button>
       </div>
@@ -61,7 +61,7 @@ export default function FacilitatorsPage() {
             </div>
             <textarea placeholder="درباره تسهیلگر" value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             <div className="flex gap-2">
-              <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50">
+              <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50">
                 {submitting ? 'در حال ثبت...' : 'ثبت'}
               </button>
               <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted">انصراف</button>
@@ -84,14 +84,14 @@ export default function FacilitatorsPage() {
                 {f.photo_url ? (
                   <img src={f.photo_url} alt={f.full_name} className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
                 ) : (
-                  <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <User className="w-7 h-7 text-amber-600" />
+                  <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                    <User className="w-7 h-7 text-gray-700" />
                   </div>
                 )}
                 <div className="min-w-0">
                   <h3 className="font-semibold text-sm">{f.full_name}</h3>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{f.bio || 'بدون توضیحات'}</p>
-                  <p className="text-xs text-amber-600 mt-2">{toPersianNum(getWorkshopCount(f.id))} کارگاه</p>
+                  <p className="text-xs text-gray-700 mt-2">{toPersianNum(getWorkshopCount(f.id))} کارگاه</p>
                 </div>
               </div>
             </Link>

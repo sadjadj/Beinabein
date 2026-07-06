@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import StatCard from '@/components/StatCard';
-import { Coffee, Users, TrendingUp, Plus } from 'lucide-react';
+import { Coffee, Users, TrendingUp, Plus, ClipboardList } from 'lucide-react';
 import { computeCafeStats, findOrCreatePerson, toPersianNum, formatCurrency, formatPercent } from '@/lib/stats';
+import { CAFE_ITEMS } from '@/lib/cafeItems';
 
 const reasonLabels = { workspace: 'فضای کار', workshop: 'کارگاه', event: 'رویداد', independent: 'مستقل' };
 
@@ -48,6 +49,10 @@ export default function CafePage() {
     } finally { setSubmitting(false); }
   };
 
+  const selectItem = (item) => {
+    setForm({ ...form, amount: item.price });
+  };
+
   const stats = computeCafeStats(records, visits, null);
   const chartData = Object.entries(stats.salesByReason).map(([reason, amount]) => ({ name: reasonLabels[reason] || reason, amount }));
 
@@ -59,14 +64,31 @@ export default function CafePage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="تعداد خرید" value={toPersianNum(stats.totalPurchases)} icon={Coffee} color="amber" />
-        <StatCard label="خریداران یونیک" value={toPersianNum(stats.uniqueBuyerCount)} icon={Users} color="blue" />
-        <StatCard label="میانگین خرید تکراری" value={formatCurrency(stats.repeatAvg)} icon={TrendingUp} color="green" />
-        <StatCard label="نسبت خرید به حضور" value={formatPercent(stats.purchaseRate)} icon={TrendingUp} color="purple" />
+        <StatCard label="تعداد خرید" value={toPersianNum(stats.totalPurchases)} icon={Coffee} color="dark" />
+        <StatCard label="خریداران یونیک" value={toPersianNum(stats.uniqueBuyerCount)} icon={Users} color="medium" />
+        <StatCard label="میانگین خرید تکراری" value={formatCurrency(stats.repeatAvg)} icon={TrendingUp} color="light" />
+        <StatCard label="نسبت خرید به حضور" value={formatPercent(stats.purchaseRate)} icon={TrendingUp} color="dark" />
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-amber-600" /> ثبت خرید جدید</h3>
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><ClipboardList className="w-4 h-4 text-gray-700" /> منوی کافه (قیمت ثابت)</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {CAFE_ITEMS.map(item => (
+            <button
+              key={item.name}
+              type="button"
+              onClick={() => selectItem(item)}
+              className="flex items-center justify-between px-3 py-2 rounded-lg border border-border hover:bg-gray-50 text-sm transition-colors"
+            >
+              <span>{item.name}</span>
+              <span className="text-muted-foreground text-xs">{toPersianNum(item.price)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-border p-5">
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-gray-700" /> ثبت خرید جدید</h3>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <input type="tel" placeholder="شماره تلفن" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
           <input type="text" placeholder="نام" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
@@ -79,7 +101,7 @@ export default function CafePage() {
             <option value="event">رویداد</option>
           </select>
           <div className="sm:col-span-2 lg:col-span-5 flex items-center gap-3">
-            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50">
+            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50">
               {submitting ? 'در حال ثبت...' : 'ثبت'}
             </button>
             {message && <span className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message.text}</span>}
@@ -96,7 +118,7 @@ export default function CafePage() {
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => toPersianNum(v)} />
               <Tooltip formatter={(v) => formatCurrency(v)} />
-              <Bar dataKey="amount" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="amount" fill="#374151" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
