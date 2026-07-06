@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search } from 'lucide-react';
 import { computePersonActivity, toPersianNum } from '@/lib/stats';
 
 export default function PeoplePage() {
+  const navigate = useNavigate();
   const [people, setPeople] = useState([]);
   const [allData, setAllData] = useState({ workspaceVisits: [], cafePurchases: [], workshops: [], events: [] });
   const [loading, setLoading] = useState(true);
@@ -98,8 +100,8 @@ export default function PeoplePage() {
                 {filtered.map(p => {
                   const activity = computePersonActivity(p, allData.workspaceVisits, allData.cafePurchases, allData.workshops, allData.events);
                   return (
-                    <tr key={p.id} className="border-t border-border hover:bg-muted/30">
-                      <td className="p-3">{p.full_name || '-'}</td>
+                    <tr key={p.id} className="border-t border-border hover:bg-amber-50 cursor-pointer" onClick={() => navigate(`/people/${p.id}`)}>
+                      <td className="p-3 font-medium text-amber-700">{p.full_name || '-'}</td>
                       <td className="p-3">{p.phone}</td>
                       <td className="p-3 text-center">{activity.workspace > 0 ? toPersianNum(activity.workspace) : '-'}</td>
                       <td className="p-3 text-center">{activity.cafe > 0 ? toPersianNum(activity.cafe) : '-'}</td>

@@ -1,10 +1,11 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, PartyPopper } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, PartyPopper, UserCheck } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
   { path: '/people', label: 'افراد', icon: Users },
+  { path: '/facilitators', label: 'تسهیلگرها', icon: UserCheck },
   { path: '/workspace', label: 'فضای کار', icon: Briefcase },
   { path: '/cafe', label: 'کافه', icon: Coffee },
   { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },

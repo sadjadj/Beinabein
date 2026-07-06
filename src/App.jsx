@@ -14,6 +14,9 @@ import WorkspacePage from '@/pages/WorkspacePage';
 import CafePage from '@/pages/CafePage';
 import WorkshopsPage from '@/pages/WorkshopsPage';
 import EventsPage from '@/pages/EventsPage';
+import PersonProfile from '@/pages/PersonProfile';
+import FacilitatorsPage from '@/pages/FacilitatorsPage';
+import FacilitatorProfile from '@/pages/FacilitatorProfile';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -49,7 +52,10 @@ const AuthenticatedApp = () => {
       <Route path="/cafe" element={<CafePage />} />
       <Route path="/workshops" element={<WorkshopsPage />} />
       <Route path="/events" element={<EventsPage />} />
-    </Route>
+      <Route path="/people/:id" element={<PersonProfile />} />
+      <Route path="/facilitators" element={<FacilitatorsPage />} />
+      <Route path="/facilitators/:id" element={<FacilitatorProfile />} />
+      </Route>
     <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
