@@ -5,6 +5,8 @@ import StatCard from '@/components/StatCard';
 import { Coffee, Users, TrendingUp, Plus, ClipboardList } from 'lucide-react';
 import { computeCafeStats, findOrCreatePerson, toPersianNum, formatCurrency, formatPercent } from '@/lib/stats';
 import { CAFE_ITEMS } from '@/lib/cafeItems';
+import { toJalaliStr, todayGregorian } from '@/lib/jalali';
+import JalaliDateInput from '@/components/JalaliDateInput';
 
 const reasonLabels = { workspace: 'فضای کار', workshop: 'کارگاه', event: 'رویداد', independent: 'مستقل' };
 
@@ -14,7 +16,7 @@ export default function CafePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  const [form, setForm] = useState({ phone: '', name: '', amount: '', purchase_date: new Date().toISOString().split('T')[0], entry_reason: 'independent' });
+  const [form, setForm] = useState({ phone: '', name: '', amount: '', purchase_date: todayGregorian(), entry_reason: 'independent' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -42,7 +44,7 @@ export default function CafePage() {
         entry_reason: form.entry_reason
       });
       setMessage({ type: 'success', text: 'خرید ثبت شد' });
-      setForm({ phone: '', name: '', amount: '', purchase_date: new Date().toISOString().split('T')[0], entry_reason: 'independent' });
+      setForm({ phone: '', name: '', amount: '', purchase_date: todayGregorian(), entry_reason: 'independent' });
       fetchData();
     } catch (err) {
       setMessage({ type: 'error', text: 'خطا در ثبت' });
@@ -64,14 +66,14 @@ export default function CafePage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="تعداد خرید" value={toPersianNum(stats.totalPurchases)} icon={Coffee} color="dark" />
-        <StatCard label="خریداران یونیک" value={toPersianNum(stats.uniqueBuyerCount)} icon={Users} color="medium" />
-        <StatCard label="میانگین خرید تکراری" value={formatCurrency(stats.repeatAvg)} icon={TrendingUp} color="light" />
-        <StatCard label="نسبت خرید به حضور" value={formatPercent(stats.purchaseRate)} icon={TrendingUp} color="dark" />
+        <StatCard label="تعداد خرید" value={toPersianNum(stats.totalPurchases)} icon={Coffee} color="terracotta" />
+        <StatCard label="خریداران یونیک" value={toPersianNum(stats.uniqueBuyerCount)} icon={Users} color="teal" />
+        <StatCard label="میانگین خرید تکراری" value={formatCurrency(stats.repeatAvg)} icon={TrendingUp} color="ochre" />
+        <StatCard label="نسبت خرید به حضور" value={formatPercent(stats.purchaseRate)} icon={TrendingUp} color="pink" />
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><ClipboardList className="w-4 h-4 text-gray-700" /> منوی کافه (قیمت ثابت)</h3>
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><ClipboardList className="w-4 h-4 text-[#B74B40]" /> منوی کافه (قیمت ثابت)</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {CAFE_ITEMS.map(item => (
             <button
@@ -88,12 +90,12 @@ export default function CafePage() {
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-gray-700" /> ثبت خرید جدید</h3>
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> ثبت خرید جدید</h3>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <input type="tel" placeholder="شماره تلفن" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
           <input type="text" placeholder="نام" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
           <input type="number" placeholder="مبلغ (تومان)" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
-          <input type="date" value={form.purchase_date} onChange={e => setForm({ ...form, purchase_date: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
+          <JalaliDateInput value={form.purchase_date} onChange={v => setForm({ ...form, purchase_date: v })} required />
           <select value={form.entry_reason} onChange={e => setForm({ ...form, entry_reason: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
             <option value="independent">مستقل</option>
             <option value="workspace">فضای کار</option>
@@ -101,7 +103,7 @@ export default function CafePage() {
             <option value="event">رویداد</option>
           </select>
           <div className="sm:col-span-2 lg:col-span-5 flex items-center gap-3">
-            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50">
+            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
               {submitting ? 'در حال ثبت...' : 'ثبت'}
             </button>
             {message && <span className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message.text}</span>}
@@ -118,7 +120,7 @@ export default function CafePage() {
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => toPersianNum(v)} />
               <Tooltip formatter={(v) => formatCurrency(v)} />
-              <Bar dataKey="amount" fill="#374151" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="amount" fill="#B74B40" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -145,7 +147,7 @@ export default function CafePage() {
               <tbody>
                 {records.map(r => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/30">
-                    <td className="p-3">{new Date(r.purchase_date).toLocaleDateString('fa-IR')}</td>
+                    <td className="p-3">{toJalaliStr(r.purchase_date)}</td>
                     <td className="p-3">{r.person_phone}</td>
                     <td className="p-3">{r.person_name || '-'}</td>
                     <td className="p-3">{formatCurrency(r.amount)}</td>

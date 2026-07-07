@@ -17,6 +17,10 @@ import EventsPage from '@/pages/EventsPage';
 import PersonProfile from '@/pages/PersonProfile';
 import FacilitatorsPage from '@/pages/FacilitatorsPage';
 import FacilitatorProfile from '@/pages/FacilitatorProfile';
+import BrandsPage from '@/pages/BrandsPage';
+import ArtistsPage from '@/pages/ArtistsPage';
+import CalendarPage from '@/pages/CalendarPage';
+import AccountingPage from '@/pages/AccountingPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -55,6 +59,10 @@ const AuthenticatedApp = () => {
       <Route path="/people/:id" element={<PersonProfile />} />
       <Route path="/facilitators" element={<FacilitatorsPage />} />
       <Route path="/facilitators/:id" element={<FacilitatorProfile />} />
+      <Route path="/brands" element={<BrandsPage />} />
+      <Route path="/artists" element={<ArtistsPage />} />
+      <Route path="/calendar" element={<CalendarPage />} />
+      <Route path="/accounting" element={<AccountingPage />} />
       </Route>
     <Route path="*" element={<PageNotFound />} />
     </Routes>

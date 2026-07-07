@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, User, GraduationCap, Calendar } from 'lucide-react';
+import { ArrowRight, User, GraduationCap, Calendar, Phone } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
+import { toJalaliStr } from '@/lib/jalali';
 
 export default function FacilitatorProfile() {
   const { id } = useParams();
@@ -26,7 +27,7 @@ export default function FacilitatorProfile() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="w-8 h-8 border-4 border-gray-200 border-t-gray-700 rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -46,14 +47,16 @@ export default function FacilitatorProfile() {
           {facilitator.photo_url ? (
             <img src={facilitator.photo_url} alt={facilitator.full_name} className="w-20 h-20 rounded-full object-cover flex-shrink-0" />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-              <User className="w-10 h-10 text-gray-700" />
+            <div className="w-20 h-20 rounded-full bg-[#FDF2F1] flex items-center justify-center flex-shrink-0">
+              <User className="w-10 h-10 text-[#B74B40]" />
             </div>
           )}
           <div className="min-w-0">
             <h1 className="text-xl font-bold">{facilitator.full_name}</h1>
+            {facilitator.phone && <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> {facilitator.phone}</p>}
+            {facilitator.studio_name && <p className="text-sm text-muted-foreground mt-1">استودیو: {facilitator.studio_name}</p>}
             {facilitator.bio && <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{facilitator.bio}</p>}
-            <p className="text-xs text-gray-700 mt-3 flex items-center gap-1">
+            <p className="text-xs text-[#B74B40] mt-3 flex items-center gap-1">
               <GraduationCap className="w-3.5 h-3.5" /> {toPersianNum(workshops.length)} کارگاه برگزار کرده
             </p>
           </div>
@@ -76,9 +79,9 @@ export default function FacilitatorProfile() {
                 </div>
                 <div className="text-left flex-shrink-0">
                   <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                    <Calendar className="w-3.5 h-3.5" /> {new Date(w.date).toLocaleDateString('fa-IR')}
+                    <Calendar className="w-3.5 h-3.5" /> {toJalaliStr(w.date)}
                   </p>
-                  <p className="text-xs text-gray-700 mt-1">{toPersianNum(w.participant_count || 0)} شرکت‌کننده</p>
+                  <p className="text-xs text-[#B74B40] mt-1">{toPersianNum(w.participant_count || 0)} شرکت‌کننده</p>
                 </div>
               </div>
             ))}

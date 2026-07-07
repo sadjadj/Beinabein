@@ -1,18 +1,19 @@
 import React from 'react';
 
 const colorMap = {
+  terracotta: { bg: 'bg-[#FDF2F1]', text: 'text-[#B74B40]' },
+  pink: { bg: 'bg-[#FBF0F1]', text: 'text-[#D98B94]' },
+  ochre: { bg: 'bg-[#FBF3EC]', text: 'text-[#B9834B]' },
+  teal: { bg: 'bg-[#F0F7F8]', text: 'text-[#8CB9C0]' },
   dark: { bg: 'bg-gray-100', text: 'text-gray-700' },
-  medium: { bg: 'bg-gray-100', text: 'text-gray-600' },
-  light: { bg: 'bg-gray-50', text: 'text-gray-500' },
-  amber: { bg: 'bg-gray-100', text: 'text-gray-700' },
-  blue: { bg: 'bg-gray-100', text: 'text-gray-600' },
-  green: { bg: 'bg-gray-100', text: 'text-gray-700' },
-  purple: { bg: 'bg-gray-100', text: 'text-gray-600' },
-  rose: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  amber: { bg: 'bg-[#FBF3EC]', text: 'text-[#B9834B]' },
+  blue: { bg: 'bg-[#F0F7F8]', text: 'text-[#8CB9C0]' },
+  green: { bg: 'bg-[#F0F7F8]', text: 'text-[#5A9A8E]' },
+  purple: { bg: 'bg-[#FBF0F1]', text: 'text-[#D98B94]' },
 };
 
-export default function StatCard({ label, value, sublabel, icon: Icon, color = 'dark' }) {
-  const c = colorMap[color] || colorMap.dark;
+export default function StatCard({ label, value, sublabel, icon: Icon, color = 'terracotta' }) {
+  const c = colorMap[color] || colorMap.terracotta;
   return (
     <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3">
