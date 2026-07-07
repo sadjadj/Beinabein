@@ -1,18 +1,10 @@
 {
-  "name": "Facilitator",
+  "name": "Artist",
   "type": "object",
   "properties": {
     "full_name": {
       "type": "string",
       "title": "\u0646\u0627\u0645 \u0648 \u0646\u0627\u0645 \u062e\u0627\u0646\u0648\u0627\u062f\u06af\u06cc"
-    },
-    "photo_url": {
-      "type": "string",
-      "title": "\u0622\u062f\u0631\u0633 \u0639\u06a9\u0633"
-    },
-    "bio": {
-      "type": "string",
-      "title": "\u062f\u0631\u0628\u0627\u0631\u0647 \u062a\u0633\u0647\u06cc\u0644\u06af\u0631"
     },
     "phone": {
       "type": "string",
@@ -22,9 +14,17 @@
       "type": "string",
       "title": "\u0622\u06cc\u062f\u06cc \u0634\u0628\u06a9\u0647 \u0627\u062c\u062a\u0645\u0627\u0639\u06cc"
     },
+    "workshop_name": {
+      "type": "string",
+      "title": "\u0627\u0633\u0645 \u06a9\u0627\u0631\u06af\u0627\u0647 \u062f\u0631 \u0628\u06cc\u0646\u0627\u0628\u06cc\u0646"
+    },
     "studio_name": {
       "type": "string",
       "title": "\u0627\u0633\u0645 \u0627\u0633\u062a\u0648\u062f\u06cc\u0648/\u0628\u0631\u0646\u062f"
+    },
+    "multi_workshop": {
+      "type": "string",
+      "title": "\u0628\u0631\u06af\u0632\u0627\u0631\u06cc \u0686\u0646\u062f \u06a9\u0627\u0631\u06af\u0627\u0647"
     }
   },
   "required": [
