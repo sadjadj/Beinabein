@@ -19,7 +19,7 @@ export default function PeoplePage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   const [syncMessage, setSyncMessage] = useState(null);
-  const [form, setForm] = useState({ phone: '', full_name: '', how_met: 'other', age: '', gender: '', first_usage: '' });
+  const [form, setForm] = useState({ phone: '', full_name: '', how_met: '', age: '', gender: '', first_usage: '' });
   const [nameSuggestions, setNameSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeTags, setActiveTags] = useState([]);
@@ -160,7 +160,8 @@ export default function PeoplePage() {
             )}
           </div>
           <input type="tel" placeholder="شماره تلفن" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
-          <select value={form.how_met} onChange={e => setForm({ ...form, how_met: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+          <select value={form.how_met} onChange={e => setForm({ ...form, how_met: e.target.value })} className="pl-8 pr-3 py-2 rounded-lg border border-input bg-background text-sm">
+            <option value="">نحوه آشنایی...</option>
             {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
           <input type="number" placeholder="سن" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-20" />
