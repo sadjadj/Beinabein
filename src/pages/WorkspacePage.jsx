@@ -1,69 +1,104 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Briefcase, Users, Repeat, Plus, Pencil, Check, X } from 'lucide-react';
+import { Briefcase, Users, Repeat, Plus, Pencil, Check, X, Package, Trash2 } from 'lucide-react';
 import { computeWorkspaceStats, findOrCreatePerson, toPersianNum, formatCurrency } from '@/lib/stats';
-import { itemTypeLabels, paymentMethodLabels, howMetLabels } from '@/lib/labels';
+import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
-
-function nowTime() {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
+import PersonSearch from '@/components/PersonSearch';
+import PriceInput from '@/components/PriceInput';
 
 export default function WorkspacePage() {
   const [records, setRecords] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [form, setForm] = useState({ item_type: 'daily_chair', price: '', person_name: '', person_phone: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', entry_time: '', usage_date: todayGregorian(), how_met: 'other' });
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({});
+  const [tab, setTab] = useState('orders');
+  const [orderForm, setOrderForm] = useState({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', entry_time: '', usage_date: todayGregorian(), how_met: '' });
+  const [subForm, setSubForm] = useState({ name: '', price: '' });
+  const [editingSubId, setEditingSubId] = useState(null);
+  const [editSubForm, setEditSubForm] = useState({});
+  const [editingOrderId, setEditingOrderId] = useState(null);
+  const [editOrderForm, setEditOrderForm] = useState({});
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.WorkspaceOrder.list('-purchase_date', 200);
-      setRecords(data);
+      const [orders, subs] = await Promise.all([
+        base44.entities.WorkspaceOrder.list('-purchase_date', 200),
+        base44.entities.WorkspaceSubscription.list('-created_date', 100)
+      ]);
+      setRecords(orders);
+      setSubscriptions(subs);
     } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleSubmit = async (e) => {
+  const handleOrderSubmit = async (e) => {
     e.preventDefault();
-    if (!form.person_phone || !form.purchase_date) return;
-    setSubmitting(true); setMessage(null);
+    if (!orderForm.person_phone || !orderForm.purchase_date) return;
+    setSubmitting(true);
     try {
-      await findOrCreatePerson(form.person_phone, form.person_name);
+      await findOrCreatePerson(orderForm.person_phone, orderForm.person_name);
+      const sub = subscriptions.find(s => s.id === orderForm.subscription_id);
       await base44.entities.WorkspaceOrder.create({
-        ...form, price: Number(form.price) || 0, quantity: Number(form.quantity) || 1,
-        entry_time: form.entry_time || nowTime()
+        ...orderForm,
+        subscription_name: sub?.name || '',
+        price: sub?.price || 0,
+        quantity: Number(orderForm.quantity) || 1,
+        how_met: orderForm.how_met || 'other'
       });
-      setMessage({ type: 'success', text: 'سفارش ثبت شد' });
-      setForm({ item_type: 'daily_chair', price: '', person_name: '', person_phone: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', entry_time: '', usage_date: todayGregorian(), how_met: 'other' });
+      setOrderForm({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', entry_time: '', usage_date: todayGregorian(), how_met: '' });
       fetchData();
-    } catch (err) {
-      setMessage({ type: 'error', text: 'خطا در ثبت' });
     } finally { setSubmitting(false); }
   };
 
-  const startEdit = (r) => {
-    setEditingId(r.id);
-    setEditForm({ ...r });
+  const handleSubSubmit = async (e) => {
+    e.preventDefault();
+    if (!subForm.name) return;
+    setSubmitting(true);
+    try {
+      if (editingSubId) {
+        await base44.entities.WorkspaceSubscription.update(editingSubId, { ...subForm, price: Number(subForm.price) || 0 });
+        setEditingSubId(null);
+      } else {
+        await base44.entities.WorkspaceSubscription.create({ ...subForm, price: Number(subForm.price) || 0 });
+      }
+      setSubForm({ name: '', price: '' });
+      fetchData();
+    } finally { setSubmitting(false); }
   };
 
-  const saveEdit = async () => {
-    await base44.entities.WorkspaceOrder.update(editingId, {
-      ...editForm, price: Number(editForm.price) || 0, quantity: Number(editForm.quantity) || 1
-    });
-    setEditingId(null);
+  const startEditSub = (s) => {
+    setEditingSubId(s.id);
+    setEditSubForm({ name: s.name, price: s.price });
+  };
+
+  const deleteSub = async (id) => {
+    await base44.entities.WorkspaceSubscription.delete(id);
     fetchData();
   };
 
   const togglePaid = async (r) => {
     await base44.entities.WorkspaceOrder.update(r.id, { is_paid: !r.is_paid });
+    fetchData();
+  };
+
+  const startEditOrder = (r) => {
+    setEditingOrderId(r.id);
+    setEditOrderForm({ ...r, how_met: r.how_met || '' });
+  };
+
+  const saveEditOrder = async () => {
+    const sub = subscriptions.find(s => s.id === editOrderForm.subscription_id);
+    await base44.entities.WorkspaceOrder.update(editingOrderId, {
+      ...editOrderForm, price: sub?.price || editOrderForm.price,
+      subscription_name: sub?.name || editOrderForm.subscription_name,
+      quantity: Number(editOrderForm.quantity) || 1
+    });
+    setEditingOrderId(null);
     fetchData();
   };
 
@@ -73,7 +108,7 @@ export default function WorkspacePage() {
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">فضای کار</h1>
-        <p className="text-sm text-muted-foreground mt-1">ثبت سفارش و گزارش فضای کار</p>
+        <p className="text-sm text-muted-foreground mt-1">ثبت سفارش و مدیریت اشتراک‌ها</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
@@ -83,109 +118,205 @@ export default function WorkspacePage() {
         <StatCard label="درآمد کل" value={formatCurrency(stats.totalRevenue)} icon={Briefcase} color="pink" />
       </div>
 
-      <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> ثبت سفارش جدید</h3>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <select value={form.item_type} onChange={e => setForm({ ...form, item_type: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-            {Object.entries(itemTypeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <input type="number" placeholder="قیمت (تومان)" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-          <input type="text" placeholder="نام مشتری" value={form.person_name} onChange={e => setForm({ ...form, person_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-          <input type="tel" placeholder="شماره تلفن" value={form.person_phone} onChange={e => setForm({ ...form, person_phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
-          <input type="number" placeholder="تعداد" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-          <JalaliDateInput value={form.purchase_date} onChange={v => setForm({ ...form, purchase_date: v })} required />
-          <input type="time" value={form.entry_time} onChange={e => setForm({ ...form, entry_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-          <select value={form.payment_method} onChange={e => setForm({ ...form, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-            {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <select value={form.how_met} onChange={e => setForm({ ...form, how_met: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-            {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <JalaliDateInput value={form.usage_date} onChange={v => setForm({ ...form, usage_date: v })} />
-          <div className="sm:col-span-2 lg:col-span-4 flex items-center gap-3">
-            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-              {submitting ? 'در حال ثبت...' : 'ثبت'}
-            </button>
-            {message && <span className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message.text}</span>}
-          </div>
-        </form>
+      <div className="flex gap-2">
+        <button onClick={() => setTab('orders')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === 'orders' ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>سفارش‌ها</button>
+        <button onClick={() => setTab('subscriptions')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === 'subscriptions' ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>اشتراک‌های فضا کار</button>
       </div>
 
-      <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">سفارش‌های اخیر</h3></div>
-        {loading ? (
-          <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
-        ) : records.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">هنوز سفارشی ثبت نشده است</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-right p-3 font-medium">تاریخ</th>
-                  <th className="text-right p-3 font-medium">نوع</th>
-                  <th className="text-right p-3 font-medium">نام</th>
-                  <th className="text-right p-3 font-medium">شماره</th>
-                  <th className="text-right p-3 font-medium">ورود</th>
-                  <th className="text-right p-3 font-medium">پرداخت</th>
-                  <th className="text-right p-3 font-medium">قیمت</th>
-                  <th className="text-center p-3 font-medium">وضعیت</th>
-                  <th className="text-center p-3 font-medium">ویرایش</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map(r => (
-                  <React.Fragment key={r.id}>
-                    <tr className="border-t border-border hover:bg-muted/30">
-                      <td className="p-3">{toJalaliStr(r.purchase_date)}</td>
-                      <td className="p-3">{itemTypeLabels[r.item_type] || r.item_type}</td>
-                      <td className="p-3">{r.person_name || '-'}</td>
-                      <td className="p-3 text-muted-foreground">{r.person_phone}</td>
-                      <td className="p-3">{r.entry_time || '-'}</td>
-                      <td className="p-3 text-xs">{paymentMethodLabels[r.payment_method] || r.payment_method}</td>
-                      <td className="p-3">{formatCurrency(r.price)}</td>
-                      <td className="p-3 text-center">
-                        <button onClick={() => togglePaid(r)} className={`text-xs ${r.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
-                          {r.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}
-                        </button>
-                      </td>
-                      <td className="p-3 text-center">
-                        <button onClick={() => startEdit(r)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
-                      </td>
+      {tab === 'subscriptions' && (
+        <>
+          <div className="bg-white rounded-xl border border-border p-5">
+            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> {editingSubId ? 'ویرایش اشتراک' : 'افزودن اشتراک جدید'}</h3>
+            <form onSubmit={handleSubSubmit} className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">نام اشتراک</label>
+                <input type="text" placeholder="مثلاً صندلی روزانه" value={editingSubId ? editSubForm.name : subForm.name} onChange={e => editingSubId ? setEditSubForm({ ...editSubForm, name: e.target.value }) : setSubForm({ ...subForm, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" required />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
+                <PriceInput value={editingSubId ? editSubForm.price : subForm.price} onChange={v => editingSubId ? setEditSubForm({ ...editSubForm, price: v }) : setSubForm({ ...subForm, price: v })} required />
+              </div>
+              <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                {submitting ? 'در حال ثبت...' : editingSubId ? 'ذخیره' : 'افزودن'}
+              </button>
+              {editingSubId && <button type="button" onClick={() => setEditingSubId(null)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>}
+            </form>
+          </div>
+
+          <div className="bg-white rounded-xl border border-border overflow-hidden">
+            <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">اشتراک‌های تعریف شده ({toPersianNum(subscriptions.length)})</h3></div>
+            {subscriptions.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">هنوز اشتراکی ثبت نشده است</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-right p-3 font-medium">نام اشتراک</th>
+                      <th className="text-right p-3 font-medium">قیمت</th>
+                      <th className="text-center p-3 font-medium">عملیات</th>
                     </tr>
-                    {editingId === r.id && (
-                      <tr className="border-t border-border bg-muted/20">
-                        <td colSpan={9} className="p-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                            <select value={editForm.item_type} onChange={e => setEditForm({ ...editForm, item_type: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                              {Object.entries(itemTypeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                            </select>
-                            <input type="number" placeholder="قیمت" value={editForm.price} onChange={e => setEditForm({ ...editForm, price: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-                            <input type="text" placeholder="نام" value={editForm.person_name} onChange={e => setEditForm({ ...editForm, person_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-                            <input type="tel" placeholder="شماره" value={editForm.person_phone} onChange={e => setEditForm({ ...editForm, person_phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-                            <input type="time" value={editForm.entry_time || ''} onChange={e => setEditForm({ ...editForm, entry_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-                            <select value={editForm.payment_method} onChange={e => setEditForm({ ...editForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                              {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                            </select>
-                            <select value={editForm.how_met} onChange={e => setEditForm({ ...editForm, how_met: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                              {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                            </select>
-                            <JalaliDateInput value={editForm.usage_date} onChange={v => setEditForm({ ...editForm, usage_date: v })} />
-                            <div className="flex gap-2">
-                              <button onClick={saveEdit} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-[#B74B40] text-white text-sm"><Check className="w-4 h-4" /> ذخیره</button>
-                              <button onClick={() => setEditingId(null)} className="px-3 py-2 rounded-lg border border-border text-sm"><X className="w-4 h-4" /></button>
-                            </div>
+                  </thead>
+                  <tbody>
+                    {subscriptions.map(s => (
+                      <tr key={s.id} className="border-t border-border hover:bg-muted/30">
+                        <td className="p-3 font-medium">{s.name}</td>
+                        <td className="p-3">{formatCurrency(s.price)}</td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => startEditSub(s)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
+                            <button onClick={() => deleteSub(s.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
+
+      {tab === 'orders' && (
+        <>
+          <div className="bg-white rounded-xl border border-border p-5">
+            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> ثبت سفارش جدید</h3>
+            <form onSubmit={handleOrderSubmit} className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">نام مشتری</label>
+                <PersonSearch
+                  personName={orderForm.person_name}
+                  personPhone={orderForm.person_phone}
+                  onNameChange={v => setOrderForm({ ...orderForm, person_name: v })}
+                  onPhoneChange={v => setOrderForm({ ...orderForm, person_phone: v })}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">مدل اشتراک</label>
+                <select value={orderForm.subscription_id} onChange={e => setOrderForm({ ...orderForm, subscription_id: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-44" required>
+                  <option value="">انتخاب اشتراک...</option>
+                  {subscriptions.map(s => <option key={s.id} value={s.id}>{s.name} — {toPersianNum(s.price)} تومان</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">تعداد</label>
+                <input type="number" placeholder="تعداد" value={orderForm.quantity} onChange={e => setOrderForm({ ...orderForm, quantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-20" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">تاریخ خرید</label>
+                <JalaliDateInput value={orderForm.purchase_date} onChange={v => setOrderForm({ ...orderForm, purchase_date: v })} required />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">تاریخ استفاده</label>
+                <JalaliDateInput value={orderForm.usage_date} onChange={v => setOrderForm({ ...orderForm, usage_date: v })} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">زمان ورود</label>
+                <input type="time" value={orderForm.entry_time} onChange={e => setOrderForm({ ...orderForm, entry_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>
+                <select value={orderForm.payment_method} onChange={e => setOrderForm({ ...orderForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                  {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">مدل آشنایی</label>
+                <select value={orderForm.how_met} onChange={e => setOrderForm({ ...orderForm, how_met: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                  <option value="">انتخاب...</option>
+                  {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                {submitting ? 'در حال ثبت...' : 'ثبت سفارش'}
+              </button>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-xl border border-border overflow-hidden">
+            <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">سفارش‌های اخیر</h3></div>
+            {loading ? (
+              <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
+            ) : records.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">هنوز سفارشی ثبت نشده است</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-right p-3 font-medium">تاریخ خرید</th>
+                      <th className="text-right p-3 font-medium">اشتراک</th>
+                      <th className="text-right p-3 font-medium">نام</th>
+                      <th className="text-right p-3 font-medium">شماره</th>
+                      <th className="text-right p-3 font-medium">ورود</th>
+                      <th className="text-right p-3 font-medium">مدل پرداخت</th>
+                      <th className="text-right p-3 font-medium">قیمت</th>
+                      <th className="text-center p-3 font-medium">وضعیت</th>
+                      <th className="text-center p-3 font-medium">ویرایش</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map(r => (
+                      <React.Fragment key={r.id}>
+                        <tr className="border-t border-border hover:bg-muted/30">
+                          <td className="p-3">{toJalaliStr(r.purchase_date)}</td>
+                          <td className="p-3">{r.subscription_name || '-'}</td>
+                          <td className="p-3">{r.person_name || '-'}</td>
+                          <td className="p-3 text-muted-foreground">{r.person_phone}</td>
+                          <td className="p-3">{r.entry_time || '-'}</td>
+                          <td className="p-3 text-xs">{paymentMethodLabels[r.payment_method] || r.payment_method}</td>
+                          <td className="p-3">{formatCurrency(r.price)}</td>
+                          <td className="p-3 text-center">
+                            <button onClick={() => togglePaid(r)} className={`text-xs ${r.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
+                              {r.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}
+                            </button>
+                          </td>
+                          <td className="p-3 text-center">
+                            <button onClick={() => startEditOrder(r)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
+                          </td>
+                        </tr>
+                        {editingOrderId === r.id && (
+                          <tr className="border-t border-border bg-muted/20">
+                            <td colSpan={9} className="p-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                                <PersonSearch
+                                  personName={editOrderForm.person_name}
+                                  personPhone={editOrderForm.person_phone}
+                                  onNameChange={v => setEditOrderForm({ ...editOrderForm, person_name: v })}
+                                  onPhoneChange={v => setEditOrderForm({ ...editOrderForm, person_phone: v })}
+                                />
+                                <select value={editOrderForm.subscription_id} onChange={e => setEditOrderForm({ ...editOrderForm, subscription_id: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                                  <option value="">انتخاب اشتراک...</option>
+                                  {subscriptions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                                <input type="number" placeholder="تعداد" value={editOrderForm.quantity} onChange={e => setEditOrderForm({ ...editOrderForm, quantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+                                <input type="time" value={editOrderForm.entry_time || ''} onChange={e => setEditOrderForm({ ...editOrderForm, entry_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+                                <select value={editOrderForm.payment_method} onChange={e => setEditOrderForm({ ...editOrderForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                                  {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                </select>
+                                <select value={editOrderForm.how_met} onChange={e => setEditOrderForm({ ...editOrderForm, how_met: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                                  <option value="">انتخاب...</option>
+                                  {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                </select>
+                                <JalaliDateInput value={editOrderForm.usage_date} onChange={v => setEditOrderForm({ ...editOrderForm, usage_date: v })} />
+                                <div className="flex gap-2">
+                                  <button onClick={saveEditOrder} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-[#B74B40] text-white text-sm"><Check className="w-4 h-4" /> ذخیره</button>
+                                  <button onClick={() => setEditingOrderId(null)} className="px-3 py-2 rounded-lg border border-border text-sm"><X className="w-4 h-4" /></button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

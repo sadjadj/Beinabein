@@ -18,7 +18,9 @@ import WorkshopAttendancePage from '@/pages/WorkshopAttendancePage';
 import PersonProfile from '@/pages/PersonProfile';
 import FacilitatorsPage from '@/pages/FacilitatorsPage';
 import FacilitatorProfile from '@/pages/FacilitatorProfile';
+import BrandProfile from '@/pages/BrandProfile';
 import BrandsPage from '@/pages/BrandsPage';
+import ArtistProfile from '@/pages/ArtistProfile';
 import ArtistsPage from '@/pages/ArtistsPage';
 import CalendarPage from '@/pages/CalendarPage';
 import AccountingPage from '@/pages/AccountingPage';
@@ -62,7 +64,9 @@ const AuthenticatedApp = () => {
       <Route path="/facilitators" element={<FacilitatorsPage />} />
       <Route path="/facilitators/:id" element={<FacilitatorProfile />} />
       <Route path="/brands" element={<BrandsPage />} />
+      <Route path="/brands/:id" element={<BrandProfile />} />
       <Route path="/artists" element={<ArtistsPage />} />
+      <Route path="/artists/:id" element={<ArtistProfile />} />
       <Route path="/calendar" element={<CalendarPage />} />
       <Route path="/accounting" element={<AccountingPage />} />
       </Route>

@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell } from 'lucide-react';
 import { computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
-import { paymentMethodLabels, itemTypeLabels } from '@/lib/labels';
+import { paymentMethodLabels } from '@/lib/labels';
 import { toJalaliStr } from '@/lib/jalali';
 
 export default function AccountingPage() {
@@ -86,7 +86,7 @@ export default function AccountingPage() {
   }).filter(w => w.facilitatorRevenue > 0);
 
   const allTransactions = [
-    ...workspaceOrders.map(o => ({ ...o, type: 'workspace', amount: (o.price || 0) * (o.quantity || 1), label: itemTypeLabels[o.item_type] || o.item_type })),
+    ...workspaceOrders.map(o => ({ ...o, type: 'workspace', amount: (o.price || 0) * (o.quantity || 1), label: o.subscription_name || '-' })),
     ...itemPurchases.map(p => ({ ...p, type: 'cafe', amount: (p.item_price || 0) * (p.quantity || 1), label: p.item_name })),
     ...workshopPurchases.map(p => ({ ...p, type: 'workshop', amount: (p.price || 0) * (p.quantity || 1), label: p.workshop_title })),
   ].sort((a, b) => (b.purchase_date || '').localeCompare(a.purchase_date || ''));

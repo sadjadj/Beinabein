@@ -67,7 +67,8 @@ export default function CalendarPage() {
                   {dayWorkshops.map(w => (
                     <div key={w.id} className="p-4 flex items-start gap-4">
                       <div className="flex flex-col items-center min-w-[70px]">
-                        <span className="text-sm font-medium">{w.time || '-'}</span>
+                        <span className="text-sm font-medium">{w.start_time || '-'}</span>
+                        {w.end_time && <span className="text-xs text-muted-foreground">تا {w.end_time}</span>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">

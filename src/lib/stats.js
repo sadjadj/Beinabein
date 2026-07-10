@@ -253,6 +253,81 @@ export function computePersonActivity(person, workspaceOrders, itemPurchases, wo
   return { workspace: wsCount, cafe: cafeCount, workshop: workshopCount, total: wsCount + cafeCount + workshopCount };
 }
 
+// ─── Count new people this month ───
+export function countNewThisMonth(people) {
+  const currentMonth = new Date().toISOString().substring(0, 7);
+  return people.filter(p => (p.created_date || '').substring(0, 7) === currentMonth).length;
+}
+
+// ─── Advanced CRM search: by name, phone, workshop title, or facilitator name ───
+export function advancedPersonSearch(people, search, allData) {
+  if (!search) return people;
+  const s = search.toLowerCase().trim();
+  
+  // First check direct matches on person fields
+  const directMatches = people.filter(p =>
+    (p.full_name || '').toLowerCase().includes(s) ||
+    (p.phone || '').includes(s)
+  );
+  if (directMatches.length > 0) return directMatches;
+
+  // Check workshop title matches — find people who purchased those workshops
+  const matchingWorkshops = allData.workshops.filter(w =>
+    (w.title || '').toLowerCase().includes(s)
+  );
+  if (matchingWorkshops.length > 0) {
+    const workshopIds = new Set(matchingWorkshops.map(w => w.id));
+    const phonesInWorkshops = new Set(
+      allData.workshopPurchases.filter(p => workshopIds.has(p.workshop_id)).map(p => p.person_phone)
+    );
+    // Also check sessions
+    const sessionPhones = new Set();
+    allData.sessions?.forEach(sess => {
+      if (matchingWorkshops.some(w => w.id === sess.workshop_id)) {
+        (sess.present_phones || []).forEach(ph => sessionPhones.add(ph));
+      }
+    });
+    return people.filter(p => phonesInWorkshops.has(p.phone) || sessionPhones.has(p.phone));
+  }
+
+  // Check facilitator name matches — find workshops by those facilitators, then people in those workshops
+  const matchingFacilitators = allData.facilitators.filter(f =>
+    (f.full_name || '').toLowerCase().includes(s)
+  );
+  if (matchingFacilitators.length > 0) {
+    const facIds = new Set(matchingFacilitators.map(f => f.id));
+    const workshopsByFacs = allData.workshops.filter(w =>
+      (w.facilitator_ids || []).some(fid => facIds.has(fid))
+    );
+    const workshopIds = new Set(workshopsByFacs.map(w => w.id));
+    const phonesInWorkshops = new Set(
+      allData.workshopPurchases.filter(p => workshopIds.has(p.workshop_id)).map(p => p.person_phone)
+    );
+    const sessionPhones = new Set();
+    allData.sessions?.forEach(sess => {
+      if (workshopsByFacs.some(w => w.id === sess.workshop_id)) {
+        (sess.present_phones || []).forEach(ph => sessionPhones.add(ph));
+      }
+    });
+    return people.filter(p => phonesInWorkshops.has(p.phone) || sessionPhones.has(p.phone));
+  }
+
+  return [];
+}
+
+// ─── Top N collaboration types ───
+export function topCollaborationTypes(records, labels, n = 2) {
+  const counts = {};
+  records.forEach(r => {
+    const ct = r.collaboration_type || 'other';
+    counts[ct] = (counts[ct] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, n)
+    .map(([key, count]) => ({ key, label: labels[key] || key, count }));
+}
+
 // ─── Compute current stock for inventory item ───
 export function computeCurrentStock(item, itemPurchases) {
   const sold = itemPurchases

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { GraduationCap, Users, Plus, Pencil, Check, X, Wallet, Calendar as CalendarIcon, MapPin, Clock } from 'lucide-react';
+import { GraduationCap, Users, Plus, Pencil, Check, X, Wallet } from 'lucide-react';
 import { computeWorkshopStats, computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
+import FacilitatorSearch from '@/components/FacilitatorSearch';
+import PriceInput from '@/components/PriceInput';
 
 export default function WorkshopsPage() {
   const navigate = useNavigate();
@@ -20,7 +22,7 @@ export default function WorkshopsPage() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
     title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '',
-    facilitator_ids: [], space: '', time: '', day_of_week: 'saturday',
+    facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday',
     start_date: todayGregorian(), end_date: '', facilitator_percentage: ''
   });
 
@@ -59,7 +61,7 @@ export default function WorkshopsPage() {
       } else {
         await base44.entities.Workshop.create(payload);
       }
-      setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '' });
+      setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '' });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -71,7 +73,8 @@ export default function WorkshopsPage() {
       title: w.title || '', price: w.price || '', session_count: w.session_count || '',
       is_permanent: w.is_permanent || false, description: w.description || '',
       tags: w.tags || '', facilitator_ids: w.facilitator_ids || [],
-      space: w.space || '', time: w.time || '', day_of_week: w.day_of_week || 'saturday',
+      space: w.space || '', start_time: w.start_time || '', end_time: w.end_time || '',
+      day_of_week: w.day_of_week || 'saturday',
       start_date: w.start_date || todayGregorian(), end_date: w.end_date || '',
       facilitator_percentage: w.facilitator_percentage || ''
     });
@@ -100,7 +103,7 @@ export default function WorkshopsPage() {
           <h1 className="text-2xl font-bold">کارگاه‌ها</h1>
           <p className="text-sm text-muted-foreground mt-1">مدیریت کارگاه‌ها و ثبت‌نامی‌ها</p>
         </div>
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '' }); }} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
+        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '' }); }} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
           <Plus className="w-4 h-4" /> {editingId ? 'ویرایش کارگاه' : 'ثبت کارگاه'}
         </button>
       </div>
@@ -115,22 +118,58 @@ export default function WorkshopsPage() {
       {showForm && (
         <div className="bg-white rounded-xl border border-border p-5">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <input type="text" placeholder="اسم کارگاه" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
-              <input type="number" placeholder="قیمت (تومان)" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              <input type="number" placeholder="تعداد جلسه" value={form.session_count} onChange={e => setForm({ ...form, session_count: e.target.value })} disabled={form.is_permanent} className="px-3 py-2 rounded-lg border border-input bg-background text-sm disabled:opacity-50" />
-              <input type="text" placeholder="تگ کارگاه (موضوعات)" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              <input type="text" placeholder="زمان کارگاه (مثلاً ۱۶:۰۰)" value={form.time} onChange={e => setForm({ ...form, time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              <select value={form.day_of_week} onChange={e => setForm({ ...form, day_of_week: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                {Object.entries(dayLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-              <select value={form.space} onChange={e => setForm({ ...form, space: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                <option value="">انتخاب فضا...</option>
-                {spaces.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-              </select>
-              <input type="number" placeholder="درصد تسهیلگر" value={form.facilitator_percentage} onChange={e => setForm({ ...form, facilitator_percentage: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              <JalaliDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} />
-              <JalaliDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} />
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">اسم کارگاه</label>
+                <input type="text" placeholder="اسم کارگاه" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" required />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
+                <PriceInput value={form.price} onChange={v => setForm({ ...form, price: v })} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">تعداد جلسه</label>
+                <input type="number" placeholder="تعداد جلسه" value={form.session_count} onChange={e => setForm({ ...form, session_count: e.target.value })} disabled={form.is_permanent} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-28 disabled:opacity-50" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">درصد تسهیلگر</label>
+                <input type="number" placeholder="درصد" value={form.facilitator_percentage} onChange={e => setForm({ ...form, facilitator_percentage: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-20" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">تگ کارگاه (موضوعات)</label>
+                <input type="text" placeholder="موضوعات" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-32" />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">ساعت شروع</label>
+                <input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">ساعت پایان</label>
+                <input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">روز کارگاه</label>
+                <select value={form.day_of_week} onChange={e => setForm({ ...form, day_of_week: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                  {Object.entries(dayLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">فضای برگزاری</label>
+                <select value={form.space} onChange={e => setForm({ ...form, space: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                  <option value="">انتخاب فضا...</option>
+                  {spaces.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع</label>
+                <JalaliDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
+                <JalaliDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} />
+              </div>
             </div>
             <textarea placeholder="توضیحات کارگاه" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             <div>
@@ -194,7 +233,7 @@ export default function WorkshopsPage() {
                       <td className="p-3 text-muted-foreground text-xs">{facNames || '-'}</td>
                       <td className="p-3 text-xs">
                         {w.day_of_week && <span>{dayLabels[w.day_of_week]}</span>}
-                        {w.time && <span className="text-muted-foreground block">{w.time}</span>}
+                        {(w.start_time || w.end_time) && <span className="text-muted-foreground block">{w.start_time} - {w.end_time}</span>}
                       </td>
                       <td className="p-3 text-xs">{w.space || '-'}</td>
                       <td className="p-3 text-center font-medium">{toPersianNum(rev.participantCount)}</td>

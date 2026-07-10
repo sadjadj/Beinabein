@@ -66,7 +66,7 @@ export default function AttendancePage() {
                 <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
                   {w.day_of_week && (
                     <p className="flex items-center gap-1.5">
-                      <CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[w.day_of_week]} {w.time && `• ${w.time}`}
+                      <CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[w.day_of_week]} {(w.start_time || w.end_time) && `• ${w.start_time || ''}${w.end_time ? ' تا ' + w.end_time : ''}`}
                     </p>
                   )}
                   {w.space && (
