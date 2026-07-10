@@ -102,3 +102,50 @@ export function formatJalaliShort(gregorianDateStr) {
   const { jm, jd } = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
   return `${jd} ${jMonths[jm - 1]}`;
 }
+
+// Get Jalali date parts {jy, jm, jd} from a Gregorian date string
+export function getJalaliParts(gregorianStr) {
+  if (!gregorianStr) return null;
+  const d = new Date(gregorianStr);
+  if (isNaN(d.getTime())) return null;
+  return gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+
+// Exact Jalali→Gregorian Date (corrects off-by-one in jalaliToGregorian by verifying via gregorianToJalali)
+export function jalaliToGregorianExact(jy, jm, jd) {
+  const { gy, gm, gdd } = jalaliToGregorian(jy, jm, jd);
+  for (let delta = -2; delta <= 2; delta++) {
+    const d = new Date(gy, gm - 1, gdd + delta);
+    const parts = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    if (parts.jy === jy && parts.jm === jm && parts.jd === jd) {
+      return d;
+    }
+  }
+  return null;
+}
+
+// Convert Jalali (jy, jm, jd) to Gregorian YYYY-MM-DD string (exact)
+export function jalaliToGregorianStr(jy, jm, jd) {
+  const d = jalaliToGregorianExact(jy, jm, jd);
+  if (!d) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Number of days in a Jalali month
+export function jalaliDaysInMonth(jy, jm) {
+  if (jm <= 6) return 31;
+  if (jm <= 11) return 30;
+  return jalaliToGregorianExact(jy, 12, 30) ? 30 : 29;
+}
+
+// Day of week for the 1st of a Jalali month (0=Saturday ... 6=Friday)
+export function jalaliFirstWeekday(jy, jm) {
+  const d = jalaliToGregorianExact(jy, jm, 1);
+  if (!d) return 0;
+  return (d.getDay() + 1) % 7;
+}
+
+// Convert number to Persian digits
+export function toPersianDigits(num) {
+  return String(num).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+}

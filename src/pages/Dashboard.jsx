@@ -7,7 +7,7 @@ import { computeOverallStats, computeDailyUniques, computeSectionDistribution, g
 import { toJalaliStr } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 
-const COLORS = ['#D4A574', '#E8B4B0', '#D98B94', '#A8C9CE'];
+const COLORS = ['#B74B40', '#D4A574', '#E8B4B0', '#D98B94'];
 const presets = [
   { key: 'today', label: 'امروز' },
   { key: 'week', label: 'این هفته' },
@@ -129,7 +129,7 @@ export default function Dashboard() {
                   <XAxis dataKey="date" tickFormatter={toJalaliStr} tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip labelFormatter={toJalaliStr} formatter={(v) => [toPersianNum(v) + ' نفر', 'افراد یونیک']} />
-                  <Bar dataKey="count" fill="#D4A574" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="count" fill="#B74B40" radius={[4, 4, 0, 0]}>
                     <LabelList dataKey="count" position="top" formatter={toPersianNum} style={{ fontSize: '10px', fill: '#71717a' }} />
                   </Bar>
                 </BarChart>
