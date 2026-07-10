@@ -104,25 +104,23 @@ export default function FacilitatorsPage() {
           {filtered.map(f => {
             const lastWs = getLastWorkshop(f.id);
             return (
-              <Link key={f.id} to={`/facilitators/${f.id}`} className="bg-white rounded-xl border border-border p-6 hover:shadow-md hover:border-[#B74B40]/30 transition-all">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-[#FDF2F1] flex items-center justify-center flex-shrink-0">
-                    <User className="w-7 h-7 text-[#B74B40]" />
+              <Link key={f.id} to={`/facilitators/${f.id}`} className="bg-white rounded-xl border border-border p-5 hover:shadow-md hover:border-[#B74B40]/30 transition-all flex flex-col">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-[#FDF2F1] flex items-center justify-center flex-shrink-0">
+                    <User className="w-6 h-6 text-[#B74B40]" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-base hover:text-[#B74B40] transition-colors">{f.full_name}</h3>
-                  </div>
+                  <h3 className="font-semibold text-sm hover:text-[#B74B40] transition-colors leading-snug">{f.full_name}</h3>
                 </div>
-                <div className="mt-4 pt-4 border-t border-border">
+                <div className="mt-3 pt-3 border-t border-border min-h-[2.5rem] flex items-center">
                   {lastWs ? (
-                    <div className="flex items-center gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-xs w-full">
                       <GraduationCap className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                      <span className="text-muted-foreground">آخرین کارگاه:</span>
-                      <span className="font-medium text-[#B74B40] truncate">{lastWs.title}</span>
-                      <span className="text-muted-foreground flex-shrink-0">{formatJalaliShort(lastWs.start_date)}</span>
+                      <span className="text-muted-foreground flex-shrink-0">آخرین کارگاه:</span>
+                      <span className="font-medium text-[#B74B40] truncate flex-1 min-w-0">{lastWs.title}</span>
+                      <span className="text-muted-foreground flex-shrink-0 whitespace-nowrap">{formatJalaliShort(lastWs.start_date)}</span>
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground text-center">هنوز کارگاهی برگزار نکرده است</p>
+                    <p className="text-xs text-muted-foreground w-full text-center">هنوز کارگاهی برگزار نکرده است</p>
                   )}
                 </div>
               </Link>

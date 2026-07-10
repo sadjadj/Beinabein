@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import { GraduationCap, Users, Plus, Pencil, Wallet } from 'lucide-react';
+import FacilitatorMultiSearch from '@/components/FacilitatorMultiSearch';
 import { Link } from 'react-router-dom';
 import { computeWorkshopStats, computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
@@ -108,7 +109,17 @@ export default function WorkshopsPage() {
         <StatCard label="تعداد کارگاه" value={toPersianNum(stats.totalWorkshops)} icon={GraduationCap} color="terracotta" />
         <StatCard label="مجموع ثبت‌نامی" value={toPersianNum(stats.totalParticipants)} icon={Users} color="teal" />
         <StatCard label="افراد یونیک" value={toPersianNum(stats.uniqueCount)} icon={Users} color="ochre" />
-        <StatCard label="درآمد کل" value={formatCurrency(stats.totalRevenue)} icon={Wallet} color="pink" />
+        <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">درآمد کل</p>
+              <p className="text-lg lg:text-xl font-bold mt-2 text-foreground break-words leading-tight">{formatCurrency(stats.totalRevenue)}</p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-[#FBF0F1] flex items-center justify-center flex-shrink-0">
+              <Wallet className="w-5 h-5 text-[#D98B94]" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {showForm && (
@@ -161,24 +172,18 @@ export default function WorkshopsPage() {
               <div className="flex items-end gap-2">
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع</label>
-                  <JalaliDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} compact />
+                  <JalaliDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} compact showToday={false} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
-                  <JalaliDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} compact />
+                  <JalaliDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} compact showToday={false} />
                 </div>
               </div>
             </div>
             <textarea placeholder="توضیحات کارگاه" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             <div>
-              <p className="text-xs text-muted-foreground mb-2">تسهیلگران:</p>
-              <div className="flex flex-wrap gap-2">
-                {facilitators.map(f => (
-                  <button key={f.id} type="button" onClick={() => toggleFacilitator(f.id)} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${form.facilitator_ids.includes(f.id) ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>
-                    {f.full_name}
-                  </button>
-                ))}
-              </div>
+              <label className="text-xs text-muted-foreground block mb-2">تسهیلگران:</label>
+              <FacilitatorMultiSearch selectedIds={form.facilitator_ids} onChange={ids => setForm({ ...form, facilitator_ids: ids })} />
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={form.is_permanent} onChange={e => setForm({ ...form, is_permanent: e.target.checked })} className="w-4 h-4" />

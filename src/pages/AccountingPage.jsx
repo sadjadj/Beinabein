@@ -121,18 +121,35 @@ export default function AccountingPage() {
             <Bell className="w-4 h-4" /> یادآوری پرداخت تسهیلگران ({toPersianNum(unpaidFacilitators.length)} مورد)
           </h3>
           <div className="space-y-2">
-            {unpaidFacilitators.map(w => (
-              <div key={w.id} className="bg-white rounded-lg p-3 flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-medium">{w.title}</p>
-                  <p className="text-xs text-muted-foreground">{toPersianNum(w.participantCount)} ثبت‌نام • درصد: {toPersianNum(w.facilitator_percentage || 0)}٪</p>
+            {unpaidFacilitators.map(w => {
+              const settlementDate = w.end_date ? (() => {
+                const d = new Date(w.end_date);
+                d.setMonth(d.getMonth() + 1, 1);
+                return d.toISOString().split('T')[0];
+              })() : null;
+              const isDue = settlementDate && settlementDate <= new Date().toISOString().split('T')[0];
+              return (
+                <div key={w.id} className="bg-white rounded-lg p-3 flex items-center justify-between text-sm">
+                  <div>
+                    <p className="font-medium">{w.title}</p>
+                    <p className="text-xs text-muted-foreground">{toPersianNum(w.participantCount)} ثبت‌نام • درصد: {toPersianNum(w.facilitator_percentage || 0)}٪</p>
+                    {settlementDate ? (
+                      <p className={`text-xs mt-1 flex items-center gap-1 ${isDue ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                        <Bell className="w-3 h-3" />
+                        {isDue ? 'زمان تسویه فرا رسیده: ' : 'زمان تسویه: '}
+                        {toJalaliStr(settlementDate)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">در انتظار پایان کارگاه</p>
+                    )}
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-[#B9834B]">{formatCurrency(w.facilitatorRevenue)}</p>
+                    <button onClick={() => toggleFacilitatorPaid(w)} className="text-xs text-[#B74B40] hover:underline mt-1">ثبت پرداخت</button>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <p className="font-semibold text-[#B9834B]">{formatCurrency(w.facilitatorRevenue)}</p>
-                  <button onClick={() => toggleFacilitatorPaid(w)} className="text-xs text-[#B74B40] hover:underline mt-1">ثبت پرداخت</button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

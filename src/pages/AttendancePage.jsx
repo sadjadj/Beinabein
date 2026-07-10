@@ -58,7 +58,7 @@ export default function AttendancePage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-sm">{w.title}</h3>
+                    <Link to={`/workshops/${w.id}`} className="font-semibold text-sm hover:text-[#B74B40] transition-colors">{w.title}</Link>
                     {w.tags && <p className="text-xs text-muted-foreground mt-1">{w.tags}</p>}
                   </div>
                   <ClipboardCheck className="w-5 h-5 text-[#B74B40] flex-shrink-0" />
@@ -69,7 +69,6 @@ export default function AttendancePage() {
                       <CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[w.day_of_week]} {(w.start_time || w.end_time) && `• ${w.start_time || ''}${w.end_time ? ' تا ' + w.end_time : ''}`}
                     </p>
                   )}
-                  <Link to={`/workshops/${w.id}`} className="text-xs text-[#B74B40] hover:underline mt-1 inline-block">مشاهده صفحه کارگاه</Link>
                   {w.space && (
                     <p className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5" /> {w.space}

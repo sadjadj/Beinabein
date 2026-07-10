@@ -14,7 +14,7 @@ const navItems = [
   { path: '/attendance', label: 'حضور غیاب', icon: ClipboardCheck },
   { path: '/calendar', label: 'تقویم', icon: Calendar },
   { path: '/accounting', label: 'حسابداری', icon: Wallet },
-  { path: '/returns', label: 'بازگشت‌ها', icon: RotateCcw },
+  { path: '/returns', label: 'مرجوعی', icon: RotateCcw },
 ];
 
 export default function Layout() {

@@ -29,7 +29,7 @@ export default function CalendarPage() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold">تقویم برنامه‌ها</h1>
+        <h1 className="text-2xl font-bold">برنامه‌های این هفته</h1>
         <p className="text-sm text-muted-foreground mt-1">برنامه هفتگی کارگاه‌ها</p>
       </div>
 
@@ -41,10 +41,6 @@ export default function CalendarPage() {
         <div className="bg-white rounded-xl border border-border p-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Clock className="w-4 h-4" /> دائمی</div>
           <p className="text-2xl font-bold mt-1">{toPersianNum(workshops.filter(w => w.is_permanent).length)}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="w-4 h-4" /> روزهای فعال</div>
-          <p className="text-2xl font-bold mt-1">{toPersianNum(dayOrder.filter(d => byDay[d].length > 0).length)}</p>
         </div>
         <div className="bg-white rounded-xl border border-border p-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="w-4 h-4" /> این هفته</div>

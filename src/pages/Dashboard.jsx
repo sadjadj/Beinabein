@@ -98,9 +98,9 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="افراد یونیک دوره" value={toPersianNum(stats.uniqueCount)} sublabel="افراد متفاوت" icon={Users} color="terracotta" />
-        <StatCard label="نرخ بازگشت" value={formatPercent(stats.returnRate)} sublabel={`${toPersianNum(stats.totalPeople)} نفر کل`} icon={Repeat} color="ochre" />
-        <StatCard label="شاخص تنوع" value={formatPercent(stats.diversityRate)} sublabel="بیش از یک بخش" icon={Layers} color="pink" />
+        <StatCard label="افراد یونیک دوره" value={toPersianNum(stats.uniqueCount)} sublabel="افراد متفاوت" icon={Users} color="terracotta" info="تعداد افراد متفاوتی که در بازه زمانی انتخاب شده از خدمات بینابین استفاده کرده‌اند." />
+        <StatCard label="نرخ بازگشت" value={formatPercent(stats.returnRate)} sublabel={`${toPersianNum(stats.totalPeople)} نفر کل`} icon={Repeat} color="ochre" info="درصد افرادی که بیش از یک بار از خدمات بینابین استفاده کرده‌اند." />
+        <StatCard label="شاخص تنوع" value={formatPercent(stats.diversityRate)} sublabel="بیش از یک بخش" icon={Layers} color="pink" info="درصد افرادی که از بیش از یک بخش (کافه، فضای کار، کارگاه) استفاده کرده‌اند." />
         <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -145,12 +145,11 @@ export default function Dashboard() {
             <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
           ) : (
             <>
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={sectionDist} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={75} label={({ name, value }) => `${name}: ${toPersianNum(Math.round((value / totalSection) * 100))}%`}>
+                  <Pie data={sectionDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40}>
                     {sectionDist.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="mt-2 space-y-1.5">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Coffee, Users, TrendingUp, Plus, Pencil, Check, X, Package, Trash2, FolderPlus, ShoppingCart, Minus } from 'lucide-react';
+import { Coffee, Users, TrendingUp, Plus, Pencil, Check, X, Package, Trash2, FolderPlus, ShoppingCart, Minus, ChevronDown, ChevronUp } from 'lucide-react';
 import { computeCafeStats, findOrCreatePerson, toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels, purchaseReasonLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
@@ -12,6 +13,7 @@ import PriceInput from '@/components/PriceInput';
 export default function CafePage() {
   const [items, setItems] = useState([]);
   const [purchases, setPurchases] = useState([]);
+  const [people, setPeople] = useState([]);
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,18 +26,23 @@ export default function CafePage() {
   const [editItemForm, setEditItemForm] = useState({});
   const [categoryForm, setCategoryForm] = useState({ name: '' });
   const [tagForm, setTagForm] = useState({ name: '' });
+  const [expandedInvoice, setExpandedInvoice] = useState(null);
+  const [editingInvoiceId, setEditingInvoiceId] = useState(null);
+  const [editInvoiceForm, setEditInvoiceForm] = useState({});
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [invItems, purchs, cats, tgs] = await Promise.all([
+      const [invItems, purchs, cats, tgs, ppl] = await Promise.all([
         base44.entities.InventoryItem.list('-created_date', 500),
         base44.entities.ItemPurchase.list('-purchase_date', 500),
         base44.entities.Category.list('-created_date', 100),
-        base44.entities.CafeTag.list('-created_date', 100)
+        base44.entities.CafeTag.list('-created_date', 100),
+        base44.entities.Person.list('-created_date', 500)
       ]);
       setItems(invItems);
       setPurchases(purchs);
+      setPeople(ppl);
       setCategories(cats);
       setTags(tgs);
     } finally { setLoading(false); }
@@ -67,6 +74,7 @@ export default function CafePage() {
     setSubmitting(true);
     try {
       await findOrCreatePerson(checkout.person_phone, checkout.person_name);
+      const invoiceId = `INV-${Date.now()}`;
       await base44.entities.ItemPurchase.bulkCreate(
         cart.map(c => ({
           person_name: checkout.person_name,
@@ -77,7 +85,8 @@ export default function CafePage() {
           purchase_date: checkout.purchase_date,
           payment_method: checkout.payment_method,
           purchase_reason: checkout.purchase_reason,
-          is_paid: checkout.payment_method === 'free'
+          is_paid: checkout.payment_method === 'free',
+          invoice_id: invoiceId
         }))
       );
       setCart([]);
@@ -147,6 +156,48 @@ export default function CafePage() {
 
   const togglePaid = async (p) => {
     await base44.entities.ItemPurchase.update(p.id, { is_paid: !p.is_paid });
+    fetchData();
+  };
+
+  const personIdByPhone = (phone) => people.find(p => p.phone === phone)?.id;
+
+  // Group purchases by invoice
+  const invoiceGroups = (() => {
+    const groups = {};
+    purchases.forEach(p => {
+      const key = p.invoice_id || `no-inv-${p.id}`;
+      if (!groups[key]) groups[key] = { invoiceId: p.invoice_id, items: [], person_name: p.person_name, person_phone: p.person_phone, purchase_date: p.purchase_date, payment_method: p.payment_method, purchase_reason: p.purchase_reason, is_paid: p.is_paid };
+      groups[key].items.push(p);
+    });
+    return Object.values(groups).map(g => ({
+      ...g,
+      totalAmount: g.items.reduce((s, i) => s + (i.item_price || 0) * (i.quantity || 1), 0),
+      itemCount: g.items.reduce((s, i) => s + (i.quantity || 1), 0)
+    })).sort((a, b) => (b.purchase_date || '').localeCompare(a.purchase_date || ''));
+  })();
+
+  const toggleInvoicePaid = async (group) => {
+    await base44.entities.ItemPurchase.updateMany({ invoice_id: group.invoiceId }, { $set: { is_paid: !group.is_paid } });
+    fetchData();
+  };
+
+  const startEditInvoice = (group) => {
+    setEditingInvoiceId(group.invoiceId || `no-inv-${group.items[0].id}`);
+    setEditInvoiceForm({ payment_method: group.payment_method, purchase_reason: group.purchase_reason, is_paid: group.is_paid });
+  };
+
+  const saveEditInvoice = async (group) => {
+    await base44.entities.ItemPurchase.updateMany({ invoice_id: group.invoiceId }, { $set: { payment_method: editInvoiceForm.payment_method, purchase_reason: editInvoiceForm.purchase_reason, is_paid: editInvoiceForm.is_paid } });
+    setEditingInvoiceId(null);
+    fetchData();
+  };
+
+  const deleteInvoice = async (group) => {
+    if (group.invoiceId) {
+      await base44.entities.ItemPurchase.deleteMany({ invoice_id: group.invoiceId });
+    } else {
+      await base44.entities.ItemPurchase.delete(group.items[0].id);
+    }
     fetchData();
   };
 
@@ -439,43 +490,74 @@ export default function CafePage() {
           </div>
 
           <div className="bg-white rounded-xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">خریدهای اخیر</h3></div>
+            <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">فاکتورهای اخیر</h3></div>
             {loading ? (
               <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
-            ) : purchases.length === 0 ? (
+            ) : invoiceGroups.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">هنوز خریدی ثبت نشده است</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="text-right p-3 font-medium">تاریخ</th>
-                      <th className="text-right p-3 font-medium">آیتم</th>
-                      <th className="text-right p-3 font-medium">نام</th>
-                      <th className="text-right p-3 font-medium">تعداد</th>
-                      <th className="text-right p-3 font-medium">قیمت</th>
-                      <th className="text-right p-3 font-medium">مدل پرداخت</th>
-                      <th className="text-center p-3 font-medium">وضعیت</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {purchases.map(p => (
-                      <tr key={p.id} className="border-t border-border hover:bg-muted/30">
-                        <td className="p-3">{toJalaliStr(p.purchase_date)}</td>
-                        <td className="p-3 font-medium">{p.item_name}</td>
-                        <td className="p-3">{p.person_name || '-'}</td>
-                        <td className="p-3">{toPersianNum(p.quantity)}</td>
-                        <td className="p-3">{formatCurrency(p.item_price * p.quantity)}</td>
-                        <td className="p-3 text-xs">{paymentMethodLabels[p.payment_method] || p.payment_method}</td>
-                        <td className="p-3 text-center">
-                          <button onClick={() => togglePaid(p)} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
-                            {p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}
+              <div className="divide-y divide-border">
+                {invoiceGroups.map((group, idx) => {
+                  const groupKey = group.invoiceId || `no-inv-${idx}`;
+                  const isExpanded = expandedInvoice === groupKey;
+                  const isEditing = editingInvoiceId === groupKey;
+                  const personId = personIdByPhone(group.person_phone);
+                  return (
+                    <div key={groupKey} className="p-3">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-3 text-sm">
+                          <button onClick={() => setExpandedInvoice(isExpanded ? null : groupKey)} className="text-muted-foreground hover:text-foreground">
+                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">{group.purchase_date ? toJalaliStr(group.purchase_date) : '-'}</span>
+                          {personId ? (
+                            <Link to={`/people/${personId}`} className="font-medium hover:text-[#B74B40]">{group.person_name || '-'}</Link>
+                          ) : (
+                            <span className="font-medium">{group.person_name || '-'}</span>
+                          )}
+                          <span className="text-xs text-muted-foreground">{toPersianNum(group.itemCount)} آیتم</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isEditing ? (
+                            <>
+                              <select value={editInvoiceForm.payment_method} onChange={e => setEditInvoiceForm({ ...editInvoiceForm, payment_method: e.target.value })} className="px-2 py-1 rounded-lg border border-input bg-background text-xs">
+                                {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                              </select>
+                              <select value={editInvoiceForm.purchase_reason} onChange={e => setEditInvoiceForm({ ...editInvoiceForm, purchase_reason: e.target.value })} className="px-2 py-1 rounded-lg border border-input bg-background text-xs">
+                                {Object.entries(purchaseReasonLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                              </select>
+                              <label className="flex items-center gap-1 text-xs">
+                                <input type="checkbox" checked={editInvoiceForm.is_paid} onChange={e => setEditInvoiceForm({ ...editInvoiceForm, is_paid: e.target.checked })} className="w-3.5 h-3.5" /> پرداخت
+                              </label>
+                              <button onClick={() => saveEditInvoice(group)} className="text-green-600 hover:text-green-700"><Check className="w-4 h-4" /></button>
+                              <button onClick={() => setEditingInvoiceId(null)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-xs text-muted-foreground">{paymentMethodLabels[group.payment_method] || group.payment_method}</span>
+                              <button onClick={() => toggleInvoicePaid(group)} className={`text-xs ${group.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
+                                {group.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}
+                              </button>
+                              <span className="font-medium text-sm">{formatCurrency(group.totalAmount)}</span>
+                              <button onClick={() => startEditInvoice(group)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => deleteInvoice(group)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="mt-2 pr-8 space-y-1">
+                          {group.items.map(item => (
+                            <div key={item.id} className="flex items-center justify-between text-xs text-muted-foreground py-1">
+                              <span>{item.item_name} ×{toPersianNum(item.quantity)}</span>
+                              <span>{formatCurrency((item.item_price || 0) * (item.quantity || 1))}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

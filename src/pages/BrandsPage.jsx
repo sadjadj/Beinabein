@@ -97,7 +97,7 @@ export default function BrandsPage() {
               <input type="text" value={form.product_type} onChange={e => setForm({ ...form, product_type: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             </div>
             <div className="sm:col-span-2 lg:col-span-3">
-              <label className="text-xs text-muted-foreground block mb-2">تگ‌های همکاری</label>
+              <label className="text-xs text-muted-foreground block mb-2">برچسب‌ها</label>
               <TagInput
                 tags={form.collaboration_tags || []}
                 availableTags={allTags}
@@ -136,10 +136,10 @@ export default function BrandsPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-right p-3 font-medium">نام</th>
-                  <th className="text-right p-3 font-medium">شماره</th>
                   <th className="text-right p-3 font-medium">نام برند</th>
-                  <th className="text-right p-3 font-medium">تگ‌های همکاری</th>
+                  <th className="text-right p-3 font-medium">نام رابط</th>
+                  <th className="text-right p-3 font-medium">شماره</th>
+                  <th className="text-right p-3 font-medium">برچسب‌ها</th>
                   <th className="text-right p-3 font-medium">نوع محصول</th>
                 </tr>
               </thead>
@@ -147,10 +147,10 @@ export default function BrandsPage() {
                 {filtered.map(r => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                     <td className="p-3">
-                      <Link to={`/brands/${r.id}`} className="font-medium hover:text-[#B74B40]">{r.full_name}</Link>
+                      <Link to={`/brands/${r.id}`} className="font-medium hover:text-[#B74B40]">{r.brand_name || r.full_name}</Link>
                     </td>
+                    <td className="p-3">{r.full_name || '-'}</td>
                     <td className="p-3 text-muted-foreground">{r.phone || '-'}</td>
-                    <td className="p-3">{r.brand_name || '-'}</td>
                     <td className="p-3">
                       <div className="flex flex-wrap gap-1">
                         {(r.collaboration_tags || []).map(t => <span key={t} className="px-1.5 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs">{t}</span>)}

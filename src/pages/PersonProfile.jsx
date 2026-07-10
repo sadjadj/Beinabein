@@ -66,8 +66,8 @@ export default function PersonProfile() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
-      <button onClick={() => navigate('/people')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowRight className="w-4 h-4" /> بازگشت به فهرست
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowRight className="w-4 h-4" /> بازگشت
       </button>
 
       <div className="bg-white rounded-xl border border-border p-6">

@@ -55,18 +55,18 @@ export default function ReturnsPage() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold">بازگشت‌ها</h1>
+        <h1 className="text-2xl font-bold">مرجوعی</h1>
         <p className="text-sm text-muted-foreground mt-1">مدیریت مرجوعی‌ها و بازگشت وجه</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-        <StatCard label="کل بازگشت‌ها" value={toPersianNum(totalReturns)} icon={RotateCcw} color="terracotta" />
+        <StatCard label="کل مرجوعی‌ها" value={toPersianNum(totalReturns)} icon={RotateCcw} color="terracotta" />
         <StatCard label="مبلغ کل" value={formatCurrency(totalAmount)} icon={Wallet} color="pink" />
         <StatCard label="در انتظار بازگشت" value={toPersianNum(pendingCount)} icon={AlertCircle} color="ochre" />
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> ثبت بازگشت جدید</h3>
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> ثبت مرجوعی جدید</h3>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="text-xs text-muted-foreground block mb-1">نام مشتری</label>
@@ -85,27 +85,27 @@ export default function ReturnsPage() {
             <PriceInput value={form.amount} onChange={v => setForm({ ...form, amount: v })} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">تاریخ بازگشت *</label>
+            <label className="text-xs text-muted-foreground block mb-1">تاریخ مرجوعی *</label>
             <JalaliDateInput value={form.return_date} onChange={v => setForm({ ...form, return_date: v })} required />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">دلیل</label>
-            <input type="text" placeholder="دلیل بازگشت" value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            <input type="text" placeholder="دلیل مرجوعی" value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
           </div>
           <div className="sm:col-span-2 lg:col-span-3">
             <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-              {submitting ? 'در حال ثبت...' : 'ثبت بازگشت'}
+              {submitting ? 'در حال ثبت...' : 'ثبت مرجوعی'}
             </button>
           </div>
         </form>
       </div>
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">فهرست بازگشت‌ها ({toPersianNum(returns.length)})</h3></div>
+        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">فهرست مرجوعی‌ها ({toPersianNum(returns.length)})</h3></div>
         {loading ? (
           <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
         ) : returns.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">هنوز بازگشتی ثبت نشده است</div>
+          <div className="p-8 text-center text-muted-foreground">هنوز مرجوعی ثبت نشده است</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

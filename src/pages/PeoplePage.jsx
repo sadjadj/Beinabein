@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import { Users, Calendar, Search, Sparkles, Plus } from 'lucide-react';
-import { computeLastNonCafeService, countNewThisMonth, advancedPersonSearch, toPersianNum } from '@/lib/stats';
-import { howMetLabels } from '@/lib/labels';
-import { formatJalaliShort } from '@/lib/jalali';
+import { computeLastNonCafeService, countNewThisMonth, advancedPersonSearch, toPersianNum, formatPercent } from '@/lib/stats';
+import { howMetLabels, genderLabels } from '@/lib/labels';
+import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
+import JalaliDateInput from '@/components/JalaliDateInput';
 
 export default function PeoplePage() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function PeoplePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addForm, setAddForm] = useState({ full_name: '', phone: '' });
+  const [addForm, setAddForm] = useState({ full_name: '', phone: '', how_met: '', age: '', gender: '', first_usage: '', notes: '', social_id: '' });
   const [adding, setAdding] = useState(false);
 
   const fetchData = async () => {
@@ -41,8 +42,12 @@ export default function PeoplePage() {
     if (!addForm.full_name || !addForm.phone) return;
     setAdding(true);
     try {
-      await base44.entities.Person.create({ ...addForm });
-      setAddForm({ full_name: '', phone: '' });
+      await base44.entities.Person.create({
+        ...addForm,
+        age: addForm.age ? Number(addForm.age) : null,
+        first_usage: addForm.first_usage || null
+      });
+      setAddForm({ full_name: '', phone: '', how_met: '', age: '', gender: '', first_usage: '', notes: '', social_id: '' });
       setShowAddForm(false);
       fetchData();
     } finally { setAdding(false); }
@@ -63,21 +68,81 @@ export default function PeoplePage() {
         <StatCard label="افراد اضافه شده در این ماه" value={toPersianNum(newThisMonth)} icon={Calendar} color="ochre" />
       </div>
 
+      {people.length > 0 && (
+        <div className="bg-white rounded-xl border border-border p-5">
+          <h3 className="text-sm font-semibold mb-3">توزیع جنسیتی</h3>
+          <div className="grid grid-cols-3 gap-4">
+            {(() => {
+              const male = people.filter(p => p.gender === 'male').length;
+              const female = people.filter(p => p.gender === 'female').length;
+              const unknown = people.length - male - female;
+              const total = people.length;
+              const items = [
+                { label: 'آقا', count: male, color: 'bg-[#8CB9C0]', text: 'text-[#8CB9C0]' },
+                { label: 'خانم', count: female, color: 'bg-[#D98B94]', text: 'text-[#D98B94]' },
+                { label: 'نامشخص', count: unknown, color: 'bg-gray-300', text: 'text-gray-400' },
+              ];
+              return items.map(item => (
+                <div key={item.label} className="text-center">
+                  <div className="relative h-2 bg-muted rounded-full overflow-hidden mb-2">
+                    <div className={`absolute inset-y-0 right-0 ${item.color} rounded-full`} style={{ width: `${(item.count / total) * 100}%` }} />
+                  </div>
+                  <p className={`text-lg font-bold ${item.text}`}>{formatPercent((item.count / total) * 100)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.label} • {toPersianNum(item.count)} نفر</p>
+                </div>
+              ));
+            })()}
+          </div>
+        </div>
+      )}
+
       {showAddForm && (
         <div className="bg-white rounded-xl border border-border p-5">
-          <form onSubmit={handleAddPerson} className="flex flex-wrap items-end gap-4">
+          <form onSubmit={handleAddPerson} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">نام و نام خانوادگی *</label>
-              <input type="text" value={addForm.full_name} onChange={e => setAddForm({ ...addForm, full_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-52" required />
+              <input type="text" value={addForm.full_name} onChange={e => setAddForm({ ...addForm, full_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">شماره تلفن *</label>
-              <input type="tel" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-40" required />
+              <input type="tel" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
             </div>
-            <button type="submit" disabled={adding} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-              {adding ? 'در حال ثبت...' : 'ثبت'}
-            </button>
-            <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">نحوه آشنایی</label>
+              <select value={addForm.how_met} onChange={e => setAddForm({ ...addForm, how_met: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                <option value="">انتخاب...</option>
+                {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">سن</label>
+              <input type="number" value={addForm.age} onChange={e => setAddForm({ ...addForm, age: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">جنسیت</label>
+              <select value={addForm.gender} onChange={e => setAddForm({ ...addForm, gender: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                <option value="">انتخاب...</option>
+                {Object.entries(genderLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">آیدی شبکه اجتماعی</label>
+              <input type="text" value={addForm.social_id} onChange={e => setAddForm({ ...addForm, social_id: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">تاریخ ورود</label>
+              <JalaliDateInput value={addForm.first_usage} onChange={v => setAddForm({ ...addForm, first_usage: v })} />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="text-xs text-muted-foreground block mb-1">یادداشت</label>
+              <textarea value={addForm.notes} onChange={e => setAddForm({ ...addForm, notes: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
+              <button type="submit" disabled={adding} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                {adding ? 'در حال ثبت...' : 'ثبت'}
+              </button>
+              <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
+            </div>
           </form>
         </div>
       )}

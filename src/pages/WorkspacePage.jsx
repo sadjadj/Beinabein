@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Briefcase, Users, Repeat, Plus, Pencil, Check, X, Package, Trash2 } from 'lucide-react';
+import { Briefcase, Users, Repeat, Plus, ChevronLeft, Pencil, Trash2 } from 'lucide-react';
 import { computeWorkspaceStats, findOrCreatePerson, toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
@@ -10,17 +11,16 @@ import PersonSearch from '@/components/PersonSearch';
 import PriceInput from '@/components/PriceInput';
 
 export default function WorkspacePage() {
+  const navigate = useNavigate();
   const [records, setRecords] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [tab, setTab] = useState('orders');
-  const [orderForm, setOrderForm] = useState({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', entry_time: '', usage_date: todayGregorian(), how_met: '' });
+  const [orderForm, setOrderForm] = useState({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_date: '', how_met: '' });
   const [subForm, setSubForm] = useState({ name: '', price: '' });
   const [editingSubId, setEditingSubId] = useState(null);
   const [editSubForm, setEditSubForm] = useState({});
-  const [editingOrderId, setEditingOrderId] = useState(null);
-  const [editOrderForm, setEditOrderForm] = useState({});
 
   const fetchData = async () => {
     setLoading(true);
@@ -50,7 +50,7 @@ export default function WorkspacePage() {
         quantity: Number(orderForm.quantity) || 1,
         how_met: orderForm.how_met || 'other'
       });
-      setOrderForm({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', entry_time: '', usage_date: todayGregorian(), how_met: '' });
+      setOrderForm({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_date: '', how_met: '' });
       fetchData();
     } finally { setSubmitting(false); }
   };
@@ -83,22 +83,6 @@ export default function WorkspacePage() {
 
   const togglePaid = async (r) => {
     await base44.entities.WorkspaceOrder.update(r.id, { is_paid: !r.is_paid });
-    fetchData();
-  };
-
-  const startEditOrder = (r) => {
-    setEditingOrderId(r.id);
-    setEditOrderForm({ ...r, how_met: r.how_met || '' });
-  };
-
-  const saveEditOrder = async () => {
-    const sub = subscriptions.find(s => s.id === editOrderForm.subscription_id);
-    await base44.entities.WorkspaceOrder.update(editingOrderId, {
-      ...editOrderForm, price: sub?.price || editOrderForm.price,
-      subscription_name: sub?.name || editOrderForm.subscription_name,
-      quantity: Number(editOrderForm.quantity) || 1
-    });
-    setEditingOrderId(null);
     fetchData();
   };
 
@@ -222,7 +206,7 @@ export default function WorkspacePage() {
                 <FloatingDateInput value={orderForm.usage_date} onChange={v => setOrderForm({ ...orderForm, usage_date: v })} />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">زمان ورود</label>
+                <label className="text-xs text-muted-foreground block mb-1">زمان ورود (ساعت)</label>
                 <input type="time" value={orderForm.entry_time} onChange={e => setOrderForm({ ...orderForm, entry_time: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
               </div>
               <div>
@@ -263,64 +247,28 @@ export default function WorkspacePage() {
                       <th className="text-right p-3 font-medium">شماره</th>
                       <th className="text-right p-3 font-medium">ورود</th>
                       <th className="text-right p-3 font-medium">مدل پرداخت</th>
-                      <th className="text-right p-3 font-medium">قیمت</th>
                       <th className="text-center p-3 font-medium">وضعیت</th>
-                      <th className="text-center p-3 font-medium">ویرایش</th>
+                      <th className="text-center p-3 font-medium"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {records.map(r => (
-                      <React.Fragment key={r.id}>
-                        <tr className="border-t border-border hover:bg-muted/30">
-                          <td className="p-3">{toJalaliStr(r.purchase_date)}</td>
-                          <td className="p-3">{r.subscription_name || '-'}</td>
-                          <td className="p-3">{r.person_name || '-'}</td>
-                          <td className="p-3 text-muted-foreground">{r.person_phone}</td>
-                          <td className="p-3">{r.entry_time || '-'}</td>
-                          <td className="p-3 text-xs">{paymentMethodLabels[r.payment_method] || r.payment_method}</td>
-                          <td className="p-3">{formatCurrency(r.price)}</td>
-                          <td className="p-3 text-center">
-                            <button onClick={() => togglePaid(r)} className={`text-xs ${r.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
-                              {r.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}
-                            </button>
-                          </td>
-                          <td className="p-3 text-center">
-                            <button onClick={() => startEditOrder(r)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
-                          </td>
-                        </tr>
-                        {editingOrderId === r.id && (
-                          <tr className="border-t border-border bg-muted/20">
-                            <td colSpan={9} className="p-4">
-                              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                                <PersonSearch
-                                  personName={editOrderForm.person_name}
-                                  personPhone={editOrderForm.person_phone}
-                                  onNameChange={v => setEditOrderForm({ ...editOrderForm, person_name: v })}
-                                  onPhoneChange={v => setEditOrderForm({ ...editOrderForm, person_phone: v })}
-                                />
-                                <select value={editOrderForm.subscription_id} onChange={e => setEditOrderForm({ ...editOrderForm, subscription_id: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                                  <option value="">انتخاب اشتراک...</option>
-                                  {subscriptions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
-                                <input type="number" placeholder="تعداد" value={editOrderForm.quantity} onChange={e => setEditOrderForm({ ...editOrderForm, quantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-                                <input type="time" value={editOrderForm.entry_time || ''} onChange={e => setEditOrderForm({ ...editOrderForm, entry_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-                                <select value={editOrderForm.payment_method} onChange={e => setEditOrderForm({ ...editOrderForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                                  {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                                </select>
-                                <select value={editOrderForm.how_met} onChange={e => setEditOrderForm({ ...editOrderForm, how_met: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                                  <option value="">انتخاب...</option>
-                                  {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                                </select>
-                                <FloatingDateInput value={editOrderForm.usage_date} onChange={v => setEditOrderForm({ ...editOrderForm, usage_date: v })} />
-                                <div className="flex gap-2">
-                                  <button onClick={saveEditOrder} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-[#B74B40] text-white text-sm"><Check className="w-4 h-4" /> ذخیره</button>
-                                  <button onClick={() => setEditingOrderId(null)} className="px-3 py-2 rounded-lg border border-border text-sm"><X className="w-4 h-4" /></button>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
+                      <tr key={r.id} className="border-t border-border hover:bg-[#FDF2F1]/30 cursor-pointer" onClick={() => navigate(`/workspace/${r.id}`)}>
+                        <td className="p-3">{r.purchase_date ? toJalaliStr(r.purchase_date) : '-'}</td>
+                        <td className="p-3">{r.subscription_name || '-'}</td>
+                        <td className="p-3">{r.person_name || '-'}</td>
+                        <td className="p-3 text-muted-foreground">{r.person_phone}</td>
+                        <td className="p-3">{r.entry_time || '-'}</td>
+                        <td className="p-3 text-xs">{paymentMethodLabels[r.payment_method] || r.payment_method}</td>
+                        <td className="p-3 text-center">
+                          <span className={`text-xs ${r.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
+                            {r.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <ChevronLeft className="w-4 h-4 text-muted-foreground inline-block" />
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>

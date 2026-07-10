@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Plus, Check, X, Calendar as CalendarIcon, Users, Trash2 } from 'lucide-react';
+import { ArrowRight, Plus, Check, X, Calendar as CalendarIcon, Users, Trash2, Pencil } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
@@ -17,6 +17,8 @@ export default function WorkshopAttendancePage() {
   const [showAddSession, setShowAddSession] = useState(false);
   const [newSessionDate, setNewSessionDate] = useState(todayGregorian());
   const [submitting, setSubmitting] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [editSessionDate, setEditSessionDate] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -28,7 +30,7 @@ export default function WorkshopAttendancePage() {
       ]);
       setWorkshop(w);
       setPurchases(purchs.filter(p => p.workshop_id === workshopId));
-      setSessions(sess.filter(s => s.workshop_id === workshopId).sort((a, b) => (a.session_number || 0) - (b.session_number || 0)));
+      setSessions(sess.filter(s => s.workshop_id === workshopId).sort((a, b) => (b.session_number || 0) - (a.session_number || 0)));
     } finally { setLoading(false); }
   };
 
@@ -60,7 +62,19 @@ export default function WorkshopAttendancePage() {
 
   const deleteSession = async (sessionId) => {
     await base44.entities.WorkshopSession.delete(sessionId);
+    setEditingSessionId(null);
     fetchData();
+  };
+
+  const updateSessionDate = async (sessionId) => {
+    await base44.entities.WorkshopSession.update(sessionId, { session_date: editSessionDate });
+    setEditingSessionId(null);
+    fetchData();
+  };
+
+  const startEditSession = (session) => {
+    setEditingSessionId(session.id);
+    setEditSessionDate(session.session_date || todayGregorian());
   };
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
@@ -70,14 +84,14 @@ export default function WorkshopAttendancePage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      <button onClick={() => navigate('/attendance')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowRight className="w-4 h-4" /> بازگشت به فهرست کارگاه‌ها
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowRight className="w-4 h-4" /> بازگشت
       </button>
 
       <div className="bg-white rounded-xl border border-border p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold">{workshop.title}</h1>
+            <Link to={`/workshops/${workshop.id}`} className="text-xl font-bold hover:text-[#B74B40] transition-colors">{workshop.title}</Link>
             <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
               {workshop.day_of_week && <span className="flex items-center gap-1"><CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[workshop.day_of_week]} {(workshop.start_time || workshop.end_time) && `• ${workshop.start_time || ''}${workshop.end_time ? ' تا ' + workshop.end_time : ''}`}</span>}
               <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {toPersianNum(participants.length)} ثبت‌نامی</span>
@@ -122,6 +136,15 @@ export default function WorkshopAttendancePage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground">{toPersianNum(presentCount)} از {toPersianNum(participants.length)} نفر حاضر</span>
+                    {editingSessionId === session.id ? (
+                      <div className="flex items-center gap-2">
+                        <JalaliDateInput value={editSessionDate} onChange={setEditSessionDate} showToday={false} />
+                        <button onClick={() => updateSessionDate(session.id)} className="text-green-600 hover:text-green-700"><Check className="w-4 h-4" /></button>
+                        <button onClick={() => setEditingSessionId(null)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                      </div>
+                    ) : (
+                      <button onClick={() => startEditSession(session)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
+                    )}
                     <button onClick={() => deleteSession(session.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>

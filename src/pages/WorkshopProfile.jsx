@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Pencil, Check, X, Users, Calendar, Clock, MapPin, GraduationCap, ClipboardCheck, Plus } from 'lucide-react';
-import { toPersianNum, formatCurrency, computeWorkshopRevenue } from '@/lib/stats';
-import { dayLabels, paymentMethodLabels } from '@/lib/labels';
+import { ArrowRight, Pencil, Check, X, Users, Calendar, Clock, MapPin, GraduationCap, ClipboardCheck, Plus, Trash2 } from 'lucide-react';
+import { toPersianNum, formatCurrency, computeWorkshopRevenue, findOrCreatePerson } from '@/lib/stats';
+import { dayLabels, paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { formatJalaliShort, todayGregorian, formatJalali } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
-import FacilitatorSearch from '@/components/FacilitatorSearch';
+import FacilitatorMultiSearch from '@/components/FacilitatorMultiSearch';
 import PriceInput from '@/components/PriceInput';
+import PersonSearch from '@/components/PersonSearch';
 
 export default function WorkshopProfile() {
   const { id } = useParams();
@@ -21,6 +22,9 @@ export default function WorkshopProfile() {
   const [editing, setEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({});
+  const [showAddReg, setShowAddReg] = useState(false);
+  const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false });
+  const [editingRegId, setEditingRegId] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -119,6 +123,39 @@ export default function WorkshopProfile() {
     }));
   };
 
+  const addRegistration = async () => {
+    if (!regForm.person_phone) return;
+    setSubmitting(true);
+    try {
+      await findOrCreatePerson(regForm.person_phone, regForm.person_name);
+      await base44.entities.WorkshopPurchase.create({
+        workshop_id: id,
+        workshop_title: workshop.title,
+        person_name: regForm.person_name,
+        person_phone: regForm.person_phone,
+        price: Number(regForm.price) || workshop.price || 0,
+        quantity: Number(regForm.quantity) || 1,
+        purchase_date: regForm.purchase_date,
+        payment_method: regForm.payment_method,
+        how_met: regForm.how_met || 'other',
+        is_paid: regForm.is_paid
+      });
+      setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false });
+      setShowAddReg(false);
+      fetchData();
+    } finally { setSubmitting(false); }
+  };
+
+  const deleteRegistration = async (purchaseId) => {
+    await base44.entities.WorkshopPurchase.delete(purchaseId);
+    fetchData();
+  };
+
+  const toggleRegPaid = async (p) => {
+    await base44.entities.WorkshopPurchase.update(p.id, { is_paid: !p.is_paid });
+    fetchData();
+  };
+
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
   if (!workshop) return <div className="p-6 text-center text-muted-foreground">کارگاهی یافت نشد</div>;
 
@@ -127,8 +164,8 @@ export default function WorkshopProfile() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
-      <button onClick={() => navigate('/workshops')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowRight className="w-4 h-4" /> بازگشت به کارگاه‌ها
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowRight className="w-4 h-4" /> بازگشت
       </button>
 
       {editing ? (
@@ -177,23 +214,17 @@ export default function WorkshopProfile() {
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع</label>
-              <JalaliDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} />
+              <JalaliDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} showToday={false} />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
-              <JalaliDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} />
+              <JalaliDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} showToday={false} />
             </div>
           </div>
           <textarea placeholder="توضیحات کارگاه" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
           <div>
-            <p className="text-xs text-muted-foreground mb-2">تسهیلگران:</p>
-            <div className="flex flex-wrap gap-2">
-              {facilitators.map(f => (
-                <button key={f.id} type="button" onClick={() => toggleFacilitator(f.id)} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${form.facilitator_ids.includes(f.id) ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>
-                  {f.full_name}
-                </button>
-              ))}
-            </div>
+            <label className="text-xs text-muted-foreground block mb-2">تسهیلگران:</label>
+            <FacilitatorMultiSearch selectedIds={form.facilitator_ids} onChange={ids => setForm({ ...form, facilitator_ids: ids })} />
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={form.is_permanent} onChange={e => setForm({ ...form, is_permanent: e.target.checked })} className="w-4 h-4" />
@@ -242,7 +273,36 @@ export default function WorkshopProfile() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border border-border p-5">
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-[#B74B40]" /> ثبت‌نامی‌ها ({toPersianNum(purchases.length)})</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2"><Users className="w-4 h-4 text-[#B74B40]" /> ثبت‌نامی‌ها ({toPersianNum(purchases.length)})</h3>
+                <button onClick={() => setShowAddReg(!showAddReg)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-xs font-medium hover:bg-[#A03D34]">
+                  <Plus className="w-3.5 h-3.5" /> افزودن
+                </button>
+              </div>
+              {showAddReg && (
+                <div className="mb-3 p-3 bg-muted/30 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm({ ...regForm, person_name: v })} onPhoneChange={v => setRegForm({ ...regForm, person_phone: v })} />
+                  <PriceInput value={regForm.price} onChange={v => setRegForm({ ...regForm, price: v })} />
+                  <input type="number" placeholder="تعداد" value={regForm.quantity} onChange={e => setRegForm({ ...regForm, quantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+                  <JalaliDateInput value={regForm.purchase_date} onChange={v => setRegForm({ ...regForm, purchase_date: v })} />
+                  <select value={regForm.payment_method} onChange={e => setRegForm({ ...regForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                    {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                  <select value={regForm.how_met} onChange={e => setRegForm({ ...regForm, how_met: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                    <option value="">نحوه آشنایی...</option>
+                    {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={regForm.is_paid} onChange={e => setRegForm({ ...regForm, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
+                  </label>
+                  <div className="sm:col-span-2 flex gap-2">
+                    <button onClick={addRegistration} disabled={submitting} className="px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                      {submitting ? 'در حال ثبت...' : 'ثبت'}
+                    </button>
+                    <button onClick={() => setShowAddReg(false)} className="px-3 py-1.5 rounded-lg border border-border text-sm">انصراف</button>
+                  </div>
+                </div>
+              )}
               {purchases.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">هنوز ثبت‌نامی وجود ندارد</p>
               ) : (
@@ -255,7 +315,8 @@ export default function WorkshopProfile() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">{paymentMethodLabels[p.payment_method] || p.payment_method}</span>
-                        <span className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</span>
+                        <button onClick={() => toggleRegPaid(p)} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
+                        <button onClick={() => deleteRegistration(p.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   ))}
