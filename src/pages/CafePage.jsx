@@ -269,10 +269,6 @@ export default function CafePage() {
                 <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
                 <PriceInput value={editingItemId ? editItemForm.price : itemForm.price} onChange={v => editingItemId ? setEditItemForm({ ...editItemForm, price: v }) : setItemForm({ ...itemForm, price: v })} required />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">برند</label>
-                <input type="text" placeholder="برند" value={editingItemId ? editItemForm.brand : itemForm.brand} onChange={e => editingItemId ? setEditItemForm({ ...editItemForm, brand: e.target.value }) : setItemForm({ ...itemForm, brand: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              </div>
               <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
                 <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
                   {submitting ? 'در حال ثبت...' : editingItemId ? 'ذخیره' : 'افزودن'}

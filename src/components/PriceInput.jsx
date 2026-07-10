@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { persianToEnglish } from '@/lib/inputUtils';
 
 export default function PriceInput({ value, onChange, placeholder = 'قیمت به تومان', required }) {
   const [display, setDisplay] = useState('');
@@ -12,7 +13,7 @@ export default function PriceInput({ value, onChange, placeholder = 'قیمت ب
   }, [value]);
 
   const handleChange = (e) => {
-    const raw = e.target.value.replace(/[^0-9]/g, '');
+    const raw = persianToEnglish(e.target.value).replace(/[^0-9]/g, '');
     if (raw === '') {
       setDisplay('');
       onChange('');

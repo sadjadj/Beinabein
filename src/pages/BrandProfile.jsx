@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ArrowRight, Tag, Phone, Pencil, Check, X } from 'lucide-react';
 import TagInput from '@/components/TagInput';
+import { sanitizePhone } from '@/lib/inputUtils';
 
 export default function BrandProfile() {
   const { id } = useParams();
@@ -68,7 +69,7 @@ export default function BrandProfile() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">شماره تماس</label>
-                <input type="tel" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+                <input type="tel" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: sanitizePhone(e.target.value) })} dir="ltr" placeholder="۰xxxxxxxxxx" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">آیدی شبکه اجتماعی</label>
