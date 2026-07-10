@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import JalaliCalendar from './JalaliCalendar';
 
@@ -34,9 +34,18 @@ export default function JalaliDateInput({ value, onChange, required, placeholder
           <button
             type="button"
             onClick={setToday}
-            className="text-[11px] px-2 py-1 rounded-md bg-muted text-muted-foreground hover:bg-muted/80 whitespace-nowrap ml-1 mr-1 flex-shrink-0"
+            className="text-[11px] px-2 py-1 rounded-md bg-muted text-muted-foreground hover:bg-muted/80 whitespace-nowrap ml-1 flex-shrink-0"
           >
             امروز
+          </button>
+        )}
+        {hasValue && (
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); onChange(''); }}
+            className="text-muted-foreground hover:text-foreground p-1 flex-shrink-0"
+          >
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
