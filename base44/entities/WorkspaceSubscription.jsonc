@@ -1,0 +1,19 @@
+{
+  "name": "WorkspaceSubscription",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "\u0646\u0627\u0645 \u0627\u0634\u062a\u0631\u0627\u06a9"
+    },
+    "price": {
+      "type": "number",
+      "default": 0,
+      "title": "\u0642\u06cc\u0645\u062a"
+    }
+  },
+  "required": [
+    "name",
+    "price"
+  ]
+}
