@@ -173,6 +173,18 @@ export function computeDailyUniques(workspaceOrders, itemPurchases, workshopPurc
   workspaceOrders.forEach(o => addEntry(o.purchase_date, o.person_phone));
   itemPurchases.forEach(p => addEntry(p.purchase_date, p.person_phone));
   workshopPurchases.forEach(w => addEntry(w.purchase_date, w.person_phone));
+
+  // Fill in missing days within the range so the chart shows continuous data
+  if (range && range.start && range.end) {
+    let cursor = new Date(range.start);
+    const end = new Date(range.end);
+    while (cursor <= end) {
+      const dateStr = formatDate(cursor);
+      if (!days[dateStr]) days[dateStr] = new Set();
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
+
   return Object.entries(days)
     .map(([date, phones]) => ({ date, count: phones.size }))
     .sort((a, b) => a.date.localeCompare(b.date));

@@ -15,17 +15,15 @@ export default function CafePage() {
   const [purchases, setPurchases] = useState([]);
   const [people, setPeople] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [tab, setTab] = useState('purchases');
   const [cart, setCart] = useState([]);
   const [checkout, setCheckout] = useState({ person_name: '', person_phone: '', purchase_date: todayGregorian(), payment_method: 'cash', purchase_reason: 'independent' });
-  const [itemForm, setItemForm] = useState({ name: '', category: '', price: '', brand: '', tags: [] });
+  const [itemForm, setItemForm] = useState({ name: '', category: '', price: '', brand: '' });
   const [editingItemId, setEditingItemId] = useState(null);
   const [editItemForm, setEditItemForm] = useState({});
   const [categoryForm, setCategoryForm] = useState({ name: '' });
-  const [tagForm, setTagForm] = useState({ name: '' });
   const [expandedInvoice, setExpandedInvoice] = useState(null);
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
   const [editInvoiceForm, setEditInvoiceForm] = useState({});
@@ -33,18 +31,16 @@ export default function CafePage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [invItems, purchs, cats, tgs, ppl] = await Promise.all([
+      const [invItems, purchs, cats, ppl] = await Promise.all([
         base44.entities.InventoryItem.list('-created_date', 500),
         base44.entities.ItemPurchase.list('-purchase_date', 500),
         base44.entities.Category.list('-created_date', 100),
-        base44.entities.CafeTag.list('-created_date', 100),
         base44.entities.Person.list('-created_date', 500)
       ]);
       setItems(invItems);
       setPurchases(purchs);
       setPeople(ppl);
       setCategories(cats);
-      setTags(tgs);
     } finally { setLoading(false); }
   };
 
@@ -138,22 +134,6 @@ export default function CafePage() {
     fetchData();
   };
 
-  const handleTagSubmit = async (e) => {
-    e.preventDefault();
-    if (!tagForm.name) return;
-    setSubmitting(true);
-    try {
-      await base44.entities.CafeTag.create({ ...tagForm });
-      setTagForm({ name: '' });
-      fetchData();
-    } finally { setSubmitting(false); }
-  };
-
-  const deleteTag = async (id) => {
-    await base44.entities.CafeTag.delete(id);
-    fetchData();
-  };
-
   const togglePaid = async (p) => {
     await base44.entities.ItemPurchase.update(p.id, { is_paid: !p.is_paid });
     fetchData();
@@ -224,9 +204,8 @@ export default function CafePage() {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        <button onClick={() => setTab('purchases')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === 'purchases' ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>خریدها</button>
+        <button onClick={() => setTab('purchases')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === 'purchases' ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>سفارش جدید</button>
         <button onClick={() => setTab('inventory')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === 'inventory' ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>انبار آیتم‌ها</button>
-        <button onClick={() => setTab('tags')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === 'tags' ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>تگ‌ها</button>
         <button onClick={() => setTab('categories')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === 'categories' ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>کتگوری‌ها</button>
       </div>
 
@@ -270,34 +249,6 @@ export default function CafePage() {
         </div>
       )}
 
-      {tab === 'tags' && (
-        <div className="bg-white rounded-xl border border-border overflow-hidden">
-          <div className="p-4 border-b border-border">
-            <form onSubmit={handleTagSubmit} className="flex items-end gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">نام تگ</label>
-                <input type="text" placeholder="مثلاً گیاهی، بدون شکر" value={tagForm.name} onChange={e => setTagForm({ ...tagForm, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" required />
-              </div>
-              <button type="submit" disabled={submitting} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-                <Plus className="w-4 h-4" /> افزودن
-              </button>
-            </form>
-          </div>
-          {tags.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">هنوز تگی ثبت نشده است</div>
-          ) : (
-            <div className="p-4 flex flex-wrap gap-2">
-              {tags.map(t => (
-                <span key={t.id} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-sm font-medium">
-                  {t.name}
-                  <button onClick={() => deleteTag(t.id)} className="hover:text-[#A03D34]"><X className="w-3 h-3" /></button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {tab === 'inventory' && (
         <>
           <div className="bg-white rounded-xl border border-border p-5">
@@ -321,24 +272,6 @@ export default function CafePage() {
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">برند</label>
                 <input type="text" placeholder="برند" value={editingItemId ? editItemForm.brand : itemForm.brand} onChange={e => editingItemId ? setEditItemForm({ ...editItemForm, brand: e.target.value }) : setItemForm({ ...itemForm, brand: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="text-xs text-muted-foreground block mb-1">تگ‌ها</label>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map(t => {
-                    const selected = editingItemId ? (editItemForm.tags || []).includes(t.name) : (itemForm.tags || []).includes(t.name);
-                    return (
-                      <button key={t.id} type="button" onClick={() => {
-                        const current = editingItemId ? editItemForm : itemForm;
-                        const setter = editingItemId ? setEditItemForm : setItemForm;
-                        const newTags = selected ? (current.tags || []).filter(x => x !== t.name) : [...(current.tags || []), t.name];
-                        setter({ ...current, tags: newTags });
-                      }} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${selected ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>
-                        {t.name}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
               <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
                 <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
@@ -364,7 +297,6 @@ export default function CafePage() {
                       <th className="text-right p-3 font-medium">کتگوری</th>
                       <th className="text-right p-3 font-medium">قیمت</th>
                       <th className="text-right p-3 font-medium">برند</th>
-                      <th className="text-right p-3 font-medium">تگ‌ها</th>
                       <th className="text-center p-3 font-medium">عملیات</th>
                     </tr>
                   </thead>
@@ -375,11 +307,6 @@ export default function CafePage() {
                         <td className="p-3 text-muted-foreground">{item.category || '-'}</td>
                         <td className="p-3">{formatCurrency(item.price)}</td>
                         <td className="p-3">{item.brand || '-'}</td>
-                        <td className="p-3">
-                          <div className="flex flex-wrap gap-1">
-                            {(item.tags || []).map(t => <span key={t} className="px-1.5 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs">{t}</span>)}
-                          </div>
-                        </td>
                         <td className="p-3 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button onClick={() => startEditItem(item)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>

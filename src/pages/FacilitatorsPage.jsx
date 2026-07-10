@@ -4,6 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { Plus, User, Search, GraduationCap } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { formatJalaliShort } from '@/lib/jalali';
+import PersianNumberInput from '@/components/PersianNumberInput';
+import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 
 export default function FacilitatorsPage() {
   const [facilitators, setFacilitators] = useState([]);
@@ -77,13 +79,13 @@ export default function FacilitatorsPage() {
       {showForm && (
         <div className="bg-white rounded-xl border border-border p-5">
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <input type="text" placeholder="نام و نام خانوادگی *" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
-            <input type="tel" placeholder="شماره تماس *" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
+            <input type="text" placeholder="نام و نام خانوادگی *" value={form.full_name} onChange={e => setForm({ ...form, full_name: sanitizeName(e.target.value) })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
+            <input type="tel" placeholder="شماره تماس *" value={form.phone} onChange={e => setForm({ ...form, phone: sanitizePhone(e.target.value) })} dir="ltr" placeholder="۰xxxxxxxxxx" className="px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" required />
             <input type="text" placeholder="آیدی شبکه اجتماعی" value={form.social_id} onChange={e => setForm({ ...form, social_id: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             <input type="text" placeholder="نام برند" value={form.brand_name} onChange={e => setForm({ ...form, brand_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             <input type="text" placeholder="شماره کارت" value={form.card_number} onChange={e => setForm({ ...form, card_number: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             <input type="text" placeholder="شماره شبا" value={form.sheba_number} onChange={e => setForm({ ...form, sheba_number: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-            <input type="number" placeholder="درصد سود تسهیلگر" value={form.profit_percentage} onChange={e => setForm({ ...form, profit_percentage: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            <PersianNumberInput value={form.profit_percentage} onChange={v => setForm({ ...form, profit_percentage: v })} placeholder="درصد سود تسهیلگر" className="px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />
             <textarea placeholder="معرفی تسهیلگر" value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} rows={3} className="sm:col-span-2 lg:col-span-3 w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
               <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">

@@ -7,6 +7,8 @@ import { computeLastNonCafeService, countNewThisMonth, advancedPersonSearch, toP
 import { howMetLabels, genderLabels } from '@/lib/labels';
 import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
+import PersianNumberInput from '@/components/PersianNumberInput';
+import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 
 export default function PeoplePage() {
   const navigate = useNavigate();
@@ -37,11 +39,24 @@ export default function PeoplePage() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const [dupError, setDupError] = useState('');
+
   const handleAddPerson = async (e) => {
     e.preventDefault();
     if (!addForm.full_name || !addForm.phone) return;
     setAdding(true);
+    setDupError('');
     try {
+      const existing = await base44.entities.Person.filter({ phone: addForm.phone });
+      if (existing && existing.length > 0) {
+        setDupError('شخصی با این شماره تلفن قبلاً ثبت شده است');
+        return;
+      }
+      const existingName = people.find(p => p.full_name && p.full_name.trim() === addForm.full_name.trim());
+      if (existingName) {
+        setDupError('شخصی با این نام قبلاً ثبت شده است');
+        return;
+      }
       await base44.entities.Person.create({
         ...addForm,
         age: addForm.age ? Number(addForm.age) : null,
@@ -101,11 +116,11 @@ export default function PeoplePage() {
           <form onSubmit={handleAddPerson} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">نام و نام خانوادگی *</label>
-              <input type="text" value={addForm.full_name} onChange={e => setAddForm({ ...addForm, full_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
+              <input type="text" value={addForm.full_name} onChange={e => setAddForm({ ...addForm, full_name: sanitizeName(e.target.value) })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">شماره تلفن *</label>
-              <input type="tel" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
+              <input type="tel" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: sanitizePhone(e.target.value) })} dir="ltr" placeholder="۰xxxxxxxxxx" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" required />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">نحوه آشنایی</label>
@@ -116,7 +131,7 @@ export default function PeoplePage() {
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">سن</label>
-              <input type="number" value={addForm.age} onChange={e => setAddForm({ ...addForm, age: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              <PersianNumberInput value={addForm.age} onChange={v => setAddForm({ ...addForm, age: v })} placeholder="سن" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">جنسیت</label>
@@ -143,6 +158,7 @@ export default function PeoplePage() {
               </button>
               <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
             </div>
+            {dupError && <p className="text-xs text-red-600 sm:col-span-2 lg:col-span-3">{dupError}</p>}
           </form>
         </div>
       )}

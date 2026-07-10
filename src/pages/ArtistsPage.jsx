@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import { Palette, Plus, Search } from 'lucide-react';
 import { toPersianNum, countNewThisMonth } from '@/lib/stats';
+import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 
 export default function ArtistsPage() {
   const [records, setRecords] = useState([]);
@@ -11,7 +12,7 @@ export default function ArtistsPage() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', social_id: '', workshop_name: '', brand_name: '', multi_workshop: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', social_id: '', brand_name: '', description: '' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -29,7 +30,7 @@ export default function ArtistsPage() {
     setSubmitting(true);
     try {
       await base44.entities.Artist.create(form);
-      setForm({ full_name: '', phone: '', social_id: '', workshop_name: '', brand_name: '', multi_workshop: '' });
+      setForm({ full_name: '', phone: '', social_id: '', brand_name: '', description: '' });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -39,7 +40,6 @@ export default function ArtistsPage() {
     if (!search) return true;
     const s = search.toLowerCase();
     return (r.full_name || '').toLowerCase().includes(s) ||
-      (r.workshop_name || '').toLowerCase().includes(s) ||
       (r.brand_name || '').toLowerCase().includes(s) ||
       (r.phone || '').includes(s);
   });
@@ -66,12 +66,11 @@ export default function ArtistsPage() {
       {showForm && (
         <div className="bg-white rounded-xl border border-border p-5">
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <input type="text" placeholder="نام و نام خانوادگی" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
-            <input type="tel" placeholder="شماره تماس" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            <input type="text" placeholder="نام و نام خانوادگی" value={form.full_name} onChange={e => setForm({ ...form, full_name: sanitizeName(e.target.value) })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
+            <input type="tel" placeholder="شماره تماس" value={form.phone} onChange={e => setForm({ ...form, phone: sanitizePhone(e.target.value) })} dir="ltr" className="px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />
             <input type="text" placeholder="آیدی شبکه اجتماعی" value={form.social_id} onChange={e => setForm({ ...form, social_id: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-            <input type="text" placeholder="اسم کارگاه در بینابین" value={form.workshop_name} onChange={e => setForm({ ...form, workshop_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             <input type="text" placeholder="نام برند" value={form.brand_name} onChange={e => setForm({ ...form, brand_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-            <input type="text" placeholder="برگزاری چند کارگاه" value={form.multi_workshop} onChange={e => setForm({ ...form, multi_workshop: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            <textarea placeholder="توضیحات و معرفی" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="sm:col-span-2 lg:col-span-3 w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
               <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
                 {submitting ? 'در حال ثبت...' : 'ثبت'}
@@ -101,9 +100,7 @@ export default function ArtistsPage() {
                 <tr>
                   <th className="text-right p-3 font-medium">نام</th>
                   <th className="text-right p-3 font-medium">شماره</th>
-                  <th className="text-right p-3 font-medium">کارگاه</th>
                   <th className="text-right p-3 font-medium">نام برند</th>
-                  <th className="text-right p-3 font-medium">چند کارگاهی</th>
                 </tr>
               </thead>
               <tbody>
@@ -113,9 +110,7 @@ export default function ArtistsPage() {
                       <Link to={`/artists/${r.id}`} className="font-medium hover:text-[#B74B40]">{r.full_name}</Link>
                     </td>
                     <td className="p-3 text-muted-foreground">{r.phone || '-'}</td>
-                    <td className="p-3">{r.workshop_name || '-'}</td>
                     <td className="p-3">{r.brand_name || '-'}</td>
-                    <td className="p-3 text-xs">{r.multi_workshop || '-'}</td>
                   </tr>
                 ))}
               </tbody>

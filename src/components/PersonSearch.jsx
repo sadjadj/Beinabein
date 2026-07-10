@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { X } from 'lucide-react';
+import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 
 export default function PersonSearch({ personName, personPhone, onNameChange, onPhoneChange, onPersonFound }) {
   const [suggestions, setSuggestions] = useState([]);
@@ -47,7 +48,7 @@ export default function PersonSearch({ personName, personPhone, onNameChange, on
           type="text"
           placeholder="نام مشتری"
           value={personName}
-          onChange={e => onNameChange(e.target.value)}
+          onChange={e => onNameChange(sanitizeName(e.target.value))}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm"
         />
@@ -67,17 +68,19 @@ export default function PersonSearch({ personName, personPhone, onNameChange, on
         )}
       </div>
       <div className="relative">
+        <label className="text-xs text-muted-foreground block mb-1">شماره تلفن</label>
         <input
           type="tel"
-          placeholder="شماره تلفن"
+          placeholder="۰xxxxxxxxxx"
           value={personPhone}
-          onChange={e => onPhoneChange(e.target.value)}
+          onChange={e => onPhoneChange(sanitizePhone(e.target.value))}
           readOnly={isLocked}
           required
-          className={`w-full px-3 py-2 pl-8 rounded-lg border border-input bg-background text-sm ${isLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+          dir="ltr"
+          className={`w-full px-3 py-2 pl-8 rounded-lg border border-input bg-background text-sm text-right ${isLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
         />
         {isLocked && (
-          <button type="button" onClick={clearPhone} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+          <button type="button" onClick={clearPhone} className="absolute left-2 top-[calc(50%+12px)] -translate-y-1/2 text-muted-foreground hover:text-foreground">
             <X className="w-4 h-4" />
           </button>
         )}

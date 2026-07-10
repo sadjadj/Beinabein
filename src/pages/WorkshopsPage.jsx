@@ -9,8 +9,10 @@ import { computeWorkshopStats, computeWorkshopRevenue, toPersianNum, formatCurre
 import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
+import FloatingDateInput from '@/components/FloatingDateInput';
 import FacilitatorSearch from '@/components/FacilitatorSearch';
 import PriceInput from '@/components/PriceInput';
+import PersianNumberInput from '@/components/PersianNumberInput';
 
 export default function WorkshopsPage() {
   const navigate = useNavigate();
@@ -136,11 +138,11 @@ export default function WorkshopsPage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">تعداد جلسه</label>
-                <input type="number" placeholder="تعداد جلسه" value={form.session_count} onChange={e => setForm({ ...form, session_count: e.target.value })} disabled={form.is_permanent} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-28 disabled:opacity-50" />
+                <PersianNumberInput value={form.session_count} onChange={v => setForm({ ...form, session_count: v })} placeholder="تعداد جلسه" required={false} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-28 text-right disabled:opacity-50" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">درصد تسهیلگر</label>
-                <input type="number" placeholder="درصد" value={form.facilitator_percentage} onChange={e => setForm({ ...form, facilitator_percentage: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-20" />
+                <PersianNumberInput value={form.facilitator_percentage} onChange={v => setForm({ ...form, facilitator_percentage: v })} placeholder="درصد" className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-20 text-right" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">تگ کارگاه (موضوعات)</label>
@@ -164,7 +166,7 @@ export default function WorkshopsPage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">فضای برگزاری</label>
-                <select value={form.space} onChange={e => setForm({ ...form, space: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                <select value={form.space} onChange={e => setForm({ ...form, space: e.target.value })} className="px-4 py-2 rounded-lg border border-input bg-background text-sm min-w-[160px]">
                   <option value="">انتخاب فضا...</option>
                   {spaces.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
@@ -172,12 +174,12 @@ export default function WorkshopsPage() {
               <div className="flex items-end gap-2">
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع</label>
-                  <JalaliDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} compact showToday={false} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
-                  <JalaliDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} compact showToday={false} />
-                </div>
+                    <FloatingDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} showToday={false} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
+                    <FloatingDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} showToday={false} placeholder="" />
+                  </div>
               </div>
             </div>
             <textarea placeholder="توضیحات کارگاه" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />

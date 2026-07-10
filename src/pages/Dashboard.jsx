@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, LabelList } from 'recharts';
 import StatCard from '@/components/StatCard';
 import { Users, Repeat, Layers, ChevronDown, Wallet } from 'lucide-react';
 import { computeOverallStats, computeDailyUniques, computeSectionDistribution, getDateRange, toPersianNum, formatPercent, formatCurrency } from '@/lib/stats';
 import { toJalaliStr } from '@/lib/jalali';
+import JalaliDateInput from '@/components/JalaliDateInput';
 
-const COLORS = ['#D98B94', '#E8B4B0', '#D4A574', '#A8C9CE'];
+const COLORS = ['#D4A574', '#E8B4B0', '#D98B94', '#A8C9CE'];
 const presets = [
   { key: 'today', label: 'امروز' },
   { key: 'week', label: 'این هفته' },
@@ -21,7 +22,7 @@ const presets = [
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [] });
-  const [preset, setPreset] = useState('month');
+  const [preset, setPreset] = useState('week');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [customStart, setCustomStart] = useState(new Date().toISOString().split('T')[0]);
   const [customEnd, setCustomEnd] = useState(new Date().toISOString().split('T')[0]);
@@ -88,11 +89,11 @@ export default function Dashboard() {
         <div className="bg-white rounded-xl border border-border p-4 flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground">از:</label>
-            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            <JalaliDateInput value={customStart} onChange={setCustomStart} showToday={false} />
           </div>
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground">تا:</label>
-            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            <JalaliDateInput value={customEnd} onChange={setCustomEnd} showToday={false} />
           </div>
         </div>
       )}
@@ -128,7 +129,7 @@ export default function Dashboard() {
                   <XAxis dataKey="date" tickFormatter={toJalaliStr} tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip labelFormatter={toJalaliStr} formatter={(v) => [toPersianNum(v) + ' نفر', 'افراد یونیک']} />
-                  <Bar dataKey="count" fill="#D98B94" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="count" fill="#D4A574" radius={[4, 4, 0, 0]}>
                     <LabelList dataKey="count" position="top" formatter={toPersianNum} style={{ fontSize: '10px', fill: '#71717a' }} />
                   </Bar>
                 </BarChart>

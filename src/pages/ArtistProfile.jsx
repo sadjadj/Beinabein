@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Palette, Phone, Pencil, Check, X, Briefcase } from 'lucide-react';
+import { ArrowRight, Palette, Phone, Pencil, Check, X } from 'lucide-react';
+import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 
 export default function ArtistProfile() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [artist, setArtist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -24,8 +26,7 @@ export default function ArtistProfile() {
   const startEdit = () => {
     setEditForm({
       full_name: artist.full_name || '', phone: artist.phone || '',
-      social_id: artist.social_id || '', workshop_name: artist.workshop_name || '',
-      brand_name: artist.brand_name || '', multi_workshop: artist.multi_workshop || '',
+      social_id: artist.social_id || '', brand_name: artist.brand_name || '',
       description: artist.description || ''
     });
     setEditing(true);
@@ -45,9 +46,9 @@ export default function ArtistProfile() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
-      <Link to="/artists" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowRight className="w-4 h-4" /> بازگشت به فهرست
-      </Link>
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowRight className="w-4 h-4" /> بازگشت
+      </button>
 
       <div className="bg-white rounded-xl border border-border p-8">
         {editing ? (
@@ -55,11 +56,11 @@ export default function ArtistProfile() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">نام و نام خانوادگی</label>
-                <input type="text" value={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
+                <input type="text" value={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: sanitizeName(e.target.value) })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">شماره تماس</label>
-                <input type="tel" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+                <input type="tel" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: sanitizePhone(e.target.value) })} dir="ltr" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">آیدی شبکه اجتماعی</label>
@@ -68,14 +69,6 @@ export default function ArtistProfile() {
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">نام برند</label>
                 <input type="text" value={editForm.brand_name} onChange={e => setEditForm({ ...editForm, brand_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">اسم کارگاه در بینابین</label>
-                <input type="text" value={editForm.workshop_name} onChange={e => setEditForm({ ...editForm, workshop_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">برگزاری چند کارگاه</label>
-                <input type="text" value={editForm.multi_workshop} onChange={e => setEditForm({ ...editForm, multi_workshop: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
               </div>
             </div>
             <div>
@@ -112,33 +105,10 @@ export default function ArtistProfile() {
       </div>
 
       {!editing && (
-        <>
-          <div className="bg-white rounded-xl border border-border p-6">
-            <h3 className="text-sm font-semibold mb-3 text-muted-foreground">درباره هنرمند</h3>
-            <p className="text-sm leading-relaxed">{artist.description || 'توضیحاتی ثبت نشده است.'}</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {artist.workshop_name && (
-              <div className="bg-white rounded-xl border border-border p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <Briefcase className="w-4 h-4 text-[#B74B40]" />
-                  <h3 className="text-sm font-semibold">کارگاه در بینابین</h3>
-                </div>
-                <p className="text-sm">{artist.workshop_name}</p>
-              </div>
-            )}
-            {artist.multi_workshop && (
-              <div className="bg-white rounded-xl border border-border p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <Palette className="w-4 h-4 text-[#B9834B]" />
-                  <h3 className="text-sm font-semibold">برگزاری چند کارگاه</h3>
-                </div>
-                <p className="text-sm">{artist.multi_workshop}</p>
-              </div>
-            )}
-          </div>
-        </>
+        <div className="bg-white rounded-xl border border-border p-6">
+          <h3 className="text-sm font-semibold mb-3 text-muted-foreground">درباره هنرمند</h3>
+          <p className="text-sm leading-relaxed">{artist.description || 'توضیحاتی ثبت نشده است.'}</p>
+        </div>
       )}
     </div>
   );

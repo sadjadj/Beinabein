@@ -9,6 +9,7 @@ import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import FloatingDateInput from '@/components/FloatingDateInput';
 import PersonSearch from '@/components/PersonSearch';
 import PriceInput from '@/components/PriceInput';
+import PersianNumberInput from '@/components/PersianNumberInput';
 
 export default function WorkspacePage() {
   const navigate = useNavigate();
@@ -195,7 +196,7 @@ export default function WorkspacePage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">تعداد</label>
-                <input type="number" placeholder="تعداد" value={orderForm.quantity} onChange={e => setOrderForm({ ...orderForm, quantity: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+                <PersianNumberInput value={orderForm.quantity} onChange={v => setOrderForm({ ...orderForm, quantity: v })} placeholder="تعداد" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">تاریخ خرید</label>
@@ -207,7 +208,10 @@ export default function WorkspacePage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">زمان ورود (ساعت)</label>
-                <input type="time" value={orderForm.entry_time} onChange={e => setOrderForm({ ...orderForm, entry_time: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+                <select value={orderForm.entry_time} onChange={e => setOrderForm({ ...orderForm, entry_time: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                  <option value="">انتخاب ساعت...</option>
+                  {Array.from({ length: 24 }, (_, i) => i).map(h => <option key={h} value={String(h).padStart(2, '0') + ':00'}>{toPersianNum(String(h).padStart(2, '0'))}:۰۰</option>)}
+                </select>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>
