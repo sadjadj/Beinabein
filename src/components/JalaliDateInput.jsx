@@ -12,7 +12,7 @@ export default function JalaliDateInput({ value, onChange, required, placeholder
         value={value || ''}
         onChange={e => onChange(e.target.value)}
         required={required}
-        className="w-full py-2 pl-14 pr-3 rounded-lg border border-input bg-background text-transparent caret-transparent focus:outline-none focus:border-[#B74B40]"
+        className="w-full py-2 pl-14 pr-3 rounded-lg border border-input bg-background text-transparent caret-transparent focus:outline-none focus:border-[#B74B40] [&::-webkit-calendar-picker-indicator]:opacity-0"
       />
       <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
         {hasValue ? toJalaliStr(value) : placeholder}
