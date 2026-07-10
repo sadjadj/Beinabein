@@ -13,7 +13,8 @@ import PeoplePage from '@/pages/PeoplePage';
 import WorkspacePage from '@/pages/WorkspacePage';
 import CafePage from '@/pages/CafePage';
 import WorkshopsPage from '@/pages/WorkshopsPage';
-import EventsPage from '@/pages/EventsPage';
+import AttendancePage from '@/pages/AttendancePage';
+import WorkshopAttendancePage from '@/pages/WorkshopAttendancePage';
 import PersonProfile from '@/pages/PersonProfile';
 import FacilitatorsPage from '@/pages/FacilitatorsPage';
 import FacilitatorProfile from '@/pages/FacilitatorProfile';
@@ -55,7 +56,8 @@ const AuthenticatedApp = () => {
       <Route path="/workspace" element={<WorkspacePage />} />
       <Route path="/cafe" element={<CafePage />} />
       <Route path="/workshops" element={<WorkshopsPage />} />
-      <Route path="/events" element={<EventsPage />} />
+      <Route path="/attendance" element={<AttendancePage />} />
+      <Route path="/attendance/:workshopId" element={<WorkshopAttendancePage />} />
       <Route path="/people/:id" element={<PersonProfile />} />
       <Route path="/facilitators" element={<FacilitatorsPage />} />
       <Route path="/facilitators/:id" element={<FacilitatorProfile />} />

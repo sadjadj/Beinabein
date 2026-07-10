@@ -12,7 +12,7 @@
     },
     "bio": {
       "type": "string",
-      "title": "\u062f\u0631\u0628\u0627\u0631\u0647 \u062a\u0633\u0647\u06cc\u0644\u06af\u0631"
+      "title": "\u0645\u0639\u0631\u0641\u06cc \u062a\u0633\u0647\u06cc\u0644\u06af\u0631"
     },
     "phone": {
       "type": "string",
@@ -25,6 +25,18 @@
     "studio_name": {
       "type": "string",
       "title": "\u0627\u0633\u0645 \u0627\u0633\u062a\u0648\u062f\u06cc\u0648/\u0628\u0631\u0646\u062f"
+    },
+    "card_number": {
+      "type": "string",
+      "title": "\u0634\u0645\u0627\u0631\u0647 \u06a9\u0627\u0631\u062a"
+    },
+    "profit_percentage": {
+      "type": "number",
+      "title": "\u062f\u0631\u0635\u062f \u0633\u0648\u062f \u062a\u0633\u0647\u06cc\u0644\u06af\u0631"
+    },
+    "sheba_number": {
+      "type": "string",
+      "title": "\u0634\u0645\u0627\u0631\u0647 \u0634\u0628\u0627"
     }
   },
   "required": [

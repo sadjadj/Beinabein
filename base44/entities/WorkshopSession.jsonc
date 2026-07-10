@@ -1,0 +1,36 @@
+{
+  "name": "WorkshopSession",
+  "type": "object",
+  "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "\u06a9\u0627\u0631\u06af\u0627\u0647"
+    },
+    "workshop_title": {
+      "type": "string",
+      "title": "\u0627\u0633\u0645 \u06a9\u0627\u0631\u06af\u0627\u0647"
+    },
+    "session_number": {
+      "type": "number",
+      "title": "\u0634\u0645\u0627\u0631\u0647 \u062c\u0644\u0633\u0647"
+    },
+    "session_date": {
+      "type": "string",
+      "format": "date",
+      "title": "\u062a\u0627\u0631\u06cc\u062e \u062c\u0644\u0633\u0647"
+    },
+    "present_phones": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "title": "\u062d\u0627\u0636\u0631\u06cc\u0646"
+    }
+  },
+  "required": [
+    "workshop_id",
+    "session_number",
+    "session_date"
+  ]
+}

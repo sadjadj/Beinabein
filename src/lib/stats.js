@@ -91,13 +91,12 @@ export async function bulkCreatePersons(phones) {
 }
 
 // ─── Sync people from activity records ───
-export async function syncPeopleFromActivities(workspaceVisits, cafePurchases, workshops, events, existingPeople) {
+export async function syncPeopleFromActivities(workspaceOrders, itemPurchases, workshopPurchases, existingPeople) {
   const existingPhones = new Set(existingPeople.map(p => p.phone));
   const allPhones = new Set();
-  workspaceVisits.forEach(v => { if (v.person_phone) allPhones.add(v.person_phone); });
-  cafePurchases.forEach(p => { if (p.person_phone) allPhones.add(p.person_phone); });
-  workshops.forEach(w => (w.participant_phones || []).forEach(p => allPhones.add(p)));
-  events.forEach(e => (e.participant_phones || []).forEach(p => allPhones.add(p)));
+  workspaceOrders.forEach(o => { if (o.person_phone) allPhones.add(o.person_phone); });
+  itemPurchases.forEach(p => { if (p.person_phone) allPhones.add(p.person_phone); });
+  workshopPurchases.forEach(w => { if (w.person_phone) allPhones.add(w.person_phone); });
   const newPhones = [...allPhones].filter(p => p && !existingPhones.has(p));
   if (newPhones.length > 0) {
     await base44.entities.Person.bulkCreate(newPhones.map(phone => ({ phone, full_name: '' })));
@@ -106,60 +105,40 @@ export async function syncPeopleFromActivities(workspaceVisits, cafePurchases, w
 }
 
 // ─── Last non-cafe service for a person ───
-export function computeLastNonCafeService(phone, workspaceVisits, workshops, events) {
+export function computeLastNonCafeService(phone, workspaceOrders, workshopPurchases) {
   const activities = [];
-  workspaceVisits.filter(v => v.person_phone === phone).forEach(v => {
-    activities.push({ type: 'فضای کار', date: v.visit_date, label: v.visit_date });
+  workspaceOrders.filter(o => o.person_phone === phone).forEach(o => {
+    activities.push({ type: 'فضای کار', date: o.usage_date || o.purchase_date, label: o.usage_date || o.purchase_date });
   });
-  workshops.filter(w => (w.participant_phones || []).includes(phone)).forEach(w => {
-    activities.push({ type: 'کارگاه', date: w.date, label: w.title });
-  });
-  events.filter(e => (e.participant_phones || []).includes(phone)).forEach(e => {
-    activities.push({ type: 'رویداد', date: e.date, label: e.title });
+  workshopPurchases.filter(w => w.person_phone === phone).forEach(w => {
+    activities.push({ type: 'کارگاه', date: w.purchase_date, label: w.workshop_title });
   });
   if (activities.length === 0) return null;
   activities.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   return activities[0];
 }
 
-// ─── Time calculation ───
-export function calcHours(entry, exit) {
-  if (!entry || !exit) return 0;
-  const [eh, em] = entry.split(':').map(Number);
-  const [xh, xm] = exit.split(':').map(Number);
-  let mins = (xh * 60 + xm) - (eh * 60 + em);
-  if (mins < 0) mins += 24 * 60;
-  return Math.round(mins / 60 * 10) / 10;
-}
-
 // ─── Overall Binabin metrics ───
-export function computeOverallStats(workspaceVisits, cafePurchases, workshops, events, range) {
-  const visits = filterByDate(workspaceVisits, 'visit_date', range);
-  const purchases = filterByDate(cafePurchases, 'purchase_date', range);
-  const ws = filterByDate(workshops, 'date', range);
-  const ev = filterByDate(events, 'date', range);
+export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurchases, range) {
+  const orders = filterByDate(workspaceOrders, 'purchase_date', range);
+  const items = filterByDate(itemPurchases, 'purchase_date', range);
+  const wp = filterByDate(workshopPurchases, 'purchase_date', range);
 
   const sectionPhones = {
-    workspace: new Set(visits.map(v => v.person_phone)),
-    cafe: new Set(purchases.map(p => p.person_phone)),
-    workshop: new Set(),
-    event: new Set()
+    workspace: new Set(orders.map(o => o.person_phone)),
+    cafe: new Set(items.map(p => p.person_phone)),
+    workshop: new Set(wp.map(p => p.person_phone)),
   };
-  ws.forEach(w => (w.participant_phones || []).forEach(p => sectionPhones.workshop.add(p)));
-  ev.forEach(e => (e.participant_phones || []).forEach(p => sectionPhones.event.add(p)));
 
   const allPhones = new Set();
   Object.values(sectionPhones).forEach(s => s.forEach(p => allPhones.add(p)));
   const uniqueCount = allPhones.size;
 
-  const personHours = visits.reduce((sum, v) => sum + (v.hours_spent || 0), 0);
-
   const phoneCounts = {};
   const addCount = (phone) => { if (phone) phoneCounts[phone] = (phoneCounts[phone] || 0) + 1; };
-  visits.forEach(v => addCount(v.person_phone));
-  purchases.forEach(p => addCount(p.person_phone));
-  ws.forEach(w => (w.participant_phones || []).forEach(addCount));
-  ev.forEach(e => (e.participant_phones || []).forEach(addCount));
+  orders.forEach(o => addCount(o.person_phone));
+  items.forEach(p => addCount(p.person_phone));
+  wp.forEach(w => addCount(w.person_phone));
 
   const totalPeople = Object.keys(phoneCounts).length;
   const returnCount = Object.values(phoneCounts).filter(c => c > 1).length;
@@ -171,141 +150,113 @@ export function computeOverallStats(workspaceVisits, cafePurchases, workshops, e
     if (sectionPhones.workspace.has(phone)) sections++;
     if (sectionPhones.cafe.has(phone)) sections++;
     if (sectionPhones.workshop.has(phone)) sections++;
-    if (sectionPhones.event.has(phone)) sections++;
     if (sections > 1) diversityCount++;
   });
   const diversityRate = uniqueCount > 0 ? (diversityCount / uniqueCount) * 100 : 0;
 
-  const eventPhones = sectionPhones.event;
-  let conversionCount = 0;
-  eventPhones.forEach(phone => {
-    if (sectionPhones.workspace.has(phone) || sectionPhones.cafe.has(phone) || sectionPhones.workshop.has(phone)) {
-      conversionCount++;
-    }
-  });
-  const conversionRate = eventPhones.size > 0 ? (conversionCount / eventPhones.size) * 100 : 0;
+  const workspaceRevenue = orders.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
+  const cafeRevenue = items.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1), 0);
+  const workshopRevenue = wp.reduce((s, w) => s + (w.price || 0) * (w.quantity || 1), 0);
+  const totalRevenue = workspaceRevenue + cafeRevenue + workshopRevenue;
 
-  return { uniqueCount, personHours, returnRate, diversityRate, conversionRate, conversionCount, eventCount: eventPhones.size, totalPeople };
+  return { uniqueCount, returnRate, diversityRate, totalRevenue, workspaceRevenue, cafeRevenue, workshopRevenue, totalPeople };
 }
 
 // ─── Daily unique visitors trend ───
-export function computeDailyUniques(workspaceVisits, cafePurchases, workshops, events, range) {
+export function computeDailyUniques(workspaceOrders, itemPurchases, workshopPurchases, range) {
   const days = {};
   const addEntry = (date, phone) => {
     if (!date || !phone || !inRange(date, range)) return;
     if (!days[date]) days[date] = new Set();
     days[date].add(phone);
   };
-  workspaceVisits.forEach(v => addEntry(v.visit_date, v.person_phone));
-  cafePurchases.forEach(p => addEntry(p.purchase_date, p.person_phone));
-  workshops.forEach(w => (w.participant_phones || []).forEach(p => addEntry(w.date, p)));
-  events.forEach(e => (e.participant_phones || []).forEach(p => addEntry(e.date, p)));
+  workspaceOrders.forEach(o => addEntry(o.purchase_date, o.person_phone));
+  itemPurchases.forEach(p => addEntry(p.purchase_date, p.person_phone));
+  workshopPurchases.forEach(w => addEntry(w.purchase_date, w.person_phone));
   return Object.entries(days)
     .map(([date, phones]) => ({ date, count: phones.size }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // ─── Section distribution ───
-export function computeSectionDistribution(workspaceVisits, cafePurchases, workshops, events, range) {
-  const visits = filterByDate(workspaceVisits, 'visit_date', range);
-  const purchases = filterByDate(cafePurchases, 'purchase_date', range);
-  const ws = filterByDate(workshops, 'date', range);
-  const ev = filterByDate(events, 'date', range);
-  const wsPhones = new Set(visits.map(v => v.person_phone));
-  const cafePhones = new Set(purchases.map(p => p.person_phone));
-  const workshopPhones = new Set();
-  ws.forEach(w => (w.participant_phones || []).forEach(p => workshopPhones.add(p)));
-  const eventPhones = new Set();
-  ev.forEach(e => (e.participant_phones || []).forEach(p => eventPhones.add(p)));
+export function computeSectionDistribution(workspaceOrders, itemPurchases, workshopPurchases, range) {
+  const orders = filterByDate(workspaceOrders, 'purchase_date', range);
+  const items = filterByDate(itemPurchases, 'purchase_date', range);
+  const wp = filterByDate(workshopPurchases, 'purchase_date', range);
   return [
-    { name: 'فضای کار', value: wsPhones.size },
-    { name: 'کافه', value: cafePhones.size },
-    { name: 'کارگاه', value: workshopPhones.size },
-    { name: 'رویداد', value: eventPhones.size },
+    { name: 'فضای کار', value: new Set(orders.map(o => o.person_phone)).size },
+    { name: 'کافه', value: new Set(items.map(p => p.person_phone)).size },
+    { name: 'کارگاه', value: new Set(wp.map(p => p.person_phone)).size },
   ];
 }
 
 // ─── Workspace section stats ───
-export function computeWorkspaceStats(visits, range) {
-  const filtered = filterByDate(visits, 'visit_date', range);
-  const phones = filtered.map(v => v.person_phone);
+export function computeWorkspaceStats(orders, range) {
+  const filtered = filterByDate(orders, 'purchase_date', range);
+  const phones = filtered.map(o => o.person_phone);
   const uniquePhones = new Set(phones);
   const phoneCounts = {};
   phones.forEach(p => { phoneCounts[p] = (phoneCounts[p] || 0) + 1; });
   const repeatCount = Object.values(phoneCounts).filter(c => c > 1).length;
-  const totalHours = filtered.reduce((sum, v) => sum + (v.hours_spent || 0), 0);
-  return { totalVisits: filtered.length, uniqueCount: uniquePhones.size, repeatCount, totalHours };
+  const totalRevenue = filtered.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
+  return { totalOrders: filtered.length, uniqueCount: uniquePhones.size, repeatCount, totalRevenue };
 }
 
-// ─── Cafe section stats ───
-export function computeCafeStats(purchases, visits, range) {
-  const fp = filterByDate(purchases, 'purchase_date', range);
-  const fv = filterByDate(visits, 'visit_date', range);
-  const buyerPhones = fp.map(p => p.person_phone);
+// ─── Cafe (item purchase) stats ───
+export function computeCafeStats(itemPurchases, range) {
+  const filtered = filterByDate(itemPurchases, 'purchase_date', range);
+  const buyerPhones = filtered.map(p => p.person_phone);
   const uniqueBuyers = new Set(buyerPhones);
-  const buyerCounts = {};
-  buyerPhones.forEach(p => { buyerCounts[p] = (buyerCounts[p] || 0) + 1; });
-  const repeatBuyerPhones = Object.entries(buyerCounts).filter(([, c]) => c > 1).map(([p]) => p);
-  let repeatSum = 0;
-  repeatBuyerPhones.forEach(phone => {
-    repeatSum += fp.filter(p => p.person_phone === phone).reduce((s, p) => s + (p.amount || 0), 0);
-  });
-  const repeatAvg = repeatBuyerPhones.length > 0 ? repeatSum / repeatBuyerPhones.length : 0;
-  const visitorPhones = new Set(fv.map(v => v.person_phone));
-  const buyersAmongVisitors = [...uniqueBuyers].filter(p => visitorPhones.has(p));
-  const purchaseRate = visitorPhones.size > 0 ? (buyersAmongVisitors.length / visitorPhones.size) * 100 : 0;
+  const totalSales = filtered.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1), 0);
   const reasonMap = {};
-  fp.forEach(p => {
-    const reason = p.entry_reason || 'independent';
-    reasonMap[reason] = (reasonMap[reason] || 0) + (p.amount || 0);
+  filtered.forEach(p => {
+    const reason = p.purchase_reason || 'independent';
+    reasonMap[reason] = (reasonMap[reason] || 0) + (p.item_price || 0) * (p.quantity || 1);
   });
-  const totalSales = fp.reduce((sum, p) => sum + (p.amount || 0), 0);
-  return { totalPurchases: fp.length, uniqueBuyerCount: uniqueBuyers.size, repeatAvg, purchaseRate, totalSales, salesByReason: reasonMap };
+  return { totalPurchases: filtered.length, uniqueBuyerCount: uniqueBuyers.size, totalSales, salesByReason: reasonMap };
 }
 
-// ─── Workshop section stats ───
-export function computeWorkshopStats(workshops, range) {
-  const filtered = filterByDate(workshops, 'date', range);
-  const allPhones = [];
-  filtered.forEach(w => (w.participant_phones || []).forEach(p => allPhones.push(p)));
-  const uniquePhones = new Set(allPhones);
-  const phoneCounts = {};
-  allPhones.forEach(p => { phoneCounts[p] = (phoneCounts[p] || 0) + 1; });
-  const repeatCount = Object.values(phoneCounts).filter(c => c > 1).length;
-  return { totalWorkshops: filtered.length, totalParticipants: allPhones.length, uniqueCount: uniquePhones.size, repeatCount };
-}
-
-// ─── Big event section stats ───
-export function computeEventStats(events, allRecords, range) {
-  const filtered = filterByDate(events, 'date', range);
-  const allPhones = new Set();
-  let totalSales = 0;
+// ─── Workshop stats ───
+export function computeWorkshopStats(workshops, workshopPurchases, range) {
+  const filtered = filterByDate(workshops, 'start_date', range);
+  const purchasePhones = new Set();
   let totalParticipants = 0;
-  filtered.forEach(e => {
-    (e.participant_phones || []).forEach(p => allPhones.add(p));
-    totalSales += e.total_sales || 0;
-    totalParticipants += (e.participant_phones || []).length;
+  let totalRevenue = 0;
+  filtered.forEach(w => {
+    const purchases = workshopPurchases.filter(p => p.workshop_id === w.id);
+    purchases.forEach(p => {
+      purchasePhones.add(p.person_phone);
+      totalParticipants += (p.quantity || 1);
+      totalRevenue += (p.price || 0) * (p.quantity || 1);
+    });
   });
-  const avgPurchase = totalParticipants > 0 ? totalSales / totalParticipants : 0;
-  const { workspaceVisits, cafePurchases, workshops } = allRecords;
-  const wsPhones = new Set(workspaceVisits.map(v => v.person_phone));
-  const cafePhones = new Set(cafePurchases.map(p => p.person_phone));
-  const workshopPhones = new Set();
-  workshops.forEach(w => (w.participant_phones || []).forEach(p => workshopPhones.add(p)));
-  let conversionCount = 0;
-  allPhones.forEach(phone => {
-    if (wsPhones.has(phone) || cafePhones.has(phone) || workshopPhones.has(phone)) conversionCount++;
-  });
-  const conversionRate = allPhones.size > 0 ? (conversionCount / allPhones.size) * 100 : 0;
-  return { totalEvents: filtered.length, totalParticipants, uniqueCount: allPhones.size, avgPurchase, conversionRate, conversionCount, totalSales };
+  return { totalWorkshops: filtered.length, totalParticipants, uniqueCount: purchasePhones.size, totalRevenue };
+}
+
+// ─── Workshop revenue (auto-calculated per workshop) ───
+export function computeWorkshopRevenue(workshop, workshopPurchases) {
+  const purchases = workshopPurchases.filter(p => p.workshop_id === workshop.id);
+  const participantCount = purchases.reduce((s, p) => s + (p.quantity || 1), 0);
+  const totalRevenue = purchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1), 0);
+  const percentage = workshop.facilitator_percentage || 0;
+  const facilitatorRevenue = Math.round(totalRevenue * percentage / 100);
+  const binabinRevenue = totalRevenue - facilitatorRevenue;
+  return { participantCount, totalRevenue, binabinRevenue, facilitatorRevenue, purchaseCount: purchases.length };
 }
 
 // ─── Person activity summary ───
-export function computePersonActivity(person, workspaceVisits, cafePurchases, workshops, events) {
+export function computePersonActivity(person, workspaceOrders, itemPurchases, workshopPurchases) {
   const phone = person.phone;
-  const wsCount = workspaceVisits.filter(v => v.person_phone === phone).length;
-  const cafeCount = cafePurchases.filter(p => p.person_phone === phone).length;
-  const workshopCount = workshops.filter(w => (w.participant_phones || []).includes(phone)).length;
-  const eventCount = events.filter(e => (e.participant_phones || []).includes(phone)).length;
-  return { workspace: wsCount, cafe: cafeCount, workshop: workshopCount, event: eventCount, total: wsCount + cafeCount + workshopCount + eventCount };
+  const wsCount = workspaceOrders.filter(o => o.person_phone === phone).length;
+  const cafeCount = itemPurchases.filter(p => p.person_phone === phone).length;
+  const workshopCount = workshopPurchases.filter(w => w.person_phone === phone).length;
+  return { workspace: wsCount, cafe: cafeCount, workshop: workshopCount, total: wsCount + cafeCount + workshopCount };
+}
+
+// ─── Compute current stock for inventory item ───
+export function computeCurrentStock(item, itemPurchases) {
+  const sold = itemPurchases
+    .filter(p => p.item_name === item.name)
+    .reduce((sum, p) => sum + (p.quantity || 1), 0);
+  return (item.initial_stock || 0) - sold;
 }

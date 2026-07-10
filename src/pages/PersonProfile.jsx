@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Briefcase, Coffee, GraduationCap, PartyPopper, Phone, User, Tag } from 'lucide-react';
+import { ArrowRight, Briefcase, Coffee, GraduationCap, Phone, User, Tag } from 'lucide-react';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
+import { howMetLabels, genderLabels, paymentMethodLabels, purchaseReasonLabels } from '@/lib/labels';
 import { formatJalali, formatJalaliShort } from '@/lib/jalali';
 
 export default function PersonProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [person, setPerson] = useState(null);
-  const [data, setData] = useState({ workspaceVisits: [], cafePurchases: [], workshops: [], events: [] });
+  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,36 +19,25 @@ export default function PersonProfile() {
       try {
         const p = await base44.entities.Person.get(id);
         setPerson(p);
-        const [wsVisits, cafePurchases, workshops, events] = await Promise.all([
-          base44.entities.WorkspaceVisit.list('-visit_date', 500),
-          base44.entities.CafePurchase.list('-purchase_date', 500),
-          base44.entities.Workshop.list('-date', 500),
-          base44.entities.BigEvent.list('-date', 500)
+        const [wsOrders, itemPurchases, workshopPurchases] = await Promise.all([
+          base44.entities.WorkspaceOrder.list('-purchase_date', 500),
+          base44.entities.ItemPurchase.list('-purchase_date', 500),
+          base44.entities.WorkshopPurchase.list('-purchase_date', 500)
         ]);
-        setData({ workspaceVisits: wsVisits, cafePurchases, workshops, events });
+        setData({ workspaceOrders: wsOrders, itemPurchases, workshopPurchases });
       } finally { setLoading(false); }
     };
     fetchAll();
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (!person) {
-    return <div className="p-6 text-center text-muted-foreground">فردی یافت نشد</div>;
-  }
+  if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
+  if (!person) return <div className="p-6 text-center text-muted-foreground">فردی یافت نشد</div>;
 
   const phone = person.phone;
-  const wsVisits = data.workspaceVisits.filter(v => v.person_phone === phone);
-  const cafePurchases = data.cafePurchases.filter(p => p.person_phone === phone);
-  const workshops = data.workshops.filter(w => (w.participant_phones || []).includes(phone));
-  const events = data.events.filter(e => (e.participant_phones || []).includes(phone));
-  const totalCount = wsVisits.length + cafePurchases.length + workshops.length + events.length;
+  const wsOrders = data.workspaceOrders.filter(o => o.person_phone === phone);
+  const cafePurchases = data.itemPurchases.filter(p => p.person_phone === phone);
+  const workshopPurchases = data.workshopPurchases.filter(w => w.person_phone === phone);
+  const totalCount = wsOrders.length + cafePurchases.length + workshopPurchases.length;
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
@@ -60,39 +50,46 @@ export default function PersonProfile() {
           <div className="w-16 h-16 rounded-full bg-[#FDF2F1] flex items-center justify-center flex-shrink-0">
             <User className="w-8 h-8 text-[#B74B40]" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold">{person.full_name || 'بدون نام'}</h1>
-            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-              <Phone className="w-3.5 h-3.5" /> {person.phone}
-            </p>
-            {person.how_met && <p className="text-xs text-muted-foreground mt-1">نحوه آشنایی: {person.how_met}</p>}
+            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1"><Phone className="w-3.5 h-3.5" /> {person.phone}</p>
+            <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
+              {person.how_met && <span>نحوه آشنایی: {howMetLabels[person.how_met] || person.how_met}</span>}
+              {person.age && <span>سن: {toPersianNum(person.age)}</span>}
+              {person.gender && <span>جنسیت: {genderLabels[person.gender] || person.gender}</span>}
+              {person.first_usage && <span>اولین استفاده: {formatJalaliShort(person.first_usage)}</span>}
+            </div>
             {person.tags && person.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {person.tags.map(tag => <span key={tag} className="px-2 py-0.5 rounded-full text-xs bg-[#FBF3EC] text-[#B9834B]">{tag}</span>)}
               </div>
             )}
           </div>
-          <div className="mr-auto text-left">
+          <div className="text-left">
             <p className="text-2xl font-bold text-[#B74B40]">{toPersianNum(totalCount)}</p>
-            <p className="text-xs text-muted-foreground">کل خدمات استفاده شده</p>
+            <p className="text-xs text-muted-foreground">کل خدمات</p>
           </div>
         </div>
-        {person.notes && (
-          <div className="mt-4 p-3 bg-muted/30 rounded-lg text-sm text-muted-foreground">{person.notes}</div>
-        )}
+        {person.notes && <div className="mt-4 p-3 bg-muted/30 rounded-lg text-sm text-muted-foreground">{person.notes}</div>}
       </div>
 
-      {wsVisits.length > 0 && (
+      {wsOrders.length > 0 && (
         <div className="bg-white rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border flex items-center gap-2">
             <Briefcase className="w-4 h-4 text-[#B74B40]" />
-            <h3 className="text-sm font-semibold">فضای کار ({toPersianNum(wsVisits.length)})</h3>
+            <h3 className="text-sm font-semibold">فضای کار ({toPersianNum(wsOrders.length)})</h3>
           </div>
           <div className="divide-y divide-border">
-            {wsVisits.map(v => (
-              <div key={v.id} className="p-3 flex items-center justify-between text-sm">
-                <span>{formatJalaliShort(v.visit_date)}</span>
-                <span className="text-muted-foreground">{v.entry_time || '-'}</span>
+            {wsOrders.map(o => (
+              <div key={o.id} className="p-3 flex items-center justify-between text-sm">
+                <div>
+                  <span className="font-medium">{formatJalaliShort(o.usage_date || o.purchase_date)}</span>
+                  {o.entry_time && <span className="text-muted-foreground mr-2">ورود: {o.entry_time}</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{paymentMethodLabels[o.payment_method] || o.payment_method}</span>
+                  {o.price > 0 && <span className="font-medium">{formatCurrency(o.price)}</span>}
+                </div>
               </div>
             ))}
           </div>
@@ -108,42 +105,35 @@ export default function PersonProfile() {
           <div className="divide-y divide-border">
             {cafePurchases.map(p => (
               <div key={p.id} className="p-3 flex items-center justify-between text-sm">
-                <span>{formatJalaliShort(p.purchase_date)}</span>
-                <span className="font-medium">{formatCurrency(p.amount)}</span>
+                <div>
+                  <span className="font-medium">{p.item_name}</span>
+                  {p.quantity > 1 && <span className="text-muted-foreground mr-2">×{toPersianNum(p.quantity)}</span>}
+                  <span className="text-xs text-muted-foreground mr-2">{purchaseReasonLabels[p.purchase_reason] || ''}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{formatJalaliShort(p.purchase_date)}</span>
+                  <span className="font-medium">{formatCurrency(p.item_price * p.quantity)}</span>
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {workshops.length > 0 && (
+      {workshopPurchases.length > 0 && (
         <div className="bg-white rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border flex items-center gap-2">
             <GraduationCap className="w-4 h-4 text-[#8CB9C0]" />
-            <h3 className="text-sm font-semibold">کارگاه‌ها ({toPersianNum(workshops.length)})</h3>
+            <h3 className="text-sm font-semibold">کارگاه‌ها ({toPersianNum(workshopPurchases.length)})</h3>
           </div>
           <div className="divide-y divide-border">
-            {workshops.map(w => (
+            {workshopPurchases.map(w => (
               <div key={w.id} className="p-3 flex items-center justify-between text-sm">
-                <span className="font-medium">{w.title}</span>
-                <span className="text-muted-foreground">{formatJalaliShort(w.date)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {events.length > 0 && (
-        <div className="bg-white rounded-xl border border-border overflow-hidden">
-          <div className="p-4 border-b border-border flex items-center gap-2">
-            <PartyPopper className="w-4 h-4 text-[#D98B94]" />
-            <h3 className="text-sm font-semibold">رویدادها ({toPersianNum(events.length)})</h3>
-          </div>
-          <div className="divide-y divide-border">
-            {events.map(e => (
-              <div key={e.id} className="p-3 flex items-center justify-between text-sm">
-                <span className="font-medium">{e.title}</span>
-                <span className="text-muted-foreground">{formatJalaliShort(e.date)}</span>
+                <span className="font-medium">{w.workshop_title || '-'}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{formatJalaliShort(w.purchase_date)}</span>
+                  <span className="font-medium">{formatCurrency(w.price)}</span>
+                </div>
               </div>
             ))}
           </div>

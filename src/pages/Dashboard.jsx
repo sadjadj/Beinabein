@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from 'recharts';
 import StatCard from '@/components/StatCard';
-import { Users, Clock, Repeat, Layers, TrendingUp, UserCircle, ChevronDown } from 'lucide-react';
-import { computeOverallStats, computeDailyUniques, computeSectionDistribution, getDateRange, toPersianNum, formatPercent } from '@/lib/stats';
+import { Users, Repeat, Layers, TrendingUp, ChevronDown, Wallet } from 'lucide-react';
+import { computeOverallStats, computeDailyUniques, computeSectionDistribution, getDateRange, toPersianNum, formatPercent, formatCurrency } from '@/lib/stats';
 import { toJalaliStr } from '@/lib/jalali';
 
 const COLORS = ['#B74B40', '#D98B94', '#B9834B', '#8CB9C0'];
@@ -18,40 +18,34 @@ const presets = [
   { key: 'specific_date', label: 'تاریخ خاص' },
 ];
 
-function formatDateLabel(dateStr) {
-  return toJalaliStr(dateStr);
-}
-
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ workspaceVisits: [], cafePurchases: [], workshops: [], events: [] });
+  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [] });
   const [preset, setPreset] = useState('month');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [customStart, setCustomStart] = useState(new Date().toISOString().split('T')[0]);
-  const [customEnd, setCustomEnd] = useState('');
 
-  const range = getDateRange(preset, customStart, customEnd);
+  const range = getDateRange(preset, customStart);
   const currentPreset = presets.find(p => p.key === preset);
 
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [workspaceVisits, cafePurchases, workshops, events] = await Promise.all([
-          base44.entities.WorkspaceVisit.list('-created_date', 500),
-          base44.entities.CafePurchase.list('-created_date', 500),
-          base44.entities.Workshop.list('-created_date', 500),
-          base44.entities.BigEvent.list('-created_date', 500),
+        const [workspaceOrders, itemPurchases, workshopPurchases] = await Promise.all([
+          base44.entities.WorkspaceOrder.list('-created_date', 500),
+          base44.entities.ItemPurchase.list('-created_date', 500),
+          base44.entities.WorkshopPurchase.list('-created_date', 500),
         ]);
-        setData({ workspaceVisits, cafePurchases, workshops, events });
+        setData({ workspaceOrders, itemPurchases, workshopPurchases });
       } finally { setLoading(false); }
     };
     fetchAll();
   }, []);
 
-  const stats = computeOverallStats(data.workspaceVisits, data.cafePurchases, data.workshops, data.events, range);
-  const dailyUniques = computeDailyUniques(data.workspaceVisits, data.cafePurchases, data.workshops, data.events, range);
-  const sectionDist = computeSectionDistribution(data.workspaceVisits, data.cafePurchases, data.workshops, data.events, range);
+  const stats = computeOverallStats(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
+  const dailyUniques = computeDailyUniques(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
+  const sectionDist = computeSectionDistribution(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
 
   if (loading) {
     return (
@@ -69,10 +63,7 @@ export default function Dashboard() {
           <p className="text-sm text-muted-foreground mt-1">سنجه‌های پیشرفت بینابین</p>
         </div>
         <div className="relative">
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-border text-sm font-medium hover:bg-muted"
-          >
+          <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-border text-sm font-medium hover:bg-muted">
             {currentPreset?.label}
             <ChevronDown className="w-4 h-4" />
           </button>
@@ -81,11 +72,7 @@ export default function Dashboard() {
               <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
               <div className="absolute z-20 top-full mt-1 right-0 bg-white border border-border rounded-lg shadow-lg w-48 py-1">
                 {presets.map(p => (
-                  <button
-                    key={p.key}
-                    onClick={() => { setPreset(p.key); setDropdownOpen(false); }}
-                    className={`w-full text-right px-4 py-2 text-sm hover:bg-muted ${preset === p.key ? 'text-[#B74B40] font-medium' : ''}`}
-                  >
+                  <button key={p.key} onClick={() => { setPreset(p.key); setDropdownOpen(false); }} className={`w-full text-right px-4 py-2 text-sm hover:bg-muted ${preset === p.key ? 'text-[#B74B40] font-medium' : ''}`}>
                     {p.label}
                   </button>
                 ))}
@@ -95,7 +82,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {(preset === 'specific_date') && (
+      {preset === 'specific_date' && (
         <div className="bg-white rounded-xl border border-border p-4 flex items-center gap-3">
           <label className="text-sm text-muted-foreground">انتخاب تاریخ:</label>
           <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
@@ -104,9 +91,9 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCard label="افراد یونیک دوره" value={toPersianNum(stats.uniqueCount)} sublabel="افراد متفاوت" icon={Users} color="terracotta" />
-        <StatCard label="نفر-ساعت" value={toPersianNum(stats.personHours)} sublabel="زمان حضور در فضای کار" icon={Clock} color="teal" />
         <StatCard label="نرخ بازگشت" value={formatPercent(stats.returnRate)} sublabel={`${toPersianNum(stats.totalPeople)} نفر کل`} icon={Repeat} color="ochre" />
         <StatCard label="شاخص تنوع" value={formatPercent(stats.diversityRate)} sublabel="بیش از یک بخش" icon={Layers} color="pink" />
+        <StatCard label="درآمد کل" value={formatCurrency(stats.totalRevenue)} sublabel="این دوره" icon={Wallet} color="teal" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -121,9 +108,9 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={dailyUniques}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="date" tickFormatter={formatDateLabel} tick={{ fontSize: 10 }} />
+                <XAxis dataKey="date" tickFormatter={toJalaliStr} tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip labelFormatter={formatDateLabel} formatter={(v) => [toPersianNum(v) + ' نفر', 'افراد یونیک']} />
+                <Tooltip labelFormatter={toJalaliStr} formatter={(v) => [toPersianNum(v) + ' نفر', 'افراد یونیک']} />
                 <Bar dataKey="count" fill="#B74B40" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
