@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Palette, Phone, Pencil, Check, X } from 'lucide-react';
+import { ArrowRight, Palette, Phone, Pencil, Check, X, Briefcase } from 'lucide-react';
 
 export default function ArtistProfile() {
   const { id } = useParams();
@@ -49,17 +49,38 @@ export default function ArtistProfile() {
         <ArrowRight className="w-4 h-4" /> بازگشت به فهرست
       </Link>
 
-      <div className="bg-white rounded-xl border border-border p-6">
+      <div className="bg-white rounded-xl border border-border p-8">
         {editing ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <input type="text" placeholder="نام و نام خانوادگی" value={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
-              <input type="tel" placeholder="شماره تماس" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              <input type="text" placeholder="آیدی شبکه اجتماعی" value={editForm.social_id} onChange={e => setEditForm({ ...editForm, social_id: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              <input type="text" placeholder="اسم کارگاه در بینابین" value={editForm.workshop_name} onChange={e => setEditForm({ ...editForm, workshop_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              <input type="text" placeholder="نام برند" value={editForm.brand_name} onChange={e => setEditForm({ ...editForm, brand_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              <input type="text" placeholder="برگزاری چند کارگاه" value={editForm.multi_workshop} onChange={e => setEditForm({ ...editForm, multi_workshop: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              <textarea placeholder="توضیحات و معرفی" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={4} className="sm:col-span-2 lg:col-span-3 px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">نام و نام خانوادگی</label>
+                <input type="text" value={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">شماره تماس</label>
+                <input type="tel" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">آیدی شبکه اجتماعی</label>
+                <input type="text" value={editForm.social_id} onChange={e => setEditForm({ ...editForm, social_id: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">نام برند</label>
+                <input type="text" value={editForm.brand_name} onChange={e => setEditForm({ ...editForm, brand_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">اسم کارگاه در بینابین</label>
+                <input type="text" value={editForm.workshop_name} onChange={e => setEditForm({ ...editForm, workshop_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">برگزاری چند کارگاه</label>
+                <input type="text" value={editForm.multi_workshop} onChange={e => setEditForm({ ...editForm, multi_workshop: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">توضیحات و معرفی شخصیت</label>
+              <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={6} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" placeholder="معرفی کامل شخصیت، سبک کار، سوابق هنری..." />
             </div>
             <div className="flex gap-2">
               <button onClick={saveEdit} disabled={saving} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
@@ -71,27 +92,54 @@ export default function ArtistProfile() {
             </div>
           </div>
         ) : (
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-full bg-[#FDF2F1] flex items-center justify-center flex-shrink-0">
-              <Palette className="w-8 h-8 text-[#B74B40]" />
+          <div className="flex flex-col sm:flex-row items-start gap-6">
+            <div className="w-20 h-20 rounded-full bg-[#FDF2F1] flex items-center justify-center flex-shrink-0">
+              <Palette className="w-10 h-10 text-[#B74B40]" />
             </div>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold">{artist.full_name}</h1>
-              <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold">{artist.full_name}</h1>
+              {artist.brand_name && <p className="text-sm text-muted-foreground mt-1">{artist.brand_name}</p>}
+              <div className="flex flex-wrap gap-4 mt-4 text-sm text-muted-foreground">
                 {artist.phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> {artist.phone}</span>}
-                {artist.workshop_name && <span>کارگاه: {artist.workshop_name}</span>}
-                {artist.brand_name && <span>نام برند: {artist.brand_name}</span>}
-                {artist.multi_workshop && <span>چند کارگاهی: {artist.multi_workshop}</span>}
-                {artist.social_id && <span>آیدی: {artist.social_id}</span>}
+                {artist.social_id && <span>{artist.social_id}</span>}
               </div>
-              {artist.description && <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{artist.description}</p>}
             </div>
-            <button onClick={startEdit} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted">
+            <button onClick={startEdit} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted flex-shrink-0">
               <Pencil className="w-3.5 h-3.5" /> ویرایش
             </button>
           </div>
         )}
       </div>
+
+      {!editing && (
+        <>
+          <div className="bg-white rounded-xl border border-border p-6">
+            <h3 className="text-sm font-semibold mb-3 text-muted-foreground">درباره هنرمند</h3>
+            <p className="text-sm leading-relaxed">{artist.description || 'توضیحاتی ثبت نشده است.'}</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {artist.workshop_name && (
+              <div className="bg-white rounded-xl border border-border p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Briefcase className="w-4 h-4 text-[#B74B40]" />
+                  <h3 className="text-sm font-semibold">کارگاه در بینابین</h3>
+                </div>
+                <p className="text-sm">{artist.workshop_name}</p>
+              </div>
+            )}
+            {artist.multi_workshop && (
+              <div className="bg-white rounded-xl border border-border p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Palette className="w-4 h-4 text-[#B9834B]" />
+                  <h3 className="text-sm font-semibold">برگزاری چند کارگاه</h3>
+                </div>
+                <p className="text-sm">{artist.multi_workshop}</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

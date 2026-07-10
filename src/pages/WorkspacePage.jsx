@@ -5,7 +5,7 @@ import { Briefcase, Users, Repeat, Plus, Pencil, Check, X, Package, Trash2 } fro
 import { computeWorkspaceStats, findOrCreatePerson, toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
-import JalaliDateInput from '@/components/JalaliDateInput';
+import FloatingDateInput from '@/components/FloatingDateInput';
 import PersonSearch from '@/components/PersonSearch';
 import PriceInput from '@/components/PriceInput';
 
@@ -115,7 +115,17 @@ export default function WorkspacePage() {
         <StatCard label="مجموع سفارش‌ها" value={toPersianNum(stats.totalOrders)} icon={Briefcase} color="terracotta" />
         <StatCard label="افراد یونیک" value={toPersianNum(stats.uniqueCount)} icon={Users} color="teal" />
         <StatCard label="افراد تکراری" value={toPersianNum(stats.repeatCount)} icon={Repeat} color="ochre" />
-        <StatCard label="درآمد کل" value={formatCurrency(stats.totalRevenue)} icon={Briefcase} color="pink" />
+        <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">درآمد کل</p>
+              <p className="text-xl lg:text-2xl font-bold mt-2 text-foreground break-words leading-tight">{formatCurrency(stats.totalRevenue)}</p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-[#FBF0F1] flex items-center justify-center flex-shrink-0">
+              <Briefcase className="w-5 h-5 text-[#D98B94]" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex gap-2">
@@ -182,8 +192,8 @@ export default function WorkspacePage() {
         <>
           <div className="bg-white rounded-xl border border-border p-5">
             <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> ثبت سفارش جدید</h3>
-            <form onSubmit={handleOrderSubmit} className="flex flex-wrap items-end gap-3">
-              <div>
+            <form onSubmit={handleOrderSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="sm:col-span-2 lg:col-span-1">
                 <label className="text-xs text-muted-foreground block mb-1">نام مشتری</label>
                 <PersonSearch
                   personName={orderForm.person_name}
@@ -194,43 +204,45 @@ export default function WorkspacePage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">مدل اشتراک</label>
-                <select value={orderForm.subscription_id} onChange={e => setOrderForm({ ...orderForm, subscription_id: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-44" required>
+                <select value={orderForm.subscription_id} onChange={e => setOrderForm({ ...orderForm, subscription_id: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required>
                   <option value="">انتخاب اشتراک...</option>
                   {subscriptions.map(s => <option key={s.id} value={s.id}>{s.name} — {toPersianNum(s.price)} تومان</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">تعداد</label>
-                <input type="number" placeholder="تعداد" value={orderForm.quantity} onChange={e => setOrderForm({ ...orderForm, quantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-20" />
+                <input type="number" placeholder="تعداد" value={orderForm.quantity} onChange={e => setOrderForm({ ...orderForm, quantity: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">تاریخ خرید</label>
-                <JalaliDateInput value={orderForm.purchase_date} onChange={v => setOrderForm({ ...orderForm, purchase_date: v })} required />
+                <FloatingDateInput value={orderForm.purchase_date} onChange={v => setOrderForm({ ...orderForm, purchase_date: v })} required />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">تاریخ استفاده</label>
-                <JalaliDateInput value={orderForm.usage_date} onChange={v => setOrderForm({ ...orderForm, usage_date: v })} />
+                <FloatingDateInput value={orderForm.usage_date} onChange={v => setOrderForm({ ...orderForm, usage_date: v })} />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">زمان ورود</label>
-                <input type="time" value={orderForm.entry_time} onChange={e => setOrderForm({ ...orderForm, entry_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+                <input type="time" value={orderForm.entry_time} onChange={e => setOrderForm({ ...orderForm, entry_time: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>
-                <select value={orderForm.payment_method} onChange={e => setOrderForm({ ...orderForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                <select value={orderForm.payment_method} onChange={e => setOrderForm({ ...orderForm, payment_method: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
                   {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">مدل آشنایی</label>
-                <select value={orderForm.how_met} onChange={e => setOrderForm({ ...orderForm, how_met: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                <select value={orderForm.how_met} onChange={e => setOrderForm({ ...orderForm, how_met: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
                   <option value="">انتخاب...</option>
                   {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
-              <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-                {submitting ? 'در حال ثبت...' : 'ثبت سفارش'}
-              </button>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                  {submitting ? 'در حال ثبت...' : 'ثبت سفارش'}
+                </button>
+              </div>
             </form>
           </div>
 
@@ -299,7 +311,7 @@ export default function WorkspacePage() {
                                   <option value="">انتخاب...</option>
                                   {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                                 </select>
-                                <JalaliDateInput value={editOrderForm.usage_date} onChange={v => setEditOrderForm({ ...editOrderForm, usage_date: v })} />
+                                <FloatingDateInput value={editOrderForm.usage_date} onChange={v => setEditOrderForm({ ...editOrderForm, usage_date: v })} />
                                 <div className="flex gap-2">
                                   <button onClick={saveEditOrder} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-[#B74B40] text-white text-sm"><Check className="w-4 h-4" /> ذخیره</button>
                                   <button onClick={() => setEditingOrderId(null)} className="px-3 py-2 rounded-lg border border-border text-sm"><X className="w-4 h-4" /></button>

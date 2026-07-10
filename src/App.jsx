@@ -24,6 +24,8 @@ import ArtistProfile from '@/pages/ArtistProfile';
 import ArtistsPage from '@/pages/ArtistsPage';
 import CalendarPage from '@/pages/CalendarPage';
 import AccountingPage from '@/pages/AccountingPage';
+import ReturnsPage from '@/pages/ReturnsPage';
+import WorkshopProfile from '@/pages/WorkshopProfile';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -69,6 +71,8 @@ const AuthenticatedApp = () => {
       <Route path="/artists/:id" element={<ArtistProfile />} />
       <Route path="/calendar" element={<CalendarPage />} />
       <Route path="/accounting" element={<AccountingPage />} />
+      <Route path="/returns" element={<ReturnsPage />} />
+      <Route path="/workshops/:id" element={<WorkshopProfile />} />
       </Route>
     <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ClipboardCheck, ArrowRight, Calendar as CalendarIcon, Clock, MapPin, Users } from 'lucide-react';
 import { computeWorkshopRevenue, toPersianNum } from '@/lib/stats';
@@ -69,6 +69,7 @@ export default function AttendancePage() {
                       <CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[w.day_of_week]} {(w.start_time || w.end_time) && `• ${w.start_time || ''}${w.end_time ? ' تا ' + w.end_time : ''}`}
                     </p>
                   )}
+                  <Link to={`/workshops/${w.id}`} className="text-xs text-[#B74B40] hover:underline mt-1 inline-block">مشاهده صفحه کارگاه</Link>
                   {w.space && (
                     <p className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5" /> {w.space}

@@ -2,23 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Tag, Plus, Search, ArrowLeft } from 'lucide-react';
-import { toPersianNum, topCollaborationTypes } from '@/lib/stats';
-import { collaborationTypeLabels } from '@/lib/labels';
+import { Tag, Plus, Search } from 'lucide-react';
+import { toPersianNum } from '@/lib/stats';
+import TagInput from '@/components/TagInput';
 
 export default function BrandsPage() {
   const [records, setRecords] = useState([]);
+  const [allTags, setAllTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', social_id: '', collaboration_type: '', product_type: '', brand_name: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', social_id: '', collaboration_tags: [], product_type: '', brand_name: '', description: '' });
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const data = await base44.entities.Brand.list('-created_date', 500);
       setRecords(data);
+      const tagSet = new Set();
+      data.forEach(r => (r.collaboration_tags || []).forEach(t => tagSet.add(t)));
+      setAllTags([...tagSet]);
     } finally { setLoading(false); }
   };
 
@@ -30,7 +34,7 @@ export default function BrandsPage() {
     setSubmitting(true);
     try {
       await base44.entities.Brand.create(form);
-      setForm({ full_name: '', phone: '', social_id: '', collaboration_type: '', product_type: '', brand_name: '' });
+      setForm({ full_name: '', phone: '', social_id: '', collaboration_tags: [], product_type: '', brand_name: '', description: '' });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -42,10 +46,13 @@ export default function BrandsPage() {
     return (r.full_name || '').toLowerCase().includes(s) ||
       (r.brand_name || '').toLowerCase().includes(s) ||
       (r.product_type || '').toLowerCase().includes(s) ||
-      (r.phone || '').includes(s);
+      (r.phone || '').includes(s) ||
+      (r.collaboration_tags || []).some(t => t.toLowerCase().includes(s));
   });
 
-  const topTypes = topCollaborationTypes(records, collaborationTypeLabels, 2);
+  const tagCounts = {};
+  records.forEach(r => (r.collaboration_tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
+  const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 2);
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -61,23 +68,47 @@ export default function BrandsPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCard label="کل برندها" value={toPersianNum(records.length)} icon={Tag} color="terracotta" />
-        {topTypes.map((t, i) => (
-          <StatCard key={t.key} label={t.label} value={toPersianNum(t.count)} icon={Tag} color={i === 0 ? 'ochre' : 'teal'} />
+        {topTags.map((t, i) => (
+          <StatCard key={t[0]} label={t[0]} value={toPersianNum(t[1])} icon={Tag} color={i === 0 ? 'ochre' : 'teal'} />
         ))}
       </div>
 
       {showForm && (
         <div className="bg-white rounded-xl border border-border p-5">
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <input type="text" placeholder="نام و نام خانوادگی" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
-            <input type="tel" placeholder="شماره تماس" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-            <input type="text" placeholder="آیدی شبکه اجتماعی" value={form.social_id} onChange={e => setForm({ ...form, social_id: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-            <select value={form.collaboration_type} onChange={e => setForm({ ...form, collaboration_type: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-              <option value="">محل همکاری...</option>
-              {Object.entries(collaborationTypeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-            <input type="text" placeholder="نوع محصول/اثر" value={form.product_type} onChange={e => setForm({ ...form, product_type: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-            <input type="text" placeholder="نام برند" value={form.brand_name} onChange={e => setForm({ ...form, brand_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">نام و نام خانوادگی *</label>
+              <input type="text" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">شماره تماس</label>
+              <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">آیدی شبکه اجتماعی</label>
+              <input type="text" value={form.social_id} onChange={e => setForm({ ...form, social_id: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">نام برند</label>
+              <input type="text" value={form.brand_name} onChange={e => setForm({ ...form, brand_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">نوع محصول/اثر</label>
+              <input type="text" value={form.product_type} onChange={e => setForm({ ...form, product_type: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="text-xs text-muted-foreground block mb-2">تگ‌های همکاری</label>
+              <TagInput
+                tags={form.collaboration_tags || []}
+                availableTags={allTags}
+                onChange={tags => setForm({ ...form, collaboration_tags: tags })}
+                placeholder="مثلاً هفته دیزاین تهران، افتتاحیه..."
+              />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="text-xs text-muted-foreground block mb-1">توضیحات و معرفی</label>
+              <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
             <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
               <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
                 {submitting ? 'در حال ثبت...' : 'ثبت'}
@@ -108,7 +139,7 @@ export default function BrandsPage() {
                   <th className="text-right p-3 font-medium">نام</th>
                   <th className="text-right p-3 font-medium">شماره</th>
                   <th className="text-right p-3 font-medium">نام برند</th>
-                  <th className="text-right p-3 font-medium">محل همکاری</th>
+                  <th className="text-right p-3 font-medium">تگ‌های همکاری</th>
                   <th className="text-right p-3 font-medium">نوع محصول</th>
                 </tr>
               </thead>
@@ -120,7 +151,11 @@ export default function BrandsPage() {
                     </td>
                     <td className="p-3 text-muted-foreground">{r.phone || '-'}</td>
                     <td className="p-3">{r.brand_name || '-'}</td>
-                    <td className="p-3">{collaborationTypeLabels[r.collaboration_type] || r.collaboration_type || '-'}</td>
+                    <td className="p-3">
+                      <div className="flex flex-wrap gap-1">
+                        {(r.collaboration_tags || []).map(t => <span key={t} className="px-1.5 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs">{t}</span>)}
+                      </div>
+                    </td>
                     <td className="p-3">{r.product_type || '-'}</td>
                   </tr>
                 ))}

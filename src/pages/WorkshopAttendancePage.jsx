@@ -79,7 +79,7 @@ export default function WorkshopAttendancePage() {
           <div>
             <h1 className="text-xl font-bold">{workshop.title}</h1>
             <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
-              {workshop.day_of_week && <span className="flex items-center gap-1"><CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[workshop.day_of_week]} {workshop.time && `• ${workshop.time}`}</span>}
+              {workshop.day_of_week && <span className="flex items-center gap-1"><CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[workshop.day_of_week]} {(workshop.start_time || workshop.end_time) && `• ${workshop.start_time || ''}${workshop.end_time ? ' تا ' + workshop.end_time : ''}`}</span>}
               <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {toPersianNum(participants.length)} ثبت‌نامی</span>
             </div>
           </div>

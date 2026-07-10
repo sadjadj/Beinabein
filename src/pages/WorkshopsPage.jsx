@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { GraduationCap, Users, Plus, Pencil, Check, X, Wallet } from 'lucide-react';
+import { GraduationCap, Users, Plus, Pencil, Wallet } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { computeWorkshopStats, computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
@@ -89,11 +90,6 @@ export default function WorkshopsPage() {
     }));
   };
 
-  const toggleFacilitatorPaid = async (w) => {
-    await base44.entities.Workshop.update(w.id, { facilitator_paid: !w.facilitator_paid });
-    fetchData();
-  };
-
   const stats = computeWorkshopStats(workshops, purchases, null);
 
   return (
@@ -162,13 +158,15 @@ export default function WorkshopsPage() {
                   {spaces.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع</label>
-                <JalaliDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
-                <JalaliDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} />
+              <div className="flex items-end gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع</label>
+                  <JalaliDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} compact />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
+                  <JalaliDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} compact />
+                </div>
               </div>
             </div>
             <textarea placeholder="توضیحات کارگاه" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
@@ -209,42 +207,29 @@ export default function WorkshopsPage() {
                 <tr>
                   <th className="text-right p-3 font-medium">کارگاه</th>
                   <th className="text-right p-3 font-medium">تسهیلگر</th>
-                  <th className="text-right p-3 font-medium">روز/ساعت</th>
+                  <th className="text-right p-3 font-medium">روز</th>
+                  <th className="text-right p-3 font-medium">ساعت</th>
                   <th className="text-right p-3 font-medium">فضا</th>
                   <th className="text-center p-3 font-medium">ثبت‌نامی</th>
-                  <th className="text-right p-3 font-medium">درآمد کل</th>
-                  <th className="text-right p-3 font-medium">دریافتی بینابین</th>
-                  <th className="text-right p-3 font-medium">دریافتی تسهیلگر</th>
-                  <th className="text-center p-3 font-medium">پرداخت تسهیلگر</th>
                   <th className="text-center p-3 font-medium">حضور غیاب</th>
                   <th className="text-center p-3 font-medium">ویرایش</th>
                 </tr>
               </thead>
               <tbody>
                 {workshops.map(w => {
-                  const rev = computeWorkshopRevenue(w, purchases);
+                  const rev = computeWorkshopRevenue(w, purchases.filter(p => p.workshop_id === w.id));
                   const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
                   return (
                     <tr key={w.id} className="border-t border-border hover:bg-muted/30">
                       <td className="p-3">
-                        <p className="font-medium">{w.title}</p>
+                        <Link to={`/workshops/${w.id}`} className="font-medium hover:text-[#B74B40]">{w.title}</Link>
                         {w.tags && <p className="text-xs text-muted-foreground mt-0.5">{w.tags}</p>}
                       </td>
                       <td className="p-3 text-muted-foreground text-xs">{facNames || '-'}</td>
-                      <td className="p-3 text-xs">
-                        {w.day_of_week && <span>{dayLabels[w.day_of_week]}</span>}
-                        {(w.start_time || w.end_time) && <span className="text-muted-foreground block">{w.start_time} - {w.end_time}</span>}
-                      </td>
+                      <td className="p-3 text-xs">{w.day_of_week ? dayLabels[w.day_of_week] : '-'}</td>
+                      <td className="p-3 text-xs text-muted-foreground">{w.start_time}{w.end_time ? ` - ${w.end_time}` : ''}</td>
                       <td className="p-3 text-xs">{w.space || '-'}</td>
                       <td className="p-3 text-center font-medium">{toPersianNum(rev.participantCount)}</td>
-                      <td className="p-3">{formatCurrency(rev.totalRevenue)}</td>
-                      <td className="p-3 text-[#B74B40] font-medium">{formatCurrency(rev.binabinRevenue)}</td>
-                      <td className="p-3 text-[#B9834B]">{formatCurrency(rev.facilitatorRevenue)}</td>
-                      <td className="p-3 text-center">
-                        <button onClick={() => toggleFacilitatorPaid(w)} className={`text-xs ${w.facilitator_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
-                          {w.facilitator_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}
-                        </button>
-                      </td>
                       <td className="p-3 text-center">
                         <button onClick={() => navigate(`/attendance/${w.id}`)} className="text-xs text-[#B74B40] hover:underline">مشاهده</button>
                       </td>

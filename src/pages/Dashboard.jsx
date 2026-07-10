@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend, LabelList } from 'recharts';
 import StatCard from '@/components/StatCard';
-import { Users, Repeat, Layers, TrendingUp, ChevronDown, Wallet } from 'lucide-react';
+import { Users, Repeat, Layers, ChevronDown, Wallet } from 'lucide-react';
 import { computeOverallStats, computeDailyUniques, computeSectionDistribution, getDateRange, toPersianNum, formatPercent, formatCurrency } from '@/lib/stats';
 import { toJalaliStr } from '@/lib/jalali';
 
-const COLORS = ['#B74B40', '#D98B94', '#B9834B', '#8CB9C0'];
+const COLORS = ['#D98B94', '#E8B4B0', '#D4A574', '#A8C9CE'];
 const presets = [
   { key: 'today', label: 'امروز' },
   { key: 'week', label: 'این هفته' },
@@ -15,7 +15,7 @@ const presets = [
   { key: 'quarter', label: 'سه ماه' },
   { key: 'year', label: 'امسال' },
   { key: 'all_time', label: 'کل دوره' },
-  { key: 'specific_date', label: 'تاریخ خاص' },
+  { key: 'specific_date', label: 'بازه خاص' },
 ];
 
 export default function Dashboard() {
@@ -24,8 +24,9 @@ export default function Dashboard() {
   const [preset, setPreset] = useState('month');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [customStart, setCustomStart] = useState(new Date().toISOString().split('T')[0]);
+  const [customEnd, setCustomEnd] = useState(new Date().toISOString().split('T')[0]);
 
-  const range = getDateRange(preset, customStart);
+  const range = getDateRange(preset, customStart, customEnd);
   const currentPreset = presets.find(p => p.key === preset);
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function Dashboard() {
   const stats = computeOverallStats(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
   const dailyUniques = computeDailyUniques(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
   const sectionDist = computeSectionDistribution(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
+  const totalSection = sectionDist.reduce((s, d) => s + d.value, 0) || 1;
 
   if (loading) {
     return (
@@ -83,9 +85,15 @@ export default function Dashboard() {
       </div>
 
       {preset === 'specific_date' && (
-        <div className="bg-white rounded-xl border border-border p-4 flex items-center gap-3">
-          <label className="text-sm text-muted-foreground">انتخاب تاریخ:</label>
-          <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+        <div className="bg-white rounded-xl border border-border p-4 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground">از:</label>
+            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground">تا:</label>
+            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+          </div>
         </div>
       )}
 
@@ -93,27 +101,42 @@ export default function Dashboard() {
         <StatCard label="افراد یونیک دوره" value={toPersianNum(stats.uniqueCount)} sublabel="افراد متفاوت" icon={Users} color="terracotta" />
         <StatCard label="نرخ بازگشت" value={formatPercent(stats.returnRate)} sublabel={`${toPersianNum(stats.totalPeople)} نفر کل`} icon={Repeat} color="ochre" />
         <StatCard label="شاخص تنوع" value={formatPercent(stats.diversityRate)} sublabel="بیش از یک بخش" icon={Layers} color="pink" />
-        <StatCard label="درآمد کل" value={formatCurrency(stats.totalRevenue)} sublabel="این دوره" icon={Wallet} color="teal" />
+        <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">درآمد کل</p>
+              <p className="text-xl lg:text-2xl font-bold mt-2 text-foreground break-words leading-tight">{formatCurrency(stats.totalRevenue)}</p>
+              <p className="text-xs text-muted-foreground mt-1">این دوره</p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-[#F0F7F8] flex items-center justify-center flex-shrink-0">
+              <Wallet className="w-5 h-5 text-[#8CB9C0]" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-white rounded-xl border border-border p-5">
-          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#B74B40]" />
-            روند افراد یونیک روزانه
-          </h3>
+          <h3 className="text-sm font-semibold mb-4">روند افراد یونیک روزانه</h3>
           {dailyUniques.length === 0 ? (
             <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای در این بازه نیست</div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={dailyUniques}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="date" tickFormatter={toJalaliStr} tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip labelFormatter={toJalaliStr} formatter={(v) => [toPersianNum(v) + ' نفر', 'افراد یونیک']} />
-                <Bar dataKey="count" fill="#B74B40" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={dailyUniques}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
+                  <XAxis dataKey="date" tickFormatter={toJalaliStr} tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip labelFormatter={toJalaliStr} formatter={(v) => [toPersianNum(v) + ' نفر', 'افراد یونیک']} />
+                  <Bar dataKey="count" fill="#D98B94" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="count" position="top" formatter={toPersianNum} style={{ fontSize: '10px', fill: '#71717a' }} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-3 text-xs text-muted-foreground text-center">
+                میانگین روزانه: {toPersianNum((dailyUniques.reduce((s, d) => s + d.count, 0) / dailyUniques.length).toFixed(1))} نفر • بیشترین: {toPersianNum(Math.max(...dailyUniques.map(d => d.count)))} نفر
+              </div>
+            </>
           )}
         </div>
         <div className="bg-white rounded-xl border border-border p-5">
@@ -121,16 +144,61 @@ export default function Dashboard() {
           {sectionDist.every(s => s.value === 0) ? (
             <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={sectionDist} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={70} label={false}>
-                  {sectionDist.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                <Tooltip formatter={(v) => toPersianNum(v) + ' نفر'} />
-              </PieChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie data={sectionDist} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={75} label={({ name, value }) => `${name}: ${toPersianNum(Math.round((value / totalSection) * 100))}%`}>
+                    {sectionDist.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-2 space-y-1.5">
+                {sectionDist.map((s, i) => (
+                  <div key={s.name} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS[i] }}></span>
+                      {s.name}
+                    </span>
+                    <span className="font-medium">{toPersianNum(s.value)} نفر</span>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-border p-5">
+        <h3 className="text-sm font-semibold mb-4">تفکیک درآمد</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#FDF2F1] flex items-center justify-center flex-shrink-0">
+              <Wallet className="w-5 h-5 text-[#B74B40]" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">فضای کار</p>
+              <p className="text-sm font-bold">{formatCurrency(stats.workspaceRevenue)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#FBF3EC] flex items-center justify-center flex-shrink-0">
+              <Wallet className="w-5 h-5 text-[#B9834B]" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">کافه</p>
+              <p className="text-sm font-bold">{formatCurrency(stats.cafeRevenue)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#F0F7F8] flex items-center justify-center flex-shrink-0">
+              <Wallet className="w-5 h-5 text-[#8CB9C0]" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">کارگاه</p>
+              <p className="text-sm font-bold">{formatCurrency(stats.workshopRevenue)}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

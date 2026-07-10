@@ -14,16 +14,13 @@
       "type": "string",
       "title": "\u0622\u06cc\u062f\u06cc \u0634\u0628\u06a9\u0647 \u0627\u062c\u062a\u0645\u0627\u0639\u06cc"
     },
-    "collaboration_type": {
-      "type": "string",
-      "enum": [
-        "coworking",
-        "cafe",
-        "workshop",
-        "event",
-        "other"
-      ],
-      "title": "\u0645\u062d\u0644 \u0647\u0645\u06a9\u0627\u0631\u06cc"
+    "collaboration_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "title": "\u062a\u06af\u200c\u0647\u0627\u06cc \u0647\u0645\u06a9\u0627\u0631\u06cc"
     },
     "product_type": {
       "type": "string",

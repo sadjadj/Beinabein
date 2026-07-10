@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { toJalaliStr, fromJalaliStr, todayJalali, todayGregorian } from '@/lib/jalali';
 import { Calendar } from 'lucide-react';
 
-export default function JalaliDateInput({ value, onChange, required, placeholder = 'انتخاب تاریخ' }) {
+export default function JalaliDateInput({ value, onChange, required, placeholder = 'انتخاب تاریخ', compact = false }) {
   const [jalaliValue, setJalaliValue] = useState(value ? toJalaliStr(value) : '');
 
   const handleChange = (e) => {
@@ -32,7 +32,7 @@ export default function JalaliDateInput({ value, onChange, required, placeholder
       <span className="text-xs text-muted-foreground whitespace-nowrap min-w-[80px]">
         {value ? toJalaliStr(value) : placeholder}
       </span>
-      <button type="button" onClick={setToday} className="text-xs px-2.5 py-2 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 whitespace-nowrap flex-shrink-0">
+      <button type="button" onClick={setToday} className={`text-xs px-2.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 whitespace-nowrap flex-shrink-0 ${compact ? 'py-1.5' : 'py-2'}`}>
         امروز
       </button>
     </div>

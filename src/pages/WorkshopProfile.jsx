@@ -1,0 +1,293 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
+import { ArrowRight, Pencil, Check, X, Users, Calendar, Clock, MapPin, GraduationCap, ClipboardCheck, Plus } from 'lucide-react';
+import { toPersianNum, formatCurrency, computeWorkshopRevenue } from '@/lib/stats';
+import { dayLabels, paymentMethodLabels } from '@/lib/labels';
+import { formatJalaliShort, todayGregorian, formatJalali } from '@/lib/jalali';
+import JalaliDateInput from '@/components/JalaliDateInput';
+import FacilitatorSearch from '@/components/FacilitatorSearch';
+import PriceInput from '@/components/PriceInput';
+
+export default function WorkshopProfile() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [workshop, setWorkshop] = useState(null);
+  const [purchases, setPurchases] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [facilitators, setFacilitators] = useState([]);
+  const [spaces, setSpaces] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({});
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [w, purchs, sess, facs, spcs] = await Promise.all([
+        base44.entities.Workshop.get(id),
+        base44.entities.WorkshopPurchase.list('-purchase_date', 500),
+        base44.entities.WorkshopSession.list('-session_number', 500),
+        base44.entities.Facilitator.list('-created_date', 500),
+        base44.entities.Space.list('-created_date', 100)
+      ]);
+      setWorkshop(w);
+      setPurchases(purchs.filter(p => p.workshop_id === id));
+      setSessions(sess.filter(s => s.workshop_id === id).sort((a, b) => (a.session_number || 0) - (b.session_number || 0)));
+      setFacilitators(facs);
+      setSpaces(spcs);
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchData(); }, [id]);
+
+  const checkAndCreateAutoSession = async () => {
+    if (!workshop || !workshop.day_of_week) return;
+    const today = todayGregorian();
+    const startDate = workshop.start_date;
+    if (!startDate || startDate > today) return;
+    if (workshop.end_date && workshop.end_date < today) return;
+
+    const dayMap = { saturday: 6, sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5 };
+    const targetDay = dayMap[workshop.day_of_week];
+    const start = new Date(startDate);
+    const end = new Date(today);
+    const sessionDates = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() === targetDay) {
+        sessionDates.push(new Date(d).toISOString().split('T')[0]);
+      }
+    }
+
+    const existingDates = new Set(sessions.map(s => s.session_date));
+    const missing = sessionDates.filter(d => !existingDates.has(d));
+    if (missing.length === 0) return;
+
+    const baseNum = sessions.length > 0 ? Math.max(...sessions.map(s => s.session_number || 0)) : 0;
+    await base44.entities.WorkshopSession.bulkCreate(
+      missing.map((date, i) => ({
+        workshop_id: id,
+        workshop_title: workshop.title,
+        session_number: baseNum + i + 1,
+        session_date: date,
+        present_phones: []
+      }))
+    );
+    fetchData();
+  };
+
+  useEffect(() => {
+    if (workshop && sessions.length >= 0) {
+      const timer = setTimeout(() => checkAndCreateAutoSession(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [workshop?.id]);
+
+  const startEdit = () => {
+    setForm({
+      title: workshop.title || '', price: workshop.price || '', session_count: workshop.session_count || '',
+      is_permanent: workshop.is_permanent || false, description: workshop.description || '',
+      tags: workshop.tags || '', facilitator_ids: workshop.facilitator_ids || [],
+      space: workshop.space || '', start_time: workshop.start_time || '', end_time: workshop.end_time || '',
+      day_of_week: workshop.day_of_week || 'saturday',
+      start_date: workshop.start_date || todayGregorian(), end_date: workshop.end_date || '',
+      facilitator_percentage: workshop.facilitator_percentage || ''
+    });
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    setSubmitting(true);
+    try {
+      await base44.entities.Workshop.update(id, {
+        ...form,
+        price: Number(form.price) || 0,
+        session_count: form.is_permanent ? null : (Number(form.session_count) || null),
+        facilitator_percentage: Number(form.facilitator_percentage) || 0
+      });
+      setEditing(false);
+      fetchData();
+    } finally { setSubmitting(false); }
+  };
+
+  const toggleFacilitator = (fid) => {
+    setForm(prev => ({
+      ...prev, facilitator_ids: prev.facilitator_ids.includes(fid)
+        ? prev.facilitator_ids.filter(x => x !== fid)
+        : [...prev.facilitator_ids, fid]
+    }));
+  };
+
+  if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
+  if (!workshop) return <div className="p-6 text-center text-muted-foreground">کارگاهی یافت نشد</div>;
+
+  const rev = computeWorkshopRevenue(workshop, purchases);
+  const facNames = (workshop.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean);
+
+  return (
+    <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
+      <button onClick={() => navigate('/workshops')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowRight className="w-4 h-4" /> بازگشت به کارگاه‌ها
+      </button>
+
+      {editing ? (
+        <div className="bg-white rounded-xl border border-border p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">اسم کارگاه</label>
+              <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
+              <PriceInput value={form.price} onChange={v => setForm({ ...form, price: v })} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">تعداد جلسه</label>
+              <input type="number" value={form.session_count} onChange={e => setForm({ ...form, session_count: e.target.value })} disabled={form.is_permanent} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm disabled:opacity-50" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">درصد تسهیلگر</label>
+              <input type="number" value={form.facilitator_percentage} onChange={e => setForm({ ...form, facilitator_percentage: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">تگ (موضوعات)</label>
+              <input type="text" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">ساعت شروع</label>
+              <input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">ساعت پایان</label>
+              <input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">روز کارگاه</label>
+              <select value={form.day_of_week} onChange={e => setForm({ ...form, day_of_week: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                {Object.entries(dayLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">فضای برگزاری</label>
+              <select value={form.space} onChange={e => setForm({ ...form, space: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                <option value="">انتخاب فضا...</option>
+                {spaces.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع</label>
+              <JalaliDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
+              <JalaliDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} />
+            </div>
+          </div>
+          <textarea placeholder="توضیحات کارگاه" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">تسهیلگران:</p>
+            <div className="flex flex-wrap gap-2">
+              {facilitators.map(f => (
+                <button key={f.id} type="button" onClick={() => toggleFacilitator(f.id)} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${form.facilitator_ids.includes(f.id) ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>
+                  {f.full_name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={form.is_permanent} onChange={e => setForm({ ...form, is_permanent: e.target.checked })} className="w-4 h-4" />
+            کارگاه دائمی
+          </label>
+          <div className="flex gap-2">
+            <button onClick={saveEdit} disabled={submitting} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+              <Check className="w-4 h-4" /> {submitting ? 'در حال ذخیره...' : 'ذخیره'}
+            </button>
+            <button onClick={() => setEditing(false)} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-border text-sm">
+              <X className="w-4 h-4" /> انصراف
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="bg-white rounded-xl border border-border p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h1 className="text-xl font-bold">{workshop.title}</h1>
+                {workshop.tags && <p className="text-sm text-muted-foreground mt-1">{workshop.tags}</p>}
+                <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
+                  {workshop.day_of_week && <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {dayLabels[workshop.day_of_week]}</span>}
+                  {(workshop.start_time || workshop.end_time) && <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {workshop.start_time}{workshop.end_time ? ` - ${workshop.end_time}` : ''}</span>}
+                  {workshop.space && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {workshop.space}</span>}
+                </div>
+                <div className="flex flex-wrap gap-4 mt-2 text-sm">
+                  <span className="flex items-center gap-1 text-muted-foreground"><Users className="w-4 h-4" /> {toPersianNum(rev.participantCount)} ثبت‌نام</span>
+                  <span className="font-medium text-[#B74B40]">{formatCurrency(workshop.price)}</span>
+                  {workshop.is_permanent && <span className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs">دائمی</span>}
+                </div>
+                {workshop.description && <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{workshop.description}</p>}
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {facNames.map(n => (
+                    <Link key={n} to={`/facilitators/${facilitators.find(f => f.full_name === n)?.id}`} className="px-3 py-1.5 rounded-lg bg-[#FDF2F1] text-[#B74B40] text-xs font-medium hover:bg-[#FDF2F1]/80">
+                      {n}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <button onClick={startEdit} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted flex-shrink-0">
+                <Pencil className="w-3.5 h-3.5" /> ویرایش
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl border border-border p-5">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-[#B74B40]" /> ثبت‌نامی‌ها ({toPersianNum(purchases.length)})</h3>
+              {purchases.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">هنوز ثبت‌نامی وجود ندارد</p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {purchases.map(p => (
+                    <div key={p.id} className="py-2.5 flex items-center justify-between text-sm">
+                      <div>
+                        <span className="font-medium">{p.person_name || '-'}</span>
+                        <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{paymentMethodLabels[p.payment_method] || p.payment_method}</span>
+                        <span className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="bg-white rounded-xl border border-border p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-[#B74B40]" /> جلسات ({toPersianNum(sessions.length)})</h3>
+              </div>
+              {sessions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">هنوز جلسه‌ای ثبت نشده است</p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {sessions.map(s => (
+                    <div key={s.id} className="py-2.5 flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-[#B74B40] text-white flex items-center justify-center text-xs font-bold">{toPersianNum(s.session_number)}</span>
+                        <span className="text-muted-foreground">{formatJalaliShort(s.session_date)}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{toPersianNum((s.present_phones || []).length)} حاضر</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Link to={`/attendance/${workshop.id}`} className="block text-center text-sm text-[#B74B40] hover:underline mt-3">
+                مدیریت حضور و غیاب
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

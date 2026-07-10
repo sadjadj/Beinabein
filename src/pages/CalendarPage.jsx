@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Calendar, Clock, MapPin } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
@@ -72,7 +73,7 @@ export default function CalendarPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-sm">{w.title}</h4>
+                          <Link to={`/workshops/${w.id}`} className="font-medium text-sm hover:text-[#B74B40]">{w.title}</Link>
                           {w.is_permanent && <span className="px-2 py-0.5 rounded-full text-xs bg-[#F0F7F8] text-[#8CB9C0]">دائمی</span>}
                         </div>
                         {w.tags && <p className="text-xs text-muted-foreground mt-1">{w.tags}</p>}

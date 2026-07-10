@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Users, Calendar, Search, Sparkles } from 'lucide-react';
+import { Users, Calendar, Search, Sparkles, Plus } from 'lucide-react';
 import { computeLastNonCafeService, countNewThisMonth, advancedPersonSearch, toPersianNum } from '@/lib/stats';
 import { howMetLabels } from '@/lib/labels';
 import { formatJalaliShort } from '@/lib/jalali';
@@ -13,6 +13,9 @@ export default function PeoplePage() {
   const [allData, setAllData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], workshops: [], facilitators: [], sessions: [] });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addForm, setAddForm] = useState({ full_name: '', phone: '' });
+  const [adding, setAdding] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -33,6 +36,18 @@ export default function PeoplePage() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const handleAddPerson = async (e) => {
+    e.preventDefault();
+    if (!addForm.full_name || !addForm.phone) return;
+    setAdding(true);
+    try {
+      await base44.entities.Person.create({ ...addForm });
+      setAddForm({ full_name: '', phone: '' });
+      setShowAddForm(false);
+      fetchData();
+    } finally { setAdding(false); }
+  };
+
   const filtered = advancedPersonSearch(people, search, allData);
   const newThisMonth = countNewThisMonth(people);
 
@@ -48,18 +63,42 @@ export default function PeoplePage() {
         <StatCard label="افراد اضافه شده در این ماه" value={toPersianNum(newThisMonth)} icon={Calendar} color="ochre" />
       </div>
 
+      {showAddForm && (
+        <div className="bg-white rounded-xl border border-border p-5">
+          <form onSubmit={handleAddPerson} className="flex flex-wrap items-end gap-4">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">نام و نام خانوادگی *</label>
+              <input type="text" value={addForm.full_name} onChange={e => setAddForm({ ...addForm, full_name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-52" required />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">شماره تلفن *</label>
+              <input type="tel" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-40" required />
+            </div>
+            <button type="submit" disabled={adding} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+              {adding ? 'در حال ثبت...' : 'ثبت'}
+            </button>
+            <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
+          </form>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
           <h3 className="text-sm font-semibold">فهرست افراد</h3>
-          <div className="relative">
-            <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="جستجو: نام، شماره، کارگاه، تسهیلگر..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-72"
-            />
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
+              <Plus className="w-4 h-4" /> افزودن فرد
+            </button>
+            <div className="relative">
+              <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="جستجو: نام، شماره، کارگاه، تسهیلگر..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-72"
+              />
+            </div>
           </div>
         </div>
 
@@ -77,7 +116,7 @@ export default function PeoplePage() {
                     <th className="text-right p-3 font-medium">شماره</th>
                     <th className="text-right p-3 font-medium">نحوه آشنایی</th>
                     <th className="text-center p-3 font-medium">آخرین خدمت</th>
-                    <th className="text-center p-3 font-medium">کل</th>
+                    <th className="text-center p-3 font-medium">مجموع خدمات</th>
                   </tr>
                 </thead>
                 <tbody>

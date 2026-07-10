@@ -18,6 +18,14 @@
     "brand": {
       "type": "string",
       "title": "\u0628\u0631\u0646\u062f"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "title": "\u062a\u06af\u200c\u0647\u0627"
     }
   },
   "required": [
