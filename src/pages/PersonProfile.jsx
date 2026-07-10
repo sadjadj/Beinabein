@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Phone, User, Pencil, Check, X, GraduationCap, Briefcase, Coffee, Calendar } from 'lucide-react';
+import { ArrowRight, Phone, User, Pencil, Check, X, GraduationCap, Briefcase, Coffee, Calendar, Trash2 } from 'lucide-react';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
 import { howMetLabels, genderLabels, paymentMethodLabels, purchaseReasonLabels } from '@/lib/labels';
+import HowMetBadge from '@/components/HowMetBadge';
 import { formatJalaliShort } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 
@@ -16,6 +17,7 @@ export default function PersonProfile() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -32,6 +34,14 @@ export default function PersonProfile() {
   };
 
   useEffect(() => { fetchData(); }, [id]);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await base44.entities.Person.delete(id);
+      navigate(-1);
+    } finally { setDeleting(false); }
+  };
 
   const startEdit = () => {
     setEditForm({
@@ -107,7 +117,7 @@ export default function PersonProfile() {
               <h1 className="text-xl font-bold">{person.full_name || 'بدون نام'}</h1>
               <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1"><Phone className="w-3.5 h-3.5" /> {person.phone}</p>
               <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
-                {person.how_met && <span>نحوه آشنایی: {howMetLabels[person.how_met] || person.how_met}</span>}
+                {person.how_met && <span>نحوه آشنایی: <HowMetBadge value={person.how_met} /></span>}
                 {person.age && <span>سن: {toPersianNum(person.age)}</span>}
                 {person.gender && <span>جنسیت: {genderLabels[person.gender] || person.gender}</span>}
                 {person.first_usage && <span>اولین استفاده: {formatJalaliShort(person.first_usage)}</span>}
@@ -119,9 +129,18 @@ export default function PersonProfile() {
                 <p className="text-2xl font-bold text-[#B74B40]">{toPersianNum(totalCount)}</p>
                 <p className="text-xs text-muted-foreground">کل خدمات</p>
               </div>
-              <button onClick={startEdit} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted">
-                <Pencil className="w-3.5 h-3.5" /> ویرایش
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={startEdit} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted">
+                  <Pencil className="w-3.5 h-3.5" /> ویرایش
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> {deleting ? 'در حال حذف...' : 'حذف'}
+                </button>
+              </div>
             </div>
           </div>
         )}

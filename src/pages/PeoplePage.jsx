@@ -5,6 +5,7 @@ import StatCard from '@/components/StatCard';
 import { Users, Calendar, Search, Sparkles, Plus } from 'lucide-react';
 import { computeLastNonCafeService, countNewThisMonth, advancedPersonSearch, toPersianNum, formatPercent } from '@/lib/stats';
 import { howMetLabels, genderLabels } from '@/lib/labels';
+import HowMetBadge from '@/components/HowMetBadge';
 import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
@@ -70,6 +71,14 @@ export default function PeoplePage() {
 
   const filtered = advancedPersonSearch(people, search, allData);
   const newThisMonth = countNewThisMonth(people);
+
+  const isComplete = (p) => !!(p.full_name && p.phone && p.how_met && p.gender);
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    const aComplete = isComplete(a);
+    const bComplete = isComplete(b);
+    if (aComplete === bComplete) return 0;
+    return aComplete ? -1 : 1;
+  });
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -201,7 +210,7 @@ export default function PeoplePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(p => {
+                  {sortedFiltered.map(p => {
                     const lastService = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases);
                     const totalActivity = (allData.workspaceOrders.filter(o => o.person_phone === p.phone).length) +
                       (allData.itemPurchases.filter(i => i.person_phone === p.phone).length) +
@@ -210,7 +219,7 @@ export default function PeoplePage() {
                       <tr key={p.id} className="border-t border-border hover:bg-[#FDF2F1]/30 cursor-pointer" onClick={() => navigate(`/people/${p.id}`)}>
                         <td className="p-3 font-medium text-gray-800">{p.full_name || '-'}</td>
                         <td className="p-3 text-muted-foreground">{p.phone}</td>
-                        <td className="p-3 text-xs">{howMetLabels[p.how_met] || p.how_met || '-'}</td>
+                        <td className="p-3"><HowMetBadge value={p.how_met} /></td>
                         <td className="p-3 text-center text-xs">
                           {lastService ? (
                             <span className="inline-flex items-center gap-1">
@@ -227,7 +236,7 @@ export default function PeoplePage() {
               </table>
             </div>
             <div className="p-3 border-t border-border text-xs text-muted-foreground text-center">
-              {toPersianNum(filtered.length)} نفر نمایش داده شده
+              {toPersianNum(sortedFiltered.length)} نفر نمایش داده شده
             </div>
           </>
         )}
