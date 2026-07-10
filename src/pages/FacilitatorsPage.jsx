@@ -45,7 +45,7 @@ export default function FacilitatorsPage() {
   };
 
   const getLastWorkshop = (facId) => {
-    const facWorkshops = workshops.filter(w => (w.facilitator_ids || []).includes(facId) && w.start_date);
+    const facWorkshops = workshops.filter(w => (w.facilitator_ids || []).includes(facId));
     if (facWorkshops.length === 0) return null;
     return facWorkshops.sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''))[0];
   };

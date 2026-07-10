@@ -44,7 +44,7 @@ export default function WorkspaceOrderDetail() {
         quantity: Number(form.quantity) || 1,
         how_met: form.how_met || 'other'
       });
-      fetchData();
+      navigate('/workspace');
     } finally { setSaving(false); }
   };
 
