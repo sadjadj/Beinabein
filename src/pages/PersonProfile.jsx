@@ -61,7 +61,7 @@ export default function PersonProfile() {
         first_usage: editForm.first_usage || null
       });
       setEditing(false);
-      fetchData();
+      navigate('/people');
     } finally { setSaving(false); }
   };
 

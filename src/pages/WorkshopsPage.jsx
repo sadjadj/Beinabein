@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { GraduationCap, Users, Plus, Wallet } from 'lucide-react';
+import { GraduationCap, Users, Plus, Wallet, Search } from 'lucide-react';
 import FacilitatorMultiSearch from '@/components/FacilitatorMultiSearch';
 import { Link } from 'react-router-dom';
 import { computeWorkshopStats, computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
@@ -24,6 +24,7 @@ export default function WorkshopsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState('');
   const [form, setForm] = useState({
     title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '',
     facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday',
@@ -77,6 +78,15 @@ export default function WorkshopsPage() {
 
   const stats = computeWorkshopStats(workshops, purchases, null);
 
+  const filteredWorkshops = workshops.filter(w => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join(' ');
+    return (w.title || '').toLowerCase().includes(s) ||
+      (w.tags || '').toLowerCase().includes(s) ||
+      facNames.toLowerCase().includes(s);
+  });
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
@@ -84,9 +94,15 @@ export default function WorkshopsPage() {
           <h1 className="text-2xl font-bold">کارگاه‌ها</h1>
           <p className="text-sm text-muted-foreground mt-1">مدیریت کارگاه‌ها و ثبت‌نامی‌ها</p>
         </div>
-        <button onClick={() => { setShowForm(!showForm); setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '', capacity: '' }); }} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
-          <Plus className="w-4 h-4" /> ثبت کارگاه
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+            <input type="text" placeholder="جستجو: اسم کارگاه، تسهیلگر..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-56" />
+          </div>
+          <button onClick={() => { setShowForm(!showForm); setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '', capacity: '' }); }} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
+            <Plus className="w-4 h-4" /> ثبت کارگاه
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
@@ -188,11 +204,11 @@ export default function WorkshopsPage() {
       )}
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">کارگاه‌ها ({toPersianNum(workshops.length)})</h3></div>
+        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">کارگاه‌ها ({toPersianNum(filteredWorkshops.length)})</h3></div>
         {loading ? (
           <TableSkeleton rows={6} cols={6} />
-        ) : workshops.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">هنوز کارگاهی ثبت نشده است</div>
+        ) : filteredWorkshops.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">{search ? 'نتیجه‌ای یافت نشد' : 'هنوز کارگاهی ثبت نشده است'}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -207,7 +223,7 @@ export default function WorkshopsPage() {
                 </tr>
               </thead>
               <tbody>
-                {workshops.map(w => {
+                {filteredWorkshops.map(w => {
                   const rev = computeWorkshopRevenue(w, purchases.filter(p => p.workshop_id === w.id));
                   const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
                   return (
