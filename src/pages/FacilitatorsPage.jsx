@@ -7,6 +7,7 @@ import { toPersianNum, countNewThisMonth } from '@/lib/stats';
 import { formatJalaliShort } from '@/lib/jalali';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
+import { StatCardSkeleton, CardGridSkeleton } from '@/components/SkeletonPatterns';
 
 export default function FacilitatorsPage() {
   const [facilitators, setFacilitators] = useState([]);
@@ -80,11 +81,19 @@ export default function FacilitatorsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
-        <StatCard label="کل تسهیلگرها" value={toPersianNum(facilitators.length)} icon={User} color="terracotta" />
-        <StatCard label="تسهیلگرهای فعال" value={toPersianNum(withWorkshops)} icon={GraduationCap} color="ochre" sublabel="دارای کارگاه" />
-        <StatCard label="افراد اضافه شده در این ماه" value={toPersianNum(newThisMonth)} icon={User} color="teal" />
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+          <StatCard label="کل تسهیلگرها" value={toPersianNum(facilitators.length)} icon={User} color="terracotta" />
+          <StatCard label="تسهیلگرهای فعال" value={toPersianNum(withWorkshops)} icon={GraduationCap} color="ochre" sublabel="دارای کارگاه" />
+          <StatCard label="افراد اضافه شده در این ماه" value={toPersianNum(newThisMonth)} icon={User} color="teal" />
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-white rounded-xl border border-border p-5">
@@ -108,7 +117,7 @@ export default function FacilitatorsPage() {
       )}
 
       {loading ? (
-        <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
+        <CardGridSkeleton count={6} />
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground">{search ? 'نتیجه‌ای یافت نشد' : 'هنوز تسهیلگری ثبت نشده است'}</div>
       ) : (

@@ -23,11 +23,23 @@ export default function Layout() {
     <div className="flex flex-col md:flex-row bg-muted/30">
       <aside className="md:w-64 bg-white border-l border-border flex md:flex-col flex-row overflow-x-auto md:overflow-y-auto md:overflow-x-visible flex-shrink-0 md:sticky md:top-0 md:h-screen">
         <div className="p-4 md:p-6 border-b border-border hidden md:block flex-shrink-0">
-          <h1 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>بینابین</h1>
-          <p className="text-xs text-muted-foreground mt-1">داشبورد سنجه‌ها</p>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#B74B40] flex items-center justify-center">
+              <span className="text-white font-bold text-lg leading-none" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>ب</span>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 leading-none" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>بینابین</h1>
+              <p className="text-[11px] text-muted-foreground mt-1.5">داشبورد سنجه‌ها</p>
+            </div>
+          </div>
         </div>
         <div className="md:hidden p-3 border-b border-border flex-shrink-0">
-          <h1 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>بینابین</h1>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[#B74B40] flex items-center justify-center">
+              <span className="text-white font-bold text-sm leading-none" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>ب</span>
+            </div>
+            <h1 className="text-lg font-bold text-gray-900 leading-none" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>بینابین</h1>
+          </div>
         </div>
         <nav className="flex md:flex-col gap-1 p-2 md:p-3 flex-1">
           {navItems.map(item => {

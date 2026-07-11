@@ -9,6 +9,7 @@ import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import PersonSearch from '@/components/PersonSearch';
 import PriceInput from '@/components/PriceInput';
+import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 
 export default function CafePage() {
   const [items, setItems] = useState([]);
@@ -188,6 +189,24 @@ export default function CafePage() {
     if (!groupedItems[cat]) groupedItems[cat] = [];
     groupedItems[cat].push(item);
   });
+
+  if (loading) {
+    return (
+      <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+        <div>
+          <Skeleton className="h-7 w-24" />
+          <Skeleton className="h-4 w-48 mt-2" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">

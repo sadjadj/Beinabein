@@ -6,6 +6,7 @@ import { Tag, Plus, Search } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { sanitizePhone } from '@/lib/inputUtils';
 import TagInput from '@/components/TagInput';
+import { TableSkeleton } from '@/components/SkeletonPatterns';
 
 export default function BrandsPage() {
   const [records, setRecords] = useState([]);
@@ -144,7 +145,7 @@ export default function BrandsPage() {
           )}
         </div>
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
+          <TableSkeleton rows={6} cols={5} />
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">برندی یافت نشد</div>
         ) : (

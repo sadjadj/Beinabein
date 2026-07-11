@@ -5,6 +5,7 @@ import StatCard from '@/components/StatCard';
 import { Palette, Plus, Search } from 'lucide-react';
 import { toPersianNum, countNewThisMonth } from '@/lib/stats';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
+import { TableSkeleton } from '@/components/SkeletonPatterns';
 
 export default function ArtistsPage() {
   const [records, setRecords] = useState([]);
@@ -91,7 +92,7 @@ export default function ArtistsPage() {
           </div>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
+          <TableSkeleton rows={6} cols={3} />
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">آرتیستی یافت نشد</div>
         ) : (

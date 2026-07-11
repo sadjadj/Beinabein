@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Users, Calendar, Search, Sparkles, Plus } from 'lucide-react';
+import { Users, Calendar, Search, Sparkles, Plus, X } from 'lucide-react';
 import { computeLastNonCafeService, countNewThisMonth, advancedPersonSearch, toPersianNum, formatPercent } from '@/lib/stats';
 import { howMetLabels, genderLabels } from '@/lib/labels';
 import HowMetBadge from '@/components/HowMetBadge';
@@ -10,6 +10,7 @@ import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
+import { TableSkeleton } from '@/components/SkeletonPatterns';
 
 export default function PeoplePage() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function PeoplePage() {
   const [allData, setAllData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], workshops: [], facilitators: [], sessions: [] });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [genderFilter, setGenderFilter] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ full_name: '', phone: '', how_met: '', age: '', gender: '', first_usage: '', notes: '', social_id: '' });
   const [adding, setAdding] = useState(false);
@@ -69,7 +71,10 @@ export default function PeoplePage() {
     } finally { setAdding(false); }
   };
 
-  const filtered = advancedPersonSearch(people, search, allData);
+  const genderFiltered = genderFilter === 'unknown'
+    ? people.filter(p => !p.gender)
+    : genderFilter ? people.filter(p => p.gender === genderFilter) : people;
+  const filtered = advancedPersonSearch(genderFiltered, search, allData);
   const newThisMonth = countNewThisMonth(people);
 
   const isComplete = (p) => !!(p.full_name && p.phone && p.how_met && p.gender);
@@ -102,18 +107,22 @@ export default function PeoplePage() {
               const unknown = people.length - male - female;
               const total = people.length;
               const items = [
-                { label: 'آقا', count: male, color: 'bg-[#8CB9C0]', text: 'text-[#8CB9C0]' },
-                { label: 'خانم', count: female, color: 'bg-[#D98B94]', text: 'text-[#D98B94]' },
-                { label: 'نامشخص', count: unknown, color: 'bg-gray-300', text: 'text-gray-400' },
+                { key: 'male', label: 'آقا', count: male, color: 'bg-[#8CB9C0]', text: 'text-[#8CB9C0]' },
+                { key: 'female', label: 'خانم', count: female, color: 'bg-[#D98B94]', text: 'text-[#D98B94]' },
+                { key: 'unknown', label: 'نامشخص', count: unknown, color: 'bg-gray-300', text: 'text-gray-400' },
               ];
               return items.map(item => (
-                <div key={item.label} className="text-center">
+                <button
+                  key={item.key}
+                  onClick={() => setGenderFilter(genderFilter === item.key ? '' : item.key)}
+                  className={`text-center rounded-lg p-2 transition-all ${genderFilter === item.key ? 'ring-2 ring-[#B74B40]/30 bg-[#FDF2F1]/50' : 'hover:bg-muted/50'}`}
+                >
                   <div className="relative h-2 bg-muted rounded-full overflow-hidden mb-2">
                     <div className={`absolute inset-y-0 right-0 ${item.color} rounded-full`} style={{ width: `${(item.count / total) * 100}%` }} />
                   </div>
                   <p className={`text-lg font-bold ${item.text}`}>{formatPercent((item.count / total) * 100)}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{item.label} • {toPersianNum(item.count)} نفر</p>
-                </div>
+                </button>
               ));
             })()}
           </div>
@@ -174,7 +183,15 @@ export default function PeoplePage() {
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
-          <h3 className="text-sm font-semibold">فهرست افراد</h3>
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            فهرست افراد
+            {genderFilter && (
+              <button onClick={() => setGenderFilter('')} className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs font-medium flex items-center gap-1">
+                {genderFilter === 'male' ? 'آقا' : genderFilter === 'female' ? 'خانم' : 'نامشخص'}
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </h3>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
               <Plus className="w-4 h-4" /> افزودن فرد
@@ -193,7 +210,7 @@ export default function PeoplePage() {
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
+          <TableSkeleton rows={6} cols={5} />
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">{search ? 'نتیجه‌ای یافت نشد' : 'هنوز فردی ثبت نشده است'}</div>
         ) : (

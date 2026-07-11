@@ -9,6 +9,7 @@ import JalaliDateInput from '@/components/JalaliDateInput';
 import FacilitatorMultiSearch from '@/components/FacilitatorMultiSearch';
 import PriceInput from '@/components/PriceInput';
 import PersonSearch from '@/components/PersonSearch';
+import { Skeleton } from '@/components/SkeletonPatterns';
 
 export default function WorkshopProfile() {
   const { id } = useParams();
@@ -175,7 +176,16 @@ export default function WorkshopProfile() {
     fetchData();
   };
 
-  if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
+  if (loading) return (
+    <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
+      <Skeleton className="h-4 w-20" />
+      <Skeleton className="h-32 rounded-xl" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-48 rounded-xl" />
+      </div>
+    </div>
+  );
   if (!workshop) return <div className="p-6 text-center text-muted-foreground">کارگاهی یافت نشد</div>;
 
   const rev = computeWorkshopRevenue(workshop, purchases);

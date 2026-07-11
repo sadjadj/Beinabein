@@ -6,6 +6,7 @@ import { Users, Repeat, Layers, ChevronDown, Wallet } from 'lucide-react';
 import { computeOverallStats, computeDailyUniques, computeSectionDistribution, getDateRange, toPersianNum, formatPercent, formatCurrency } from '@/lib/stats';
 import { toJalaliStr } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
+import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 
 const COLORS = ['#B74B40', '#D4A574', '#E8B4B0', '#D98B94'];
 const presets = [
@@ -52,8 +53,22 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div>
+      <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+        <div>
+          <Skeleton className="h-7 w-32" />
+          <Skeleton className="h-4 w-48 mt-2" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Skeleton className="h-[340px] lg:col-span-2 rounded-xl" />
+          <Skeleton className="h-[340px] rounded-xl" />
+        </div>
+        <Skeleton className="h-24 rounded-xl" />
       </div>
     );
   }

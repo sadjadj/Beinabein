@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { ClipboardCheck, ArrowRight, Calendar as CalendarIcon, MapPin, Users, Search, CheckCircle2 } from 'lucide-react';
 import { computeWorkshopRevenue, toPersianNum } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
+import { CardGridSkeleton } from '@/components/SkeletonPatterns';
 
 export default function AttendancePage() {
   const navigate = useNavigate();
@@ -114,7 +115,7 @@ export default function AttendancePage() {
       </div>
 
       {loading ? (
-        <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
+        <CardGridSkeleton count={6} />
       ) : workshops.length === 0 ? (
         <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground">
           هنوز کارگاهی ثبت نشده است

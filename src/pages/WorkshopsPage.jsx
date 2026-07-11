@@ -13,6 +13,7 @@ import FloatingDateInput from '@/components/FloatingDateInput';
 import FacilitatorSearch from '@/components/FacilitatorSearch';
 import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
+import { TableSkeleton } from '@/components/SkeletonPatterns';
 
 export default function WorkshopsPage() {
   const navigate = useNavigate();
@@ -189,7 +190,7 @@ export default function WorkshopsPage() {
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">کارگاه‌ها ({toPersianNum(workshops.length)})</h3></div>
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
+          <TableSkeleton rows={6} cols={6} />
         ) : workshops.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">هنوز کارگاهی ثبت نشده است</div>
         ) : (
@@ -203,7 +204,6 @@ export default function WorkshopsPage() {
                   <th className="text-right p-3 font-medium">ساعت</th>
                   <th className="text-right p-3 font-medium">فضا</th>
                   <th className="text-center p-3 font-medium">ثبت‌نامی</th>
-                  <th className="text-center p-3 font-medium">حضور غیاب</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,9 +221,6 @@ export default function WorkshopsPage() {
                       <td className="p-3 text-xs text-muted-foreground">{w.start_time}{w.end_time ? ` - ${w.end_time}` : ''}</td>
                       <td className="p-3 text-xs">{w.space || '-'}</td>
                       <td className="p-3 text-center font-medium">{toPersianNum(rev.participantCount)}</td>
-                      <td className="p-3 text-center">
-                        <button onClick={() => navigate(`/attendance/${w.id}`)} className="text-xs text-[#B74B40] hover:underline">مشاهده</button>
-                      </td>
                     </tr>
                   );
                 })}
