@@ -12,6 +12,7 @@ export default function BrandsPage() {
   const [allTags, setAllTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ full_name: '', phone: '', social_id: '', collaboration_tags: [], product_type: '', brand_name: '', description: '' });
@@ -42,6 +43,7 @@ export default function BrandsPage() {
   };
 
   const filtered = records.filter(r => {
+    if (selectedTag && !(r.collaboration_tags || []).includes(selectedTag)) return false;
     if (!search) return true;
     const s = search.toLowerCase();
     return (r.full_name || '').toLowerCase().includes(s) ||
@@ -121,12 +123,24 @@ export default function BrandsPage() {
       )}
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold">فهرست برندها</h3>
-          <div className="relative">
-            <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="جستجو..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-56" />
+        <div className="p-4 border-b border-border space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold">فهرست برندها</h3>
+            <div className="relative">
+              <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+              <input type="text" placeholder="جستجو..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-56" />
+            </div>
           </div>
+          {allTags.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={() => setSelectedTag('')} className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!selectedTag ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>همه</button>
+              {allTags.map(t => (
+                <button key={t} onClick={() => setSelectedTag(selectedTag === t ? '' : t)} className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${selectedTag === t ? 'bg-[#B74B40] text-white' : 'bg-[#FDF2F1] text-[#B74B40] hover:bg-[#FDF2F1]/70'}`}>
+                  {t} ({toPersianNum(tagCounts[t] || 0)})
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         {loading ? (
           <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
