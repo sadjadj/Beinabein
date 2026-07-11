@@ -58,9 +58,10 @@ export default function ArtistsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
         <StatCard label="کل آرتیست‌ها" value={toPersianNum(records.length)} icon={Palette} color="terracotta" />
         <StatCard label="افراد اضافه شده در این ماه" value={toPersianNum(newThisMonth)} icon={Palette} color="ochre" />
+        <StatCard label="آرتیست‌های با برند" value={toPersianNum(records.filter(r => r.brand_name).length)} icon={Palette} color="teal" />
       </div>
 
       {showForm && (

@@ -71,8 +71,9 @@ export default function BrandsPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCard label="کل برندها" value={toPersianNum(records.length)} icon={Tag} color="terracotta" />
-        {topTags.map((t, i) => (
-          <StatCard key={t[0]} label={t[0]} value={toPersianNum(t[1])} icon={Tag} color={i === 0 ? 'ochre' : 'teal'} />
+        <StatCard label="برندهای دارای محصول" value={toPersianNum(records.filter(r => r.product_type).length)} icon={Tag} color="teal" />
+        {topTags.slice(0, 2).map((t, i) => (
+          <StatCard key={t[0]} label={t[0]} value={toPersianNum(t[1])} icon={Tag} color={i === 0 ? 'ochre' : 'dark'} />
         ))}
       </div>
 

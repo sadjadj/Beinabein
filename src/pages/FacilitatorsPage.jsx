@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Plus, User, Search, GraduationCap } from 'lucide-react';
-import { toPersianNum } from '@/lib/stats';
+import StatCard from '@/components/StatCard';
+import { toPersianNum, countNewThisMonth } from '@/lib/stats';
 import { formatJalaliShort } from '@/lib/jalali';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
@@ -58,6 +59,9 @@ export default function FacilitatorsPage() {
       (f.phone || '').includes(s);
   });
 
+  const newThisMonth = countNewThisMonth(facilitators);
+  const withWorkshops = facilitators.filter(f => workshops.some(w => (w.facilitator_ids || []).includes(f.id))).length;
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -74,6 +78,12 @@ export default function FacilitatorsPage() {
             <Plus className="w-4 h-4" /> ثبت تسهیلگر
           </button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+        <StatCard label="کل تسهیلگرها" value={toPersianNum(facilitators.length)} icon={User} color="terracotta" />
+        <StatCard label="تسهیلگرهای فعال" value={toPersianNum(withWorkshops)} icon={GraduationCap} color="ochre" sublabel="دارای کارگاه" />
+        <StatCard label="افراد اضافه شده در این ماه" value={toPersianNum(newThisMonth)} icon={User} color="teal" />
       </div>
 
       {showForm && (
