@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
+import { useNavigate } from 'react-router-dom';
 import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell } from 'lucide-react';
 import { computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels } from '@/lib/labels';
 import { toJalaliStr } from '@/lib/jalali';
 
 export default function AccountingPage() {
+  const navigate = useNavigate();
   const [workspaceOrders, setWorkspaceOrders] = useState([]);
   const [itemPurchases, setItemPurchases] = useState([]);
   const [workshopPurchases, setWorkshopPurchases] = useState([]);
@@ -155,12 +157,15 @@ export default function AccountingPage() {
       )}
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center gap-2 flex-wrap">
-          {['all', 'paid', 'unpaid'].map(f => (
-            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>
-              {f === 'all' ? 'همه' : f === 'paid' ? 'پرداخت‌شده' : 'پرداخت‌نشده'}
-            </button>
-          ))}
+        <div className="p-4 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+          <h3 className="text-sm font-semibold">فاکتورها</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            {['all', 'paid', 'unpaid'].map(f => (
+              <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>
+                {f === 'all' ? 'همه' : f === 'paid' ? 'پرداخت‌شده' : 'پرداخت‌نشده'}
+              </button>
+            ))}
+          </div>
         </div>
         {loading ? (
           <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
@@ -182,8 +187,8 @@ export default function AccountingPage() {
               </thead>
               <tbody>
                 {filtered.slice(0, 200).map(t => (
-                  <tr key={`${t.type}-${t.id}`} className="border-t border-border hover:bg-muted/30">
-                    <td className="p-3">{toJalaliStr(t.purchase_date)}</td>
+                  <tr key={`${t.type}-${t.id}`} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/accounting/${t.type}/${t.id}`)}>
+                    <td className="p-3 whitespace-nowrap">{toJalaliStr(t.purchase_date)}</td>
                     <td className="p-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${t.type === 'workspace' ? 'bg-[#FDF2F1] text-[#B74B40]' : t.type === 'cafe' ? 'bg-[#FBF3EC] text-[#B9834B]' : 'bg-[#F0F7F8] text-[#8CB9C0]'}`}>
                         {typeLabels[t.type]}
@@ -191,9 +196,9 @@ export default function AccountingPage() {
                     </td>
                     <td className="p-3">{t.label || '-'}</td>
                     <td className="p-3">{t.person_name || '-'}</td>
-                    <td className="p-3 text-xs">{paymentMethodLabels[t.payment_method] || t.payment_method}</td>
-                    <td className="p-3 font-medium">{formatCurrency(t.amount)}</td>
-                    <td className="p-3 text-center">
+                    <td className="p-3 text-xs whitespace-nowrap">{paymentMethodLabels[t.payment_method] || t.payment_method}</td>
+                    <td className="p-3 font-medium whitespace-nowrap text-left" dir="ltr">{formatCurrency(t.amount)}</td>
+                    <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => togglePaid(t.type === 'workspace' ? 'WorkspaceOrder' : t.type === 'cafe' ? 'ItemPurchase' : 'WorkshopPurchase', t.id, t.is_paid)} className="inline-flex items-center gap-1 text-xs">
                         {t.is_paid ? (
                           <span className="inline-flex items-center gap-1 text-green-600"><CheckCircle className="w-3.5 h-3.5" /> پرداخت شده</span>

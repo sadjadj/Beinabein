@@ -25,6 +25,7 @@ export default function WorkshopProfile() {
   const [showAddReg, setShowAddReg] = useState(false);
   const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false });
   const [editingRegId, setEditingRegId] = useState(null);
+  const [capacityWarning, setCapacityWarning] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -96,7 +97,8 @@ export default function WorkshopProfile() {
       space: workshop.space || '', start_time: workshop.start_time || '', end_time: workshop.end_time || '',
       day_of_week: workshop.day_of_week || 'saturday',
       start_date: workshop.start_date || todayGregorian(), end_date: workshop.end_date || '',
-      facilitator_percentage: workshop.facilitator_percentage || ''
+      facilitator_percentage: workshop.facilitator_percentage || '',
+      capacity: workshop.capacity || ''
     });
     setEditing(true);
   };
@@ -108,11 +110,17 @@ export default function WorkshopProfile() {
         ...form,
         price: Number(form.price) || 0,
         session_count: form.is_permanent ? null : (Number(form.session_count) || null),
-        facilitator_percentage: Number(form.facilitator_percentage) || 0
+        facilitator_percentage: Number(form.facilitator_percentage) || 0,
+        capacity: Number(form.capacity) || null
       });
       setEditing(false);
       fetchData();
     } finally { setSubmitting(false); }
+  };
+
+  const handleDelete = async () => {
+    await base44.entities.Workshop.delete(id);
+    navigate('/workshops');
   };
 
   const toggleFacilitator = (fid) => {
@@ -125,6 +133,16 @@ export default function WorkshopProfile() {
 
   const addRegistration = async () => {
     if (!regForm.person_phone) return;
+    const newCount = rev.participantCount + (Number(regForm.quantity) || 1);
+    if (workshop.capacity && newCount > workshop.capacity) {
+      setCapacityWarning(`ظرفیت کارگاه ${toPersianNum(workshop.capacity)} نفر است. با این ثبت‌نام تعداد به ${toPersianNum(newCount)} نفر می‌رسد. آیا مطمئن هستید؟`);
+      return;
+    }
+    setCapacityWarning('');
+    await doAddRegistration();
+  };
+
+  const doAddRegistration = async () => {
     setSubmitting(true);
     try {
       await findOrCreatePerson(regForm.person_phone, regForm.person_name);
@@ -141,6 +159,7 @@ export default function WorkshopProfile() {
         is_paid: regForm.is_paid
       });
       setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false });
+      setCapacityWarning('');
       setShowAddReg(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -188,6 +207,10 @@ export default function WorkshopProfile() {
               <input type="number" value={form.facilitator_percentage} onChange={e => setForm({ ...form, facilitator_percentage: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             </div>
             <div>
+              <label className="text-xs text-muted-foreground block mb-1">ظرفیت</label>
+              <input type="number" value={form.capacity} onChange={e => setForm({ ...form, capacity: e.target.value })} placeholder="حداکثر ثبت‌نام" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground block mb-1">تگ (موضوعات)</label>
               <input type="text" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             </div>
@@ -230,13 +253,18 @@ export default function WorkshopProfile() {
             <input type="checkbox" checked={form.is_permanent} onChange={e => setForm({ ...form, is_permanent: e.target.checked })} className="w-4 h-4" />
             کارگاه دائمی
           </label>
-          <div className="flex gap-2">
-            <button onClick={saveEdit} disabled={submitting} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-              <Check className="w-4 h-4" /> {submitting ? 'در حال ذخیره...' : 'ذخیره'}
+          <div className="flex justify-between gap-2">
+            <button onClick={handleDelete} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50">
+              <Trash2 className="w-4 h-4" /> حذف کارگاه
             </button>
-            <button onClick={() => setEditing(false)} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-border text-sm">
-              <X className="w-4 h-4" /> انصراف
-            </button>
+            <div className="flex gap-2">
+              <button onClick={saveEdit} disabled={submitting} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                <Check className="w-4 h-4" /> {submitting ? 'در حال ذخیره...' : 'ذخیره'}
+              </button>
+              <button onClick={() => setEditing(false)} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-border text-sm">
+                <X className="w-4 h-4" /> انصراف
+              </button>
+            </div>
           </div>
         </div>
       ) : (
@@ -252,9 +280,10 @@ export default function WorkshopProfile() {
                   {workshop.space && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {workshop.space}</span>}
                 </div>
                 <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                  <span className="flex items-center gap-1 text-muted-foreground"><Users className="w-4 h-4" /> {toPersianNum(rev.participantCount)} ثبت‌نام</span>
+                  <span className="flex items-center gap-1 text-muted-foreground"><Users className="w-4 h-4" /> {toPersianNum(rev.participantCount)} ثبت‌نام{workshop.capacity ? ` از ${toPersianNum(workshop.capacity)}` : ''}</span>
                   <span className="font-medium text-[#B74B40]">{formatCurrency(workshop.price)}</span>
                   {workshop.is_permanent && <span className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs">دائمی</span>}
+                  {workshop.is_ended && <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">پایان یافته</span>}
                 </div>
                 {workshop.description && <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{workshop.description}</p>}
                 <div className="flex flex-wrap gap-2 mt-4">
@@ -295,6 +324,15 @@ export default function WorkshopProfile() {
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={regForm.is_paid} onChange={e => setRegForm({ ...regForm, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
                   </label>
+                  {capacityWarning && (
+                    <div className="sm:col-span-2 p-3 bg-[#FBF3EC] border border-[#E8D5C0] rounded-lg text-xs text-[#B9834B] flex items-center justify-between gap-2">
+                      <span className="flex-1">{capacityWarning}</span>
+                      <button onClick={doAddRegistration} disabled={submitting} className="px-3 py-1 rounded-lg bg-[#B9834B] text-white text-xs font-medium hover:bg-[#A5723E] disabled:opacity-50 whitespace-nowrap">
+                        ثبت در هر صورت
+                      </button>
+                      <button onClick={() => setCapacityWarning('')} className="px-2 py-1 rounded-lg border border-border text-xs whitespace-nowrap">انصراف</button>
+                    </div>
+                  )}
                   <div className="sm:col-span-2 flex gap-2">
                     <button onClick={addRegistration} disabled={submitting} className="px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
                       {submitting ? 'در حال ثبت...' : 'ثبت'}

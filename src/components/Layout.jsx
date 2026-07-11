@@ -20,9 +20,9 @@ const navItems = [
 export default function Layout() {
   const location = useLocation();
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-muted/30">
-      <aside className="md:w-64 bg-white border-l border-border flex md:flex-col flex-row overflow-x-auto md:overflow-visible flex-shrink-0">
-        <div className="p-4 md:p-6 border-b border-border hidden md:block">
+    <div className="flex flex-col md:flex-row bg-muted/30">
+      <aside className="md:w-64 bg-white border-l border-border flex md:flex-col flex-row overflow-x-auto md:overflow-y-auto md:overflow-x-visible flex-shrink-0 md:sticky md:top-0 md:h-screen">
+        <div className="p-4 md:p-6 border-b border-border hidden md:block flex-shrink-0">
           <h1 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>بینابین</h1>
           <p className="text-xs text-muted-foreground mt-1">داشبورد سنجه‌ها</p>
         </div>
@@ -41,7 +41,7 @@ export default function Layout() {
           })}
         </nav>
       </aside>
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 min-w-0">
         <Outlet />
       </main>
     </div>

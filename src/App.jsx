@@ -27,6 +27,7 @@ import AccountingPage from '@/pages/AccountingPage';
 import ReturnsPage from '@/pages/ReturnsPage';
 import WorkshopProfile from '@/pages/WorkshopProfile';
 import WorkspaceOrderDetail from '@/pages/WorkspaceOrderDetail';
+import InvoiceDetail from '@/pages/InvoiceDetail';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -75,6 +76,7 @@ const AuthenticatedApp = () => {
       <Route path="/returns" element={<ReturnsPage />} />
       <Route path="/workshops/:id" element={<WorkshopProfile />} />
       <Route path="/workspace/:id" element={<WorkspaceOrderDetail />} />
+      <Route path="/accounting/:type/:id" element={<InvoiceDetail />} />
       </Route>
     <Route path="*" element={<PageNotFound />} />
     </Routes>

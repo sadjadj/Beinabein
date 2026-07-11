@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Tag, Phone, Pencil, Check, X } from 'lucide-react';
+import { ArrowRight, Tag, Phone, Pencil, Check, X, Trash2 } from 'lucide-react';
 import TagInput from '@/components/TagInput';
 import { sanitizePhone } from '@/lib/inputUtils';
 
 export default function BrandProfile() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [brand, setBrand] = useState(null);
   const [allTags, setAllTags] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,9 +46,13 @@ export default function BrandProfile() {
     setSaving(true);
     try {
       await base44.entities.Brand.update(id, editForm);
-      setEditing(false);
-      fetchData();
+      navigate('/brands');
     } finally { setSaving(false); }
+  };
+
+  const handleDelete = async () => {
+    await base44.entities.Brand.delete(id);
+    navigate('/brands');
   };
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
@@ -97,13 +102,18 @@ export default function BrandProfile() {
               <label className="text-xs text-muted-foreground block mb-1">توضیحات و معرفی</label>
               <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={5} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             </div>
-            <div className="flex gap-2">
-              <button onClick={saveEdit} disabled={saving} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-                <Check className="w-4 h-4" /> {saving ? 'در حال ذخیره...' : 'ذخیره'}
+            <div className="flex justify-between gap-2">
+              <button onClick={handleDelete} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50">
+                <Trash2 className="w-4 h-4" /> حذف
               </button>
-              <button onClick={() => setEditing(false)} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-border text-sm">
-                <X className="w-4 h-4" /> انصراف
-              </button>
+              <div className="flex gap-2">
+                <button onClick={saveEdit} disabled={saving} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                  <Check className="w-4 h-4" /> {saving ? 'در حال ذخیره...' : 'ذخیره'}
+                </button>
+                <button onClick={() => setEditing(false)} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-border text-sm">
+                  <X className="w-4 h-4" /> انصراف
+                </button>
+              </div>
             </div>
           </div>
         ) : (

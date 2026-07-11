@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { GraduationCap, Users, Plus, Pencil, Wallet } from 'lucide-react';
+import { GraduationCap, Users, Plus, Wallet } from 'lucide-react';
 import FacilitatorMultiSearch from '@/components/FacilitatorMultiSearch';
 import { Link } from 'react-router-dom';
 import { computeWorkshopStats, computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
@@ -23,11 +23,10 @@ export default function WorkshopsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
     title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '',
     facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday',
-    start_date: todayGregorian(), end_date: '', facilitator_percentage: ''
+    start_date: todayGregorian(), end_date: '', facilitator_percentage: '', capacity: ''
   });
 
   const fetchData = async () => {
@@ -57,32 +56,14 @@ export default function WorkshopsPage() {
         ...form,
         price: Number(form.price) || 0,
         session_count: form.is_permanent ? null : (Number(form.session_count) || null),
-        facilitator_percentage: Number(form.facilitator_percentage) || 0
+        facilitator_percentage: Number(form.facilitator_percentage) || 0,
+        capacity: Number(form.capacity) || null
       };
-      if (editingId) {
-        await base44.entities.Workshop.update(editingId, payload);
-        setEditingId(null);
-      } else {
-        await base44.entities.Workshop.create(payload);
-      }
-      setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '' });
+      await base44.entities.Workshop.create(payload);
+      setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '', capacity: '' });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }
-  };
-
-  const startEdit = (w) => {
-    setEditingId(w.id);
-    setForm({
-      title: w.title || '', price: w.price || '', session_count: w.session_count || '',
-      is_permanent: w.is_permanent || false, description: w.description || '',
-      tags: w.tags || '', facilitator_ids: w.facilitator_ids || [],
-      space: w.space || '', start_time: w.start_time || '', end_time: w.end_time || '',
-      day_of_week: w.day_of_week || 'saturday',
-      start_date: w.start_date || todayGregorian(), end_date: w.end_date || '',
-      facilitator_percentage: w.facilitator_percentage || ''
-    });
-    setShowForm(true);
   };
 
   const toggleFacilitator = (fid) => {
@@ -102,8 +83,8 @@ export default function WorkshopsPage() {
           <h1 className="text-2xl font-bold">کارگاه‌ها</h1>
           <p className="text-sm text-muted-foreground mt-1">مدیریت کارگاه‌ها و ثبت‌نامی‌ها</p>
         </div>
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '' }); }} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
-          <Plus className="w-4 h-4" /> {editingId ? 'ویرایش کارگاه' : 'ثبت کارگاه'}
+        <button onClick={() => { setShowForm(!showForm); setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '', capacity: '' }); }} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
+          <Plus className="w-4 h-4" /> ثبت کارگاه
         </button>
       </div>
 
@@ -147,6 +128,10 @@ export default function WorkshopsPage() {
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">تگ کارگاه (موضوعات)</label>
                 <input type="text" placeholder="موضوعات" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-32" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">ظرفیت</label>
+                <PersianNumberInput value={form.capacity} onChange={v => setForm({ ...form, capacity: v })} placeholder="ظرفیت" required={false} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-24 text-right" />
               </div>
             </div>
             <div className="flex flex-wrap items-end gap-3">
@@ -193,9 +178,9 @@ export default function WorkshopsPage() {
             </label>
             <div className="flex gap-2">
               <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-                {submitting ? 'در حال ثبت...' : editingId ? 'ذخیره' : 'ثبت کارگاه'}
+                {submitting ? 'در حال ثبت...' : 'ثبت کارگاه'}
               </button>
-              <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
+              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
             </div>
           </form>
         </div>
@@ -219,7 +204,6 @@ export default function WorkshopsPage() {
                   <th className="text-right p-3 font-medium">فضا</th>
                   <th className="text-center p-3 font-medium">ثبت‌نامی</th>
                   <th className="text-center p-3 font-medium">حضور غیاب</th>
-                  <th className="text-center p-3 font-medium">ویرایش</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,9 +223,6 @@ export default function WorkshopsPage() {
                       <td className="p-3 text-center font-medium">{toPersianNum(rev.participantCount)}</td>
                       <td className="p-3 text-center">
                         <button onClick={() => navigate(`/attendance/${w.id}`)} className="text-xs text-[#B74B40] hover:underline">مشاهده</button>
-                      </td>
-                      <td className="p-3 text-center">
-                        <button onClick={() => startEdit(w)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
                       </td>
                     </tr>
                   );
