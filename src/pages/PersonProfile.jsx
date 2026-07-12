@@ -25,9 +25,9 @@ export default function PersonProfile() {
       const p = await base44.entities.Person.get(id);
       setPerson(p);
       const [wsOrders, itemPurchases, workshopPurchases] = await Promise.all([
-        base44.entities.WorkspaceOrder.list('-purchase_date', 500),
-        base44.entities.ItemPurchase.list('-purchase_date', 500),
-        base44.entities.WorkshopPurchase.list('-purchase_date', 500)
+        base44.entities.WorkspaceOrder.list('-purchase_date', 1000),
+        base44.entities.ItemPurchase.list('-purchase_date', 1000),
+        base44.entities.WorkshopPurchase.list('-purchase_date', 1000)
       ]);
       setData({ workspaceOrders: wsOrders, itemPurchases, workshopPurchases });
     } finally { setLoading(false); }

@@ -24,7 +24,7 @@ export default function CalendarPage() {
   const byDay = {};
   dayOrder.forEach(d => { byDay[d] = []; });
   workshops.forEach(w => { if (w.day_of_week && byDay[w.day_of_week]) byDay[w.day_of_week].push(w); });
-  Object.values(byDay).forEach(arr => arr.sort((a, b) => (a.time || '').localeCompare(b.time || '')));
+  Object.values(byDay).forEach(arr => arr.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || '')));
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">

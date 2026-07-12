@@ -27,10 +27,10 @@ export default function PeoplePage() {
     setLoading(true);
     try {
       const [persons, wsOrders, itemPurchases, workshopPurchases, workshops, facilitators, sessions] = await Promise.all([
-        base44.entities.Person.list('-created_date', 500),
-        base44.entities.WorkspaceOrder.list('-purchase_date', 500),
-        base44.entities.ItemPurchase.list('-purchase_date', 500),
-        base44.entities.WorkshopPurchase.list('-purchase_date', 500),
+        base44.entities.Person.list('-created_date', 1000),
+        base44.entities.WorkspaceOrder.list('-purchase_date', 1000),
+        base44.entities.ItemPurchase.list('-purchase_date', 1000),
+        base44.entities.WorkshopPurchase.list('-purchase_date', 1000),
         base44.entities.Workshop.list('-start_date', 500),
         base44.entities.Facilitator.list('-created_date', 500),
         base44.entities.WorkshopSession.list('-created_date', 500)

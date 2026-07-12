@@ -24,9 +24,9 @@ export default function AccountingPage() {
       setLoading(true);
       try {
         const [ws, items, wp, wsList] = await Promise.all([
-          base44.entities.WorkspaceOrder.list('-purchase_date', 500),
-          base44.entities.ItemPurchase.list('-purchase_date', 500),
-          base44.entities.WorkshopPurchase.list('-purchase_date', 500),
+          base44.entities.WorkspaceOrder.list('-purchase_date', 1000),
+          base44.entities.ItemPurchase.list('-purchase_date', 1000),
+          base44.entities.WorkshopPurchase.list('-purchase_date', 1000),
           base44.entities.Workshop.list('-start_date', 500)
         ]);
         setWorkspaceOrders(ws);
@@ -40,12 +40,9 @@ export default function AccountingPage() {
 
   const togglePaid = async (entity, id, current) => {
     await base44.entities[entity].update(id, { is_paid: !current });
-    const refetch = async () => {
-      if (entity === 'WorkspaceOrder') setWorkspaceOrders(await base44.entities.WorkspaceOrder.list('-purchase_date', 500));
-      if (entity === 'ItemPurchase') setItemPurchases(await base44.entities.ItemPurchase.list('-purchase_date', 500));
-      if (entity === 'WorkshopPurchase') setWorkshopPurchases(await base44.entities.WorkshopPurchase.list('-purchase_date', 500));
-    };
-    refetch();
+    if (entity === 'WorkspaceOrder') setWorkspaceOrders(await base44.entities.WorkspaceOrder.list('-purchase_date', 1000));
+    if (entity === 'ItemPurchase') setItemPurchases(await base44.entities.ItemPurchase.list('-purchase_date', 1000));
+    if (entity === 'WorkshopPurchase') setWorkshopPurchases(await base44.entities.WorkshopPurchase.list('-purchase_date', 1000));
   };
 
   const toggleFacilitatorPaid = async (w) => {
