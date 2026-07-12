@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, ClipboardCheck, RotateCcw, Receipt, MapPin, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, ClipboardCheck, RotateCcw, Receipt, MapPin, Menu, X, ClipboardList } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const navItems = [
   { path: '/workspace', label: 'فضای کار', icon: Briefcase },
   { path: '/cafe', label: 'کافه', icon: Coffee },
   { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },
+  { path: '/workshop-registrations', label: 'ثبت‌نام کارگاه‌ها', icon: ClipboardList },
   { path: '/spaces', label: 'فضاها', icon: MapPin },
   { path: '/attendance', label: 'حضور غیاب', icon: ClipboardCheck },
   { path: '/calendar', label: 'تقویم', icon: Calendar },
