@@ -145,7 +145,7 @@ export default function WorkshopRegistrationsPage() {
               <label className="text-xs text-muted-foreground block mb-1">کارگاه</label>
               <select value={form.workshop_id} onChange={e => { const ws = workshopById[e.target.value]; setForm({ ...form, workshop_id: e.target.value, price: ws?.price || '' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
                 <option value="">انتخاب کارگاه...</option>
-                {workshops.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
+                {workshops.filter(w => !w.is_ended).map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
               </select>
             </div>
             <PersonSearch personName={form.person_name} personPhone={form.person_phone} onNameChange={v => setForm({ ...form, person_name: v })} onPhoneChange={v => setForm({ ...form, person_phone: v })} />

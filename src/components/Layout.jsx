@@ -78,11 +78,10 @@ export default function Layout() {
         </div>
       </div>
 
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <div className="absolute right-0 top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col animate-slide-in">
+      {/* Mobile drawer — always mounted for instant open + smooth exit */}
+      <div className={`md:hidden fixed inset-0 z-50 transition-opacity duration-200 ${mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
+        <div className={`absolute right-0 top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col transition-transform duration-200 ease-out ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
             <div className="flex items-center justify-between p-4 border-b border-border">
               <Brand size="sm" />
               <button
@@ -104,9 +103,8 @@ export default function Layout() {
                 );
               })}
             </nav>
-          </div>
         </div>
-      )}
+      </div>
 
       <main className="flex-1 min-w-0 pt-14 md:pt-0">
         <Outlet />
