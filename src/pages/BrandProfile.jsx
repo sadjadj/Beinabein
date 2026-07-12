@@ -37,6 +37,7 @@ export default function BrandProfile() {
       social_id: brand.social_id || '',
       collaboration_tags: brand.collaboration_tags || [],
       product_type: brand.product_type || '', brand_name: brand.brand_name || '',
+      liaison_position: brand.liaison_position || '',
       description: brand.description || ''
     });
     setEditing(true);
@@ -88,6 +89,10 @@ export default function BrandProfile() {
                 <label className="text-xs text-muted-foreground block mb-1">نوع محصول/اثر</label>
                 <input type="text" value={editForm.product_type} onChange={e => setEditForm({ ...editForm, product_type: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
               </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">سمت رابط</label>
+                <input type="text" value={editForm.liaison_position} onChange={e => setEditForm({ ...editForm, liaison_position: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              </div>
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-2">تگ‌های همکاری</label>
@@ -122,8 +127,9 @@ export default function BrandProfile() {
               <Tag className="w-8 h-8 text-[#B74B40]" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold">{brand.full_name}</h1>
-              {brand.brand_name && <p className="text-sm text-muted-foreground mt-1">{brand.brand_name}</p>}
+              <h1 className="text-xl font-bold">{brand.brand_name || brand.full_name}</h1>
+              {brand.brand_name && brand.full_name && <p className="text-sm text-muted-foreground mt-1">{brand.full_name}</p>}
+              {brand.liaison_position && <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs font-medium">{brand.liaison_position}</span>}
               {brand.phone && <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2"><Phone className="w-3.5 h-3.5" /> {brand.phone}</p>}
               {brand.social_id && <p className="text-xs text-muted-foreground mt-1">{brand.social_id}</p>}
               {(brand.collaboration_tags || []).length > 0 && (

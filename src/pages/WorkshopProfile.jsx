@@ -19,30 +19,34 @@ export default function WorkshopProfile() {
   const [sessions, setSessions] = useState([]);
   const [facilitators, setFacilitators] = useState([]);
   const [spaces, setSpaces] = useState([]);
+  const [persons, setPersons] = useState([]);
+  const [dupWarning, setDupWarning] = useState('');
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({});
   const [showAddReg, setShowAddReg] = useState(false);
-  const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false });
+  const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '' });
   const [editingRegId, setEditingRegId] = useState(null);
   const [capacityWarning, setCapacityWarning] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [w, purchs, sess, facs, spcs] = await Promise.all([
+      const [w, purchs, sess, facs, spcs, ppl] = await Promise.all([
         base44.entities.Workshop.get(id),
         base44.entities.WorkshopPurchase.list('-purchase_date', 500),
         base44.entities.WorkshopSession.list('-session_number', 500),
         base44.entities.Facilitator.list('-created_date', 500),
-        base44.entities.Space.list('-created_date', 100)
+        base44.entities.Space.list('-created_date', 100),
+        base44.entities.Person.list('-created_date', 500)
       ]);
       setWorkshop(w);
       setPurchases(purchs.filter(p => p.workshop_id === id));
       setSessions(sess.filter(s => s.workshop_id === id).sort((a, b) => (a.session_number || 0) - (b.session_number || 0)));
       setFacilitators(facs);
       setSpaces(spcs);
+      setPersons(ppl);
     } finally { setLoading(false); }
   };
 
@@ -134,6 +138,12 @@ export default function WorkshopProfile() {
 
   const addRegistration = async () => {
     if (!regForm.person_phone) return;
+    const dup = purchases.find(p => p.person_phone === regForm.person_phone);
+    if (dup) {
+      setDupWarning('این شخص قبلاً در این کارگاه ثبت‌نام شده است.');
+      return;
+    }
+    setDupWarning('');
     const newCount = rev.participantCount + (Number(regForm.quantity) || 1);
     if (workshop.capacity && newCount > workshop.capacity) {
       setCapacityWarning(`ظرفیت کارگاه ${toPersianNum(workshop.capacity)} نفر است. با این ثبت‌نام تعداد به ${toPersianNum(newCount)} نفر می‌رسد. آیا مطمئن هستید؟`);
@@ -157,9 +167,10 @@ export default function WorkshopProfile() {
         purchase_date: regForm.purchase_date,
         payment_method: regForm.payment_method,
         how_met: regForm.how_met || 'other',
-        is_paid: regForm.is_paid
+        is_paid: regForm.is_paid,
+        registered_sessions: regForm.registered_sessions ? Number(regForm.registered_sessions) : null
       });
-      setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false });
+      setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '' });
       setCapacityWarning('');
       setShowAddReg(false);
       fetchData();
@@ -188,6 +199,8 @@ export default function WorkshopProfile() {
   );
   if (!workshop) return <div className="p-6 text-center text-muted-foreground">کارگاهی یافت نشد</div>;
 
+  const personByPhone = {};
+  persons.forEach(per => { if (per.phone) personByPhone[per.phone] = per; });
   const rev = computeWorkshopRevenue(workshop, purchases);
   const facNames = (workshop.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean);
 
@@ -324,6 +337,7 @@ export default function WorkshopProfile() {
                   <PriceInput value={regForm.price} onChange={v => setRegForm({ ...regForm, price: v })} />
                   <input type="number" placeholder="تعداد" value={regForm.quantity} onChange={e => setRegForm({ ...regForm, quantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
                   <JalaliDateInput value={regForm.purchase_date} onChange={v => setRegForm({ ...regForm, purchase_date: v })} />
+                  <input type="number" placeholder="تعداد جلسه (اختیاری)" value={regForm.registered_sessions} onChange={e => setRegForm({ ...regForm, registered_sessions: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
                   <select value={regForm.payment_method} onChange={e => setRegForm({ ...regForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
                     {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
@@ -334,6 +348,11 @@ export default function WorkshopProfile() {
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={regForm.is_paid} onChange={e => setRegForm({ ...regForm, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
                   </label>
+                  {dupWarning && (
+                    <div className="sm:col-span-2 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
+                      {dupWarning}
+                    </div>
+                  )}
                   {capacityWarning && (
                     <div className="sm:col-span-2 p-3 bg-[#FBF3EC] border border-[#E8D5C0] rounded-lg text-xs text-[#B9834B] flex items-center justify-between gap-2">
                       <span className="flex-1">{capacityWarning}</span>
@@ -358,7 +377,10 @@ export default function WorkshopProfile() {
                   {purchases.map(p => (
                     <div key={p.id} className="py-2.5 flex items-center justify-between text-sm">
                       <div>
-                        <span className="font-medium">{p.person_name || '-'}</span>
+                        {personByPhone[p.person_phone]
+                          ? <Link to={`/people/${personByPhone[p.person_phone].id}`} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
+                          : <span className="font-medium">{p.person_name || '-'}</span>}
+                        {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
                         <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
                       </div>
                       <div className="flex items-center gap-2">

@@ -16,7 +16,7 @@ export default function BrandsPage() {
   const [selectedTag, setSelectedTag] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', social_id: '', collaboration_tags: [], product_type: '', brand_name: '', description: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', social_id: '', collaboration_tags: [], product_type: '', brand_name: '', liaison_position: '', description: '' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -37,7 +37,7 @@ export default function BrandsPage() {
     setSubmitting(true);
     try {
       await base44.entities.Brand.create(form);
-      setForm({ full_name: '', phone: '', social_id: '', collaboration_tags: [], product_type: '', brand_name: '', description: '' });
+      setForm({ full_name: '', phone: '', social_id: '', collaboration_tags: [], product_type: '', brand_name: '', liaison_position: '', description: '' });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -100,6 +100,10 @@ export default function BrandsPage() {
             <div>
               <label className="text-xs text-muted-foreground block mb-1">نوع محصول/اثر</label>
               <input type="text" value={form.product_type} onChange={e => setForm({ ...form, product_type: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">سمت رابط</label>
+              <input type="text" value={form.liaison_position} onChange={e => setForm({ ...form, liaison_position: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
             </div>
             <div className="sm:col-span-2 lg:col-span-3">
               <label className="text-xs text-muted-foreground block mb-2">برچسب‌ها</label>
@@ -166,7 +170,7 @@ export default function BrandsPage() {
                     <td className="p-3">
                       <Link to={`/brands/${r.id}`} className="font-medium hover:text-[#B74B40]">{r.brand_name || r.full_name}</Link>
                     </td>
-                    <td className="p-3">{r.full_name || '-'}</td>
+                    <td className="p-3">{r.full_name || '-'}{r.liaison_position && <span className="text-xs text-muted-foreground block mt-0.5">{r.liaison_position}</span>}</td>
                     <td className="p-3 text-muted-foreground">{r.phone || '-'}</td>
                     <td className="p-3">
                       <div className="flex flex-wrap gap-1">

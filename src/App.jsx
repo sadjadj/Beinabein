@@ -26,6 +26,7 @@ import CalendarPage from '@/pages/CalendarPage';
 import AccountingPage from '@/pages/AccountingPage';
 import ReturnsPage from '@/pages/ReturnsPage';
 import ExpensesPage from '@/pages/ExpensesPage';
+import SpacesPage from '@/pages/SpacesPage';
 import WorkshopProfile from '@/pages/WorkshopProfile';
 import WorkspaceOrderDetail from '@/pages/WorkspaceOrderDetail';
 import InvoiceDetail from '@/pages/InvoiceDetail';
@@ -76,6 +77,7 @@ const AuthenticatedApp = () => {
       <Route path="/accounting" element={<AccountingPage />} />
       <Route path="/returns" element={<ReturnsPage />} />
       <Route path="/expenses" element={<ExpensesPage />} />
+      <Route path="/spaces" element={<SpacesPage />} />
       <Route path="/workshops/:id" element={<WorkshopProfile />} />
       <Route path="/workspace/:id" element={<WorkspaceOrderDetail />} />
       <Route path="/accounting/:type/:id" element={<InvoiceDetail />} />

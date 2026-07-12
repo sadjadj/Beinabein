@@ -284,9 +284,12 @@ export default function WorkspacePage() {
                         <td className="p-3">{r.entry_time || '-'}</td>
                         <td className="p-3 text-xs">{paymentMethodLabels[r.payment_method] || r.payment_method}</td>
                         <td className="p-3 text-center">
-                          <span className={`text-xs ${r.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); togglePaid(r); }}
+                            className={`text-xs font-medium px-2 py-1 rounded ${r.is_paid ? 'text-green-600 bg-green-50' : 'text-[#B9834B] bg-[#FBF3EC]'}`}
+                          >
                             {r.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}
-                          </span>
+                          </button>
                         </td>
                         <td className="p-3 text-center">
                           <ChevronLeft className="w-4 h-4 text-muted-foreground inline-block" />

@@ -6,6 +6,7 @@ import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 export default function PersonSearch({ personName, personPhone, onNameChange, onPhoneChange, onPersonFound }) {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [phoneLocked, setPhoneLocked] = useState(false);
 
   useEffect(() => {
     if (!personName || personName.trim().length < 2) {
@@ -33,13 +34,15 @@ export default function PersonSearch({ personName, personPhone, onNameChange, on
     onPhoneChange(person.phone || '');
     onPersonFound?.(person);
     setShowSuggestions(false);
+    setPhoneLocked(true);
   };
 
   const clearPhone = () => {
     onPhoneChange('');
+    setPhoneLocked(false);
   };
 
-  const isLocked = !!personPhone;
+  const isLocked = phoneLocked;
 
   return (
     <div className="flex flex-col gap-2 flex-shrink-0">
