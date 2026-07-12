@@ -59,16 +59,18 @@ export default function WorkspacePage() {
 
   const handleSubSubmit = async (e) => {
     e.preventDefault();
-    if (!subForm.name) return;
+    const activeForm = editingSubId ? editSubForm : subForm;
+    if (!activeForm.name) return;
     setSubmitting(true);
     try {
       if (editingSubId) {
-        await base44.entities.WorkspaceSubscription.update(editingSubId, { ...subForm, price: Number(subForm.price) || 0 });
+        await base44.entities.WorkspaceSubscription.update(editingSubId, { name: editSubForm.name, price: Number(editSubForm.price) || 0 });
         setEditingSubId(null);
+        setEditSubForm({});
       } else {
         await base44.entities.WorkspaceSubscription.create({ ...subForm, price: Number(subForm.price) || 0 });
+        setSubForm({ name: '', price: '' });
       }
-      setSubForm({ name: '', price: '' });
       fetchData();
     } finally { setSubmitting(false); }
   };
