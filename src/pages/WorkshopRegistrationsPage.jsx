@@ -8,6 +8,7 @@ import PersonSearch from '@/components/PersonSearch';
 import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import JalaliDateInput from '@/components/JalaliDateInput';
+import WorkshopSearchSelect from '@/components/WorkshopSearchSelect';
 import { toPersianNum, formatCurrency, findOrCreatePerson } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
@@ -143,10 +144,11 @@ export default function WorkshopRegistrationsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">کارگاه</label>
-              <select value={form.workshop_id} onChange={e => { const ws = workshopById[e.target.value]; setForm({ ...form, workshop_id: e.target.value, price: ws?.price || '' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                <option value="">انتخاب کارگاه...</option>
-                {workshops.filter(w => !w.is_ended).map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
-              </select>
+              <WorkshopSearchSelect
+                workshops={workshops.filter(w => !w.is_ended)}
+                value={form.workshop_id}
+                onChange={(wid) => { const ws = workshopById[wid]; setForm({ ...form, workshop_id: wid, price: ws?.price || '' }); }}
+              />
             </div>
             <PersonSearch personName={form.person_name} personPhone={form.person_phone} onNameChange={v => setForm({ ...form, person_name: v })} onPhoneChange={v => setForm({ ...form, person_phone: v })} />
             <div>
