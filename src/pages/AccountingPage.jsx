@@ -7,6 +7,7 @@ import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell } from
 import { computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels } from '@/lib/labels';
 import { toJalaliStr } from '@/lib/jalali';
+import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 
 export default function AccountingPage() {
   const navigate = useNavigate();
@@ -101,7 +102,18 @@ export default function AccountingPage() {
 
   const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه' };
 
-  if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
+  if (loading) return (
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto pt-14 md:pt-6">
+      <div>
+        <Skeleton className="h-7 w-24" />
+        <Skeleton className="h-4 w-48 mt-2" />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        <StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton />
+      </div>
+      <Skeleton className="h-64 rounded-xl" />
+    </div>
+  );
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">

@@ -60,7 +60,7 @@ export default function BrandsPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">برندها</h1>
           <p className="text-sm text-muted-foreground mt-1">فهرست برندهای همکار بینابین</p>
@@ -130,11 +130,11 @@ export default function BrandsPage() {
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border space-y-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <h3 className="text-sm font-semibold">فهرست برندها</h3>
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none min-w-[150px]">
               <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-              <input type="text" placeholder="جستجو..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-56" />
+              <input type="text" placeholder="جستجو..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-full sm:w-56" />
             </div>
           </div>
           {allTags.length > 0 && (

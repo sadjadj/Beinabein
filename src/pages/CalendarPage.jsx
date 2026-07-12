@@ -5,6 +5,7 @@ import { Calendar, Clock, MapPin } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { dayLabels, dayOrder } from '@/lib/labels';
 import { toJalaliStr } from '@/lib/jalali';
+import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 
 export default function CalendarPage() {
   const [workshops, setWorkshops] = useState([]);
@@ -49,7 +50,14 @@ export default function CalendarPage() {
       </div>
 
       {loading ? (
-        <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton />
+          </div>
+          <Skeleton className="h-40 rounded-xl" />
+          <Skeleton className="h-40 rounded-xl" />
+          <Skeleton className="h-40 rounded-xl" />
+        </div>
       ) : (
         <div className="space-y-4">
           {dayOrder.map(day => {

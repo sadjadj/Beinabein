@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, ClipboardCheck, RotateCcw, Receipt, MapPin } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, ClipboardCheck, RotateCcw, Receipt, MapPin, Menu, X } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
@@ -21,41 +21,93 @@ const navItems = [
 
 export default function Layout() {
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
+  const Brand = ({ size = 'lg' }) => (
+    <div className="flex items-center gap-2.5">
+      <div className={`${size === 'lg' ? 'w-9 h-9' : 'w-7 h-7'} rounded-xl bg-[#B74B40] flex items-center justify-center`}>
+        <span className="text-white font-bold leading-none" style={{ fontFamily: 'Azar, Ravagh, sans-serif', fontSize: size === 'lg' ? '1.1rem' : '0.9rem' }}>ب</span>
+      </div>
+      <div>
+        <h1 className={`${size === 'lg' ? 'text-xl' : 'text-lg'} font-bold text-gray-900 leading-none`} style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>بینابین</h1>
+        {size === 'lg' && <p className="text-[11px] text-muted-foreground mt-1.5">داشبورد سنجه‌ها</p>}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col md:flex-row bg-muted/30">
-      <aside className="md:w-64 bg-white border-l border-border flex md:flex-col flex-row overflow-x-auto md:overflow-y-auto md:overflow-x-visible flex-shrink-0 md:sticky md:top-0 md:h-screen">
-        <div className="p-4 md:p-6 border-b border-border hidden md:block flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#B74B40] flex items-center justify-center">
-              <span className="text-white font-bold text-lg leading-none" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>ب</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 leading-none" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>بینابین</h1>
-              <p className="text-[11px] text-muted-foreground mt-1.5">داشبورد سنجه‌ها</p>
-            </div>
-          </div>
+    <div className="flex bg-muted/30">
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-64 bg-white border-l border-border flex-col overflow-y-auto flex-shrink-0 sticky top-0 h-screen">
+        <div className="p-6 border-b border-border flex-shrink-0">
+          <Brand />
         </div>
-        <div className="md:hidden p-3 border-b border-border flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#B74B40] flex items-center justify-center">
-              <span className="text-white font-bold text-sm leading-none" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>ب</span>
-            </div>
-            <h1 className="text-lg font-bold text-gray-900 leading-none" style={{ fontFamily: 'Azar, Ravagh, sans-serif' }}>بینابین</h1>
-          </div>
-        </div>
-        <nav className="flex md:flex-col gap-1 p-2 md:p-3 flex-1">
+        <nav className="flex flex-col gap-1 p-3 flex-1">
           {navItems.map(item => {
             const active = location.pathname === item.path;
             return (
               <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[#FDF2F1] text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 <item.icon className="w-5 h-5 flex-shrink-0" />
-                <span className="hidden md:inline">{item.label}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
       </aside>
-      <main className="flex-1 min-w-0">
+
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-border">
+        <div className="flex items-center justify-between p-3">
+          <Brand size="sm" />
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-gray-700 hover:bg-muted"
+            aria-label="منو"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
+          <div className="absolute right-0 top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col animate-slide-in">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <Brand size="sm" />
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="w-9 h-9 rounded-lg hover:bg-muted flex items-center justify-center text-gray-700"
+                aria-label="بستن"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">
+              {navItems.map(item => {
+                const active = location.pathname === item.path;
+                return (
+                  <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-[#FDF2F1] text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 min-w-0 pt-14 md:pt-0">
         <Outlet />
       </main>
     </div>

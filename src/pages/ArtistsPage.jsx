@@ -94,11 +94,11 @@ export default function ArtistsPage() {
       )}
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center justify-between gap-3">
+        <div className="p-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
           <h3 className="text-sm font-semibold">فهرست آرتیست‌ها</h3>
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none min-w-[150px]">
             <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="جستجو..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-56" />
+            <input type="text" placeholder="جستجو..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-full sm:w-56" />
           </div>
         </div>
         {loading ? (

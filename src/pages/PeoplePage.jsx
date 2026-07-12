@@ -192,18 +192,18 @@ export default function PeoplePage() {
               </button>
             )}
           </h3>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
-              <Plus className="w-4 h-4" /> افزودن فرد
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] flex-shrink-0">
+              <Plus className="w-4 h-4" /> افزودن
             </button>
-            <div className="relative">
+            <div className="relative flex-1">
               <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="جستجو: نام، شماره، کارگاه، تسهیلگر..."
+                placeholder="جستجو: نام، شماره، کارگاه..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-72"
+                className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-full sm:w-72"
               />
             </div>
           </div>

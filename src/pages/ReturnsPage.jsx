@@ -6,6 +6,7 @@ import { toPersianNum, formatCurrency, findOrCreatePerson } from '@/lib/stats';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import PriceInput from '@/components/PriceInput';
+import { TableSkeleton } from '@/components/SkeletonPatterns';
 
 export default function ReturnsPage() {
   const [returns, setReturns] = useState([]);
@@ -103,7 +104,7 @@ export default function ReturnsPage() {
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">فهرست مرجوعی‌ها ({toPersianNum(returns.length)})</h3></div>
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
+          <TableSkeleton rows={6} cols={7} />
         ) : returns.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">هنوز مرجوعی ثبت نشده است</div>
         ) : (

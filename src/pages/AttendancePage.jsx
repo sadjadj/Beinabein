@@ -108,9 +108,9 @@ export default function AttendancePage() {
           <h1 className="text-2xl font-bold">حضور غیاب</h1>
           <p className="text-sm text-muted-foreground mt-1">برای ثبت حضور غیاب، روی کارگاه مورد نظر کلیک کنید</p>
         </div>
-        <div className="relative">
+        <div className="relative flex-1 sm:flex-none min-w-[150px]">
           <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-          <input type="text" placeholder="جستجوی کارگاه..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-56" />
+          <input type="text" placeholder="جستجوی کارگاه..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-56" />
         </div>
       </div>
 

@@ -81,9 +81,9 @@ export default function FacilitatorsPage() {
               <button key={val} onClick={() => setStatusFilter(val)} className={`px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors ${statusFilter === val ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>{lbl}</button>
             ))}
           </div>
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none min-w-[140px]">
             <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="جستجوی تسهیلگر..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-48" />
+            <input type="text" placeholder="جستجوی تسهیلگر..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-48" />
           </div>
           <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
             <Plus className="w-4 h-4" /> ثبت تسهیلگر
