@@ -7,7 +7,7 @@ import FacilitatorMultiSearch from '@/components/FacilitatorMultiSearch';
 import { Link } from 'react-router-dom';
 import { computeWorkshopStats, computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
-import { toJalaliStr, todayGregorian } from '@/lib/jalali';
+import { toJalaliStr, todayGregorian, formatJalaliShort } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import FloatingDateInput from '@/components/FloatingDateInput';
 import FacilitatorSearch from '@/components/FacilitatorSearch';
@@ -25,6 +25,9 @@ export default function WorkshopsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
+  const [facilitatorFilter, setFacilitatorFilter] = useState('');
+  const [spaceFilter, setSpaceFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [form, setForm] = useState({
     title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '',
     facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday',
@@ -79,6 +82,10 @@ export default function WorkshopsPage() {
   const stats = computeWorkshopStats(workshops, purchases, null);
 
   const filteredWorkshops = workshops.filter(w => {
+    if (facilitatorFilter && !(w.facilitator_ids || []).includes(facilitatorFilter)) return false;
+    if (spaceFilter && w.space !== spaceFilter) return false;
+    if (statusFilter === 'active' && w.is_ended) return false;
+    if (statusFilter === 'ended' && !w.is_ended) return false;
     if (!search) return true;
     const s = search.toLowerCase();
     const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join(' ');
@@ -204,7 +211,26 @@ export default function WorkshopsPage() {
       )}
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">کارگاه‌ها ({toPersianNum(filteredWorkshops.length)})</h3></div>
+        <div className="p-4 border-b border-border space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="text-sm font-semibold">کارگاه‌ها ({toPersianNum(filteredWorkshops.length)})</h3>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select value={facilitatorFilter} onChange={e => setFacilitatorFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+              <option value="">همه تسهیلگرها</option>
+              {facilitators.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
+            </select>
+            <select value={spaceFilter} onChange={e => setSpaceFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+              <option value="">همه فضاها</option>
+              {spaces.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+            </select>
+            <div className="flex items-center gap-1">
+              {[['', 'همه'], ['active', 'فعال'], ['ended', 'پایان‌یافته']].map(([val, lbl]) => (
+                <button key={val} onClick={() => setStatusFilter(val)} className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${statusFilter === val ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>{lbl}</button>
+              ))}
+            </div>
+          </div>
+        </div>
         {loading ? (
           <TableSkeleton rows={6} cols={6} />
         ) : filteredWorkshops.length === 0 ? (
@@ -218,6 +244,7 @@ export default function WorkshopsPage() {
                   <th className="text-right p-3 font-medium">تسهیلگر</th>
                   <th className="text-right p-3 font-medium">روز</th>
                   <th className="text-right p-3 font-medium">ساعت</th>
+                  <th className="text-right p-3 font-medium">تاریخ</th>
                   <th className="text-right p-3 font-medium">فضا</th>
                   <th className="text-center p-3 font-medium">ثبت‌نامی</th>
                 </tr>
@@ -234,7 +261,8 @@ export default function WorkshopsPage() {
                       </td>
                       <td className="p-3 text-muted-foreground text-xs">{facNames || '-'}</td>
                       <td className="p-3 text-xs">{w.day_of_week ? dayLabels[w.day_of_week] : '-'}</td>
-                      <td className="p-3 text-xs text-muted-foreground">{w.start_time}{w.end_time ? ` - ${w.end_time}` : ''}</td>
+                      <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">{w.start_time}{w.end_time ? ` - ${w.end_time}` : ''}</td>
+                      <td className="p-3 text-xs whitespace-nowrap">{w.start_date ? formatJalaliShort(w.start_date) : '-'}</td>
                       <td className="p-3 text-xs">{w.space || '-'}</td>
                       <td className="p-3 text-center font-medium">{toPersianNum(rev.participantCount)}</td>
                     </tr>
