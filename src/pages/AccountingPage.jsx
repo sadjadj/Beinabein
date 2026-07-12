@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
 import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell } from 'lucide-react';
 import { computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels } from '@/lib/labels';
@@ -9,6 +10,8 @@ import { toJalaliStr } from '@/lib/jalali';
 
 export default function AccountingPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const hideFinancials = user?.role === 'executive';
   const [workspaceOrders, setWorkspaceOrders] = useState([]);
   const [itemPurchases, setItemPurchases] = useState([]);
   const [workshopPurchases, setWorkshopPurchases] = useState([]);
@@ -111,10 +114,10 @@ export default function AccountingPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="درآمد این ماه" value={formatCurrency(totalIncome)} icon={TrendingUp} color="terracotta" />
-        <StatCard label="پرداخت تسهیلگران" value={formatCurrency(facilitatorExpenses)} icon={TrendingDown} color="pink" />
-        <StatCard label="سود/زیان این ماه" value={formatCurrency(profit)} sublabel={profit >= 0 ? 'سود' : 'زیان'} icon={Wallet} color={profit >= 0 ? 'teal' : 'pink'} />
-        <StatCard label="پرداخت‌نشده" value={toPersianNum(totalUnpaid)} sublabel={formatCurrency(totalUnpaidAmount)} icon={AlertCircle} color="ochre" />
+        {!hideFinancials && <StatCard label="درآمد این ماه" value={formatCurrency(totalIncome)} icon={TrendingUp} color="terracotta" />}
+        {!hideFinancials && <StatCard label="پرداخت تسهیلگران" value={formatCurrency(facilitatorExpenses)} icon={TrendingDown} color="pink" />}
+        {!hideFinancials && <StatCard label="سود/زیان این ماه" value={formatCurrency(profit)} sublabel={profit >= 0 ? 'سود' : 'زیان'} icon={Wallet} color={profit >= 0 ? 'teal' : 'pink'} />}
+        <StatCard label="پرداخت‌نشده" value={toPersianNum(totalUnpaid)} sublabel={hideFinancials ? undefined : formatCurrency(totalUnpaidAmount)} icon={AlertCircle} color="ochre" />
       </div>
 
       {unpaidFacilitators.length > 0 && (
@@ -146,7 +149,7 @@ export default function AccountingPage() {
                     )}
                   </div>
                   <div className="text-left">
-                    <p className="font-semibold text-[#B9834B]">{formatCurrency(w.facilitatorRevenue)}</p>
+                    {!hideFinancials && <p className="font-semibold text-[#B9834B]">{formatCurrency(w.facilitatorRevenue)}</p>}
                     <button onClick={() => toggleFacilitatorPaid(w)} className="text-xs text-[#B74B40] hover:underline mt-1">ثبت پرداخت</button>
                   </div>
                 </div>
@@ -190,7 +193,7 @@ export default function AccountingPage() {
                   <tr key={`${t.type}-${t.id}`} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/accounting/${t.type}/${t.id}`)}>
                     <td className="p-3 whitespace-nowrap">{toJalaliStr(t.purchase_date)}</td>
                     <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${t.type === 'workspace' ? 'bg-[#FDF2F1] text-[#B74B40]' : t.type === 'cafe' ? 'bg-[#FBF3EC] text-[#B9834B]' : 'bg-[#F0F7F8] text-[#8CB9C0]'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs whitespace-nowrap ${t.type === 'workspace' ? 'bg-[#FDF2F1] text-[#B74B40]' : t.type === 'cafe' ? 'bg-[#FBF3EC] text-[#B9834B]' : 'bg-[#F0F7F8] text-[#8CB9C0]'}`}>
                         {typeLabels[t.type]}
                       </span>
                     </td>
@@ -199,7 +202,7 @@ export default function AccountingPage() {
                     <td className="p-3 text-xs whitespace-nowrap">{paymentMethodLabels[t.payment_method] || t.payment_method}</td>
                     <td className="p-3 font-medium whitespace-nowrap text-left" dir="ltr">{formatCurrency(t.amount)}</td>
                     <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => togglePaid(t.type === 'workspace' ? 'WorkspaceOrder' : t.type === 'cafe' ? 'ItemPurchase' : 'WorkshopPurchase', t.id, t.is_paid)} className="inline-flex items-center gap-1 text-xs">
+                      <button onClick={() => togglePaid(t.type === 'workspace' ? 'WorkspaceOrder' : t.type === 'cafe' ? 'ItemPurchase' : 'WorkshopPurchase', t.id, t.is_paid)} className="inline-flex items-center gap-1 text-xs whitespace-nowrap">
                         {t.is_paid ? (
                           <span className="inline-flex items-center gap-1 text-green-600"><CheckCircle className="w-3.5 h-3.5" /> پرداخت شده</span>
                         ) : (
