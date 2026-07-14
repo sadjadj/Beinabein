@@ -74,11 +74,12 @@ export default function CafePage() {
     if (!checkout.person_phone || cart.length === 0) return;
     setSubmitting(true);
     try {
-      await findOrCreatePerson(checkout.person_phone, checkout.person_name);
+      const person = await findOrCreatePerson(checkout.person_phone, checkout.person_name);
+      const personName = (person && person.full_name) ? person.full_name : checkout.person_name;
       const invoiceId = `INV-${Date.now()}`;
       await base44.entities.ItemPurchase.bulkCreate(
         cart.map(c => ({
-          person_name: checkout.person_name,
+          person_name: personName,
           person_phone: checkout.person_phone,
           item_name: c.name,
           item_price: c.price,

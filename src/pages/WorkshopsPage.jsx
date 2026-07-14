@@ -28,6 +28,7 @@ export default function WorkshopsPage() {
   const [facilitatorFilter, setFacilitatorFilter] = useState('');
   const [spaceFilter, setSpaceFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState('date_desc');
   const [form, setForm] = useState({
     title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '',
     facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday',
@@ -92,6 +93,13 @@ export default function WorkshopsPage() {
     return (w.title || '').toLowerCase().includes(s) ||
       (w.tags || '').toLowerCase().includes(s) ||
       facNames.toLowerCase().includes(s);
+  });
+
+  const sortedWorkshops = [...filteredWorkshops].sort((a, b) => {
+    if (sortBy === 'date_asc') return (a.start_date || '').localeCompare(b.start_date || '');
+    if (sortBy === 'name_asc') return (a.title || '').localeCompare(b.title || '');
+    if (sortBy === 'name_desc') return (b.title || '').localeCompare(a.title || '');
+    return (b.start_date || '').localeCompare(a.start_date || '');
   });
 
   return (
@@ -229,6 +237,12 @@ export default function WorkshopsPage() {
                 <button key={val} onClick={() => setStatusFilter(val)} className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${statusFilter === val ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>{lbl}</button>
               ))}
             </div>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+              <option value="date_desc">جدیدترین</option>
+              <option value="date_asc">قدیمی‌ترین</option>
+              <option value="name_asc">نام (A-Z)</option>
+              <option value="name_desc">نام (Z-A)</option>
+            </select>
           </div>
         </div>
         {loading ? (
@@ -250,7 +264,7 @@ export default function WorkshopsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredWorkshops.map(w => {
+                {sortedWorkshops.map(w => {
                   const rev = computeWorkshopRevenue(w, purchases.filter(p => p.workshop_id === w.id));
                   const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
                   return (

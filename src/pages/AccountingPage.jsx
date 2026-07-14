@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell, Search } from 'lucide-react';
 import { computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels } from '@/lib/labels';
 import { toJalaliStr } from '@/lib/jalali';
@@ -19,6 +19,7 @@ export default function AccountingPage() {
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,6 +99,12 @@ export default function AccountingPage() {
     if (filter === 'paid') return t.is_paid;
     if (filter === 'unpaid') return !t.is_paid && t.payment_method !== 'free';
     return true;
+  }).filter(t => {
+    if (!search) return true;
+    const s = search.trim().toLowerCase();
+    return (t.person_name || '').toLowerCase().includes(s) ||
+      (t.label || '').toLowerCase().includes(s) ||
+      (t.person_phone || '').toLowerCase().includes(s);
   });
 
   const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه' };
@@ -172,6 +179,10 @@ export default function AccountingPage() {
         <div className="p-4 border-b border-border flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold">فاکتورها</h3>
           <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+              <input type="text" placeholder="جستجو نام / شرح / شماره..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-56" />
+            </div>
             {['all', 'paid', 'unpaid'].map(f => (
               <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>
                 {f === 'all' ? 'همه' : f === 'paid' ? 'پرداخت‌شده' : 'پرداخت‌نشده'}

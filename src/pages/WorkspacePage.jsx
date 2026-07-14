@@ -23,6 +23,7 @@ export default function WorkspacePage() {
   const [subForm, setSubForm] = useState({ name: '', price: '' });
   const [editingSubId, setEditingSubId] = useState(null);
   const [editSubForm, setEditSubForm] = useState({});
+  const [sortBy, setSortBy] = useState('date_desc');
 
   const fetchData = async () => {
     setLoading(true);
@@ -91,6 +92,13 @@ export default function WorkspacePage() {
   };
 
   const stats = computeWorkspaceStats(records, null);
+
+  const sortedRecords = [...records].sort((a, b) => {
+    if (sortBy === 'date_asc') return (a.purchase_date || '').localeCompare(b.purchase_date || '');
+    if (sortBy === 'name_asc') return (a.person_name || '').localeCompare(b.person_name || '');
+    if (sortBy === 'name_desc') return (b.person_name || '').localeCompare(a.person_name || '');
+    return (b.purchase_date || '').localeCompare(a.purchase_date || '');
+  });
 
   if (loading) {
     return (
@@ -256,7 +264,15 @@ export default function WorkspacePage() {
           </div>
 
           <div className="bg-white rounded-xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">سفارش‌های اخیر</h3></div>
+            <div className="p-4 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold">سفارش‌های اخیر</h3>
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+                <option value="date_desc">جدیدترین</option>
+                <option value="date_asc">قدیمی‌ترین</option>
+                <option value="name_asc">نام (A-Z)</option>
+                <option value="name_desc">نام (Z-A)</option>
+              </select>
+            </div>
             {loading ? (
               <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
             ) : records.length === 0 ? (
@@ -277,7 +293,7 @@ export default function WorkspacePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map(r => (
+                    {sortedRecords.map(r => (
                       <tr key={r.id} className="border-t border-border hover:bg-[#FDF2F1]/30 cursor-pointer" onClick={() => navigate(`/workspace/${r.id}`)}>
                         <td className="p-3">{r.purchase_date ? toJalaliStr(r.purchase_date) : '-'}</td>
                         <td className="p-3">{r.subscription_name || '-'}</td>
