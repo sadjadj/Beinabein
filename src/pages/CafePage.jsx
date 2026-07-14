@@ -99,11 +99,11 @@ export default function CafePage() {
 
   const handleItemSubmit = async (e) => {
     e.preventDefault();
-    if (!itemForm.name || !itemForm.price) return;
+    const form = editingItemId ? editItemForm : itemForm;
+    if (!form.name || form.price === '' || form.price === null || form.price === undefined) return;
     setSubmitting(true);
     try {
       if (editingItemId) {
-        const form = editItemForm;
         await base44.entities.InventoryItem.update(editingItemId, { name: form.name, category: form.category, price: Number(form.price) || 0, brand: form.brand || '' });
         setEditingItemId(null);
       } else {
