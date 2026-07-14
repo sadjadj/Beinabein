@@ -1,4 +1,4 @@
-export const paymentMethodLabels = { online: 'آنلاین', card_to_card: 'کارت به کارت', cash: 'نقد' };
+export const paymentMethodLabels = { online: 'آنلاین', card_to_card: 'کارت به کارت', cash: 'نقد', azno: 'ازنو' };
 export const howMetLabels = { instagram: 'اینستاگرام', telegram: 'تلگرام', referral: 'ریفرال', friends: 'دوستان', facilitator: 'از طرف تسهیلگر', event: 'رویداد', introduction: 'معرفی', other: 'سایر' };
 export const howMetColors = {
   instagram: 'bg-[#FDF2F1] text-[#B74B40] border-[#F5C9C3]',
