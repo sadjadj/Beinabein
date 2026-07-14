@@ -51,7 +51,7 @@ export default function CafePage() {
     setCart(prev => {
       const existing = prev.find(c => c.item_id === item.id);
       if (existing) return prev.map(c => c.item_id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
-      return [...prev, { item_id: item.id, name: item.name, price: item.price, quantity: 1 }];
+      return [...prev, { item_id: item.id, name: item.name, price: item.price, quantity: 1, discount: 0 }];
     });
   };
 
@@ -63,7 +63,11 @@ export default function CafePage() {
     setCart(prev => prev.filter(c => c.item_id !== itemId));
   };
 
-  const cartTotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
+  const updateDiscount = (itemId, discount) => {
+    setCart(prev => prev.map(c => c.item_id === itemId ? { ...c, discount: Math.max(0, Math.min(100, Number(discount) || 0)) } : c));
+  };
+
+  const cartTotal = cart.reduce((s, c) => s + c.price * c.quantity * (1 - (c.discount || 0) / 100), 0);
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
@@ -79,6 +83,7 @@ export default function CafePage() {
           item_name: c.name,
           item_price: c.price,
           quantity: c.quantity,
+          discount: c.discount || 0,
           purchase_date: checkout.purchase_date,
           payment_method: checkout.payment_method,
           purchase_reason: checkout.purchase_reason,
@@ -98,7 +103,8 @@ export default function CafePage() {
     setSubmitting(true);
     try {
       if (editingItemId) {
-        await base44.entities.InventoryItem.update(editingItemId, { ...itemForm, price: Number(itemForm.price) || 0 });
+        const form = editItemForm;
+        await base44.entities.InventoryItem.update(editingItemId, { name: form.name, category: form.category, price: Number(form.price) || 0, brand: form.brand || '' });
         setEditingItemId(null);
       } else {
         await base44.entities.InventoryItem.create({ ...itemForm, price: Number(itemForm.price) || 0 });
@@ -152,7 +158,7 @@ export default function CafePage() {
     });
     return Object.values(groups).map(g => ({
       ...g,
-      totalAmount: g.items.reduce((s, i) => s + (i.item_price || 0) * (i.quantity || 1), 0),
+      totalAmount: g.items.reduce((s, i) => s + (i.item_price || 0) * (i.quantity || 1) * (1 - (i.discount || 0) / 100), 0),
       itemCount: g.items.reduce((s, i) => s + (i.quantity || 1), 0)
     })).sort((a, b) => (b.purchase_date || '').localeCompare(a.purchase_date || ''));
   })();
@@ -368,7 +374,7 @@ export default function CafePage() {
                     <p className="text-sm font-medium mb-3">سبد خرید</p>
                     <div className="space-y-2">
                       {cart.map(c => (
-                        <div key={c.item_id} className="flex items-center justify-between bg-muted/30 rounded-lg p-2.5">
+                        <div key={c.item_id} className="flex items-center justify-between bg-muted/30 rounded-lg p-2.5 gap-2 flex-wrap">
                           <span className="text-sm font-medium">{c.name}</span>
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2">
@@ -376,7 +382,11 @@ export default function CafePage() {
                               <span className="text-sm font-medium w-6 text-center">{toPersianNum(c.quantity)}</span>
                               <button type="button" onClick={() => updateQty(c.item_id, 1)} className="w-6 h-6 rounded-md bg-white border border-border flex items-center justify-center hover:bg-muted"><Plus className="w-3 h-3" /></button>
                             </div>
-                            <span className="text-sm font-medium w-24 text-left">{formatCurrency(c.price * c.quantity)}</span>
+                            <div className="flex items-center gap-1">
+                              <input type="number" min="0" max="100" placeholder="0" value={c.discount || ''} onChange={e => updateDiscount(c.item_id, e.target.value)} className="w-12 px-1.5 py-1 rounded-md border border-input bg-background text-xs text-center" />
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">٪ تخفیف</span>
+                            </div>
+                            <span className="text-sm font-medium w-24 text-left">{formatCurrency(c.price * c.quantity * (1 - (c.discount || 0) / 100))}</span>
                             <button type="button" onClick={() => removeFromCart(c.item_id)} className="text-muted-foreground hover:text-red-600"><X className="w-4 h-4" /></button>
                           </div>
                         </div>
@@ -491,8 +501,8 @@ export default function CafePage() {
                         <div className="mt-2 pr-8 space-y-1">
                           {group.items.map(item => (
                             <div key={item.id} className="flex items-center justify-between text-xs text-muted-foreground py-1">
-                              <span>{item.item_name} ×{toPersianNum(item.quantity)}</span>
-                              <span>{formatCurrency((item.item_price || 0) * (item.quantity || 1))}</span>
+                              <span>{item.item_name} ×{toPersianNum(item.quantity)}{item.discount ? ` (${toPersianNum(item.discount)}٪ تخفیف)` : ''}</span>
+                              <span>{formatCurrency((item.item_price || 0) * (item.quantity || 1) * (1 - (item.discount || 0) / 100))}</span>
                             </div>
                           ))}
                         </div>

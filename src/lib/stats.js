@@ -155,7 +155,7 @@ export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurc
   const diversityRate = uniqueCount > 0 ? (diversityCount / uniqueCount) * 100 : 0;
 
   const workspaceRevenue = orders.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
-  const cafeRevenue = items.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1), 0);
+  const cafeRevenue = items.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
   const workshopRevenue = wp.reduce((s, w) => s + (w.price || 0) * (w.quantity || 1), 0);
   const totalRevenue = workspaceRevenue + cafeRevenue + workshopRevenue;
 
@@ -219,11 +219,11 @@ export function computeCafeStats(itemPurchases, range) {
   const filtered = filterByDate(itemPurchases, 'purchase_date', range);
   const buyerPhones = filtered.map(p => p.person_phone);
   const uniqueBuyers = new Set(buyerPhones);
-  const totalSales = filtered.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1), 0);
+  const totalSales = filtered.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
   const reasonMap = {};
   filtered.forEach(p => {
     const reason = p.purchase_reason || 'independent';
-    reasonMap[reason] = (reasonMap[reason] || 0) + (p.item_price || 0) * (p.quantity || 1);
+    reasonMap[reason] = (reasonMap[reason] || 0) + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100);
   });
   return { totalPurchases: filtered.length, uniqueBuyerCount: uniqueBuyers.size, totalSales, salesByReason: reasonMap };
 }
