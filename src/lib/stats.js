@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { getJalaliParts, jalaliToGregorianStr, jalaliDaysInMonth } from '@/lib/jalali';
 
 // ─── Date helpers ───
 export function formatDate(d) {
@@ -16,13 +17,16 @@ export function getDateRange(preset, customStart, customEnd) {
       return { start: formatDate(start), end: formatDate(today) };
     }
     case 'month': {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { start: formatDate(start), end: formatDate(today) };
+      const todayStr = formatDate(today);
+      const parts = getJalaliParts(todayStr);
+      return { start: jalaliToGregorianStr(parts.jy, parts.jm, 1), end: todayStr };
     }
     case 'last_month': {
-      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const end = new Date(today.getFullYear(), today.getMonth(), 0);
-      return { start: formatDate(start), end: formatDate(end) };
+      const todayStr = formatDate(today);
+      const parts = getJalaliParts(todayStr);
+      let lm = parts.jm - 1, ly = parts.jy;
+      if (lm < 1) { lm = 12; ly -= 1; }
+      return { start: jalaliToGregorianStr(ly, lm, 1), end: jalaliToGregorianStr(ly, lm, jalaliDaysInMonth(ly, lm)) };
     }
     case 'quarter': {
       const qMonth = Math.floor(today.getMonth() / 3) * 3;
@@ -52,6 +56,18 @@ function inRange(date, range) {
 function filterByDate(records, field, range) {
   if (!range) return records;
   return records.filter(r => r[field] && inRange(r[field], range));
+}
+
+// Jalali month helpers (for monthly filters aligned with Shamsi calendar)
+export function currentJalaliMonthKey() {
+  const parts = getJalaliParts(formatDate(new Date()));
+  if (!parts) return '';
+  return `${parts.jy}-${String(parts.jm).padStart(2, '0')}`;
+}
+export function gregorianToJalaliMonthKey(gregorianStr) {
+  const parts = getJalaliParts(gregorianStr);
+  if (!parts) return '';
+  return `${parts.jy}-${String(parts.jm).padStart(2, '0')}`;
 }
 
 // ─── Number formatting ───
@@ -156,7 +172,7 @@ export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurc
 
   const workspaceRevenue = orders.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
   const cafeRevenue = items.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
-  const workshopRevenue = wp.reduce((s, w) => s + (w.price || 0) * (w.quantity || 1), 0);
+  const workshopRevenue = wp.reduce((s, w) => s + (w.price || 0) * (w.quantity || 1) + (w.donation || 0), 0);
   const totalRevenue = workspaceRevenue + cafeRevenue + workshopRevenue;
 
   return { uniqueCount, returnRate, diversityRate, totalRevenue, workspaceRevenue, cafeRevenue, workshopRevenue, totalPeople };
@@ -239,7 +255,7 @@ export function computeWorkshopStats(workshops, workshopPurchases, range) {
     purchases.forEach(p => {
       purchasePhones.add(p.person_phone);
       totalParticipants += (p.quantity || 1);
-      totalRevenue += (p.price || 0) * (p.quantity || 1);
+      totalRevenue += (p.price || 0) * (p.quantity || 1) + (p.donation || 0);
     });
   });
   return { totalWorkshops: filtered.length, totalParticipants, uniqueCount: purchasePhones.size, totalRevenue };
@@ -249,9 +265,11 @@ export function computeWorkshopStats(workshops, workshopPurchases, range) {
 export function computeWorkshopRevenue(workshop, workshopPurchases) {
   const purchases = workshopPurchases.filter(p => p.workshop_id === workshop.id);
   const participantCount = purchases.reduce((s, p) => s + (p.quantity || 1), 0);
-  const totalRevenue = purchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1), 0);
+  const priceRevenue = purchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1), 0);
+  const donationTotal = purchases.reduce((s, p) => s + (p.donation || 0), 0);
+  const totalRevenue = priceRevenue + donationTotal;
   const percentage = workshop.facilitator_percentage || 0;
-  const facilitatorRevenue = Math.round(totalRevenue * percentage / 100);
+  const facilitatorRevenue = Math.round(priceRevenue * percentage / 100);
   const binabinRevenue = totalRevenue - facilitatorRevenue;
   return { participantCount, totalRevenue, binabinRevenue, facilitatorRevenue, purchaseCount: purchases.length };
 }

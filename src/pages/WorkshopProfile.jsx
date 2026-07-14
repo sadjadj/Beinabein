@@ -26,7 +26,7 @@ export default function WorkshopProfile() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({});
   const [showAddReg, setShowAddReg] = useState(false);
-  const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '' });
+  const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '', donation: '' });
   const [editingRegId, setEditingRegId] = useState(null);
   const [capacityWarning, setCapacityWarning] = useState('');
 
@@ -172,9 +172,10 @@ export default function WorkshopProfile() {
         payment_method: regForm.payment_method,
         how_met: regForm.how_met || 'other',
         is_paid: regForm.is_paid,
-        registered_sessions: regForm.registered_sessions ? Number(regForm.registered_sessions) : null
+        registered_sessions: regForm.registered_sessions ? Number(regForm.registered_sessions) : null,
+        donation: Number(regForm.donation) || 0
       });
-      setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '' });
+      setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '', donation: '' });
       setCapacityWarning('');
       setShowAddReg(false);
       fetchData();
@@ -339,6 +340,7 @@ export default function WorkshopProfile() {
                 <div className="mb-3 p-3 bg-muted/30 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm({ ...regForm, person_name: v })} onPhoneChange={v => setRegForm({ ...regForm, person_phone: v })} />
                   <PriceInput value={regForm.price} onChange={v => setRegForm({ ...regForm, price: v })} />
+                  <PriceInput value={regForm.donation} onChange={v => setRegForm({ ...regForm, donation: v })} placeholder="دونیشین (اختیاری)" />
                   <input type="number" placeholder="تعداد" value={regForm.quantity} onChange={e => setRegForm({ ...regForm, quantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
                   <JalaliDateInput value={regForm.purchase_date} onChange={v => setRegForm({ ...regForm, purchase_date: v })} />
                   <input type="number" placeholder="تعداد جلسه (اختیاری)" value={regForm.registered_sessions} onChange={e => setRegForm({ ...regForm, registered_sessions: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
@@ -385,6 +387,7 @@ export default function WorkshopProfile() {
                           ? <Link to={`/people/${personByPhone[p.person_phone].id}`} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
                           : <span className="font-medium">{p.person_name || '-'}</span>}
                         {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
+                        {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
                         <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
                       </div>
                       <div className="flex items-center gap-2">

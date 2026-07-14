@@ -4,7 +4,7 @@ import StatCard from '@/components/StatCard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell, Search } from 'lucide-react';
-import { computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
+import { computeWorkshopRevenue, toPersianNum, formatCurrency, currentJalaliMonthKey, gregorianToJalaliMonthKey } from '@/lib/stats';
 import { paymentMethodLabels } from '@/lib/labels';
 import { toJalaliStr } from '@/lib/jalali';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
@@ -53,18 +53,18 @@ export default function AccountingPage() {
   };
 
   // Monthly P&L
-  const currentMonth = new Date().toISOString().substring(0, 7);
-  const monthWs = workspaceOrders.filter(o => o.purchase_date?.startsWith(currentMonth));
-  const monthItems = itemPurchases.filter(p => p.purchase_date?.startsWith(currentMonth));
-  const monthWp = workshopPurchases.filter(p => p.purchase_date?.startsWith(currentMonth));
+  const currentMonth = currentJalaliMonthKey();
+  const monthWs = workspaceOrders.filter(o => gregorianToJalaliMonthKey(o.purchase_date) === currentMonth);
+  const monthItems = itemPurchases.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
+  const monthWp = workshopPurchases.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
 
   const wsRevenue = monthWs.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
-  const cafeRevenue = monthItems.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1), 0);
-  const workshopRevenue = monthWp.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1), 0);
+  const cafeRevenue = monthItems.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
+  const workshopRevenue = monthWp.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
   const totalIncome = wsRevenue + cafeRevenue + workshopRevenue;
 
   // Facilitator expenses (from all workshops this month)
-  const monthWorkshops = workshops.filter(w => w.start_date?.startsWith(currentMonth));
+  const monthWorkshops = workshops.filter(w => gregorianToJalaliMonthKey(w.start_date) === currentMonth);
   const facilitatorExpenses = monthWorkshops.reduce((s, w) => {
     const rev = computeWorkshopRevenue(w, workshopPurchases);
     return s + rev.facilitatorRevenue;
@@ -78,8 +78,8 @@ export default function AccountingPage() {
   const unpaidWp = workshopPurchases.filter(p => !p.is_paid && p.payment_method !== 'free');
   const totalUnpaid = unpaidWs.length + unpaidItems.length + unpaidWp.length;
   const totalUnpaidAmount = [...unpaidWs, ...unpaidItems, ...unpaidWp].reduce((s, r) => {
-    if (r.price) return s + r.price * (r.quantity || 1);
-    if (r.item_price) return s + r.item_price * (r.quantity || 1);
+    if (r.price) return s + r.price * (r.quantity || 1) + (r.donation || 0);
+    if (r.item_price) return s + r.item_price * (r.quantity || 1) * (1 - (r.discount || 0) / 100);
     return s;
   }, 0);
 
@@ -91,8 +91,8 @@ export default function AccountingPage() {
 
   const allTransactions = [
     ...workspaceOrders.map(o => ({ ...o, type: 'workspace', amount: (o.price || 0) * (o.quantity || 1), label: o.subscription_name || '-' })),
-    ...itemPurchases.map(p => ({ ...p, type: 'cafe', amount: (p.item_price || 0) * (p.quantity || 1), label: p.item_name })),
-    ...workshopPurchases.map(p => ({ ...p, type: 'workshop', amount: (p.price || 0) * (p.quantity || 1), label: p.workshop_title })),
+    ...itemPurchases.map(p => ({ ...p, type: 'cafe', amount: (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), label: p.item_name })),
+    ...workshopPurchases.map(p => ({ ...p, type: 'workshop', amount: (p.price || 0) * (p.quantity || 1) + (p.donation || 0), label: p.workshop_title })),
   ].sort((a, b) => (b.purchase_date || '').localeCompare(a.purchase_date || ''));
 
   const filtered = allTransactions.filter(t => {

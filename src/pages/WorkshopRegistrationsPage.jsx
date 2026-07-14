@@ -27,7 +27,7 @@ export default function WorkshopRegistrationsPage() {
   const [form, setForm] = useState({
     workshop_id: '', person_name: '', person_phone: '', price: '', quantity: 1,
     purchase_date: todayGregorian(), payment_method: 'cash', how_met: 'other',
-    is_paid: false, registered_sessions: ''
+    is_paid: false, registered_sessions: '', donation: ''
   });
 
   const fetchData = async () => {
@@ -53,7 +53,7 @@ export default function WorkshopRegistrationsPage() {
 
   const totalReg = purchases.length;
   const paidCount = purchases.filter(p => p.is_paid).length;
-  const totalRevenue = purchases.reduce((s, p) => s + (Number(p.price) || 0) * (Number(p.quantity) || 1), 0);
+  const totalRevenue = purchases.reduce((s, p) => s + (Number(p.price) || 0) * (Number(p.quantity) || 1) + (Number(p.donation) || 0), 0);
   const uniquePeople = new Set(purchases.map(p => p.person_phone)).size;
 
   const filtered = purchases.filter(p => {
@@ -90,9 +90,10 @@ export default function WorkshopRegistrationsPage() {
         payment_method: form.payment_method,
         how_met: form.how_met || 'other',
         is_paid: form.is_paid,
-        registered_sessions: form.registered_sessions ? Number(form.registered_sessions) : null
+        registered_sessions: form.registered_sessions ? Number(form.registered_sessions) : null,
+        donation: Number(form.donation) || 0
       });
-      setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: 'other', is_paid: false, registered_sessions: '' });
+      setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: 'other', is_paid: false, registered_sessions: '', donation: '' });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -154,6 +155,10 @@ export default function WorkshopRegistrationsPage() {
             <div>
               <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
               <PriceInput value={form.price} onChange={v => setForm({ ...form, price: v })} required />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">دونیشین (تومان)</label>
+              <PriceInput value={form.donation} onChange={v => setForm({ ...form, donation: v })} placeholder="اختیاری" />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">تعداد</label>
@@ -244,7 +249,10 @@ export default function WorkshopRegistrationsPage() {
                     </td>
                     <td className="p-3 text-xs text-muted-foreground whitespace-nowrap" dir="ltr">{p.person_phone || '-'}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{p.purchase_date ? formatJalaliShort(p.purchase_date) : '-'}</td>
-                    <td className="p-3 text-xs whitespace-nowrap">{formatCurrency((Number(p.price) || 0) * (Number(p.quantity) || 1))}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">
+                      {formatCurrency((Number(p.price) || 0) * (Number(p.quantity) || 1) + (Number(p.donation) || 0))}
+                      {Number(p.donation) > 0 && <span className="block text-[10px] text-[#8CB9C0]">شامل {formatCurrency(Number(p.donation))} دونیشین</span>}
+                    </td>
                     <td className="p-3">
                       <span className={`inline-flex items-center gap-1 text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
                         {p.is_paid ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}

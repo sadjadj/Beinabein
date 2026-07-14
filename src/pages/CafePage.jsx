@@ -34,7 +34,7 @@ export default function CafePage() {
     try {
       const [invItems, purchs, cats, ppl] = await Promise.all([
         base44.entities.InventoryItem.list('-created_date', 500),
-        base44.entities.ItemPurchase.list('-purchase_date', 500),
+        base44.entities.ItemPurchase.list('-purchase_date', 1000),
         base44.entities.Category.list('-created_date', 100),
         base44.entities.Person.list('-created_date', 500)
       ]);
