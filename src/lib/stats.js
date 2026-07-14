@@ -19,7 +19,7 @@ export function getDateRange(preset, customStart, customEnd) {
     case 'month': {
       const todayStr = formatDate(today);
       const parts = getJalaliParts(todayStr);
-      return { start: jalaliToGregorianStr(parts.jy, parts.jm, 1), end: todayStr };
+      return { start: jalaliToGregorianStr(parts.jy, parts.jm, 1), end: jalaliToGregorianStr(parts.jy, parts.jm, jalaliDaysInMonth(parts.jy, parts.jm)) };
     }
     case 'last_month': {
       const todayStr = formatDate(today);
@@ -40,7 +40,7 @@ export function getDateRange(preset, customStart, customEnd) {
     case 'all_time':
       return null;
     case 'specific_date':
-      return { start: customStart, end: customStart };
+      return { start: customStart, end: customEnd };
     case 'custom':
       return { start: customStart, end: customEnd };
     default:

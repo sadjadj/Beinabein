@@ -26,20 +26,23 @@ export default function WorkshopProfile() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({});
   const [showAddReg, setShowAddReg] = useState(false);
-  const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '', donation: '' });
+  const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '', donation: '', plan_id: '' });
   const [editingRegId, setEditingRegId] = useState(null);
   const [capacityWarning, setCapacityWarning] = useState('');
+  const [plans, setPlans] = useState([]);
+  const [planForm, setPlanForm] = useState({ name: '', price: '' });
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [w, purchs, sess, facs, spcs, ppl] = await Promise.all([
+      const [w, purchs, sess, facs, spcs, ppl, planList] = await Promise.all([
         base44.entities.Workshop.get(id),
         base44.entities.WorkshopPurchase.list('-purchase_date', 500),
         base44.entities.WorkshopSession.list('-session_number', 500),
         base44.entities.Facilitator.list('-created_date', 500),
         base44.entities.Space.list('-created_date', 100),
-        base44.entities.Person.list('-created_date', 500)
+        base44.entities.Person.list('-created_date', 500),
+        base44.entities.WorkshopPlan.list('-created_date', 500)
       ]);
       setWorkshop(w);
       setPurchases(purchs.filter(p => p.workshop_id === id));
@@ -47,6 +50,7 @@ export default function WorkshopProfile() {
       setFacilitators(facs);
       setSpaces(spcs);
       setPersons(ppl);
+      setPlans(planList.filter(p => p.workshop_id === id));
     } finally { setLoading(false); }
   };
 
@@ -173,9 +177,10 @@ export default function WorkshopProfile() {
         how_met: regForm.how_met || 'other',
         is_paid: regForm.is_paid,
         registered_sessions: regForm.registered_sessions ? Number(regForm.registered_sessions) : null,
-        donation: Number(regForm.donation) || 0
+        donation: Number(regForm.donation) || 0,
+        plan_name: plans.find(p => p.id === regForm.plan_id)?.name || ''
       });
-      setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '', donation: '' });
+      setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '', donation: '', plan_id: '' });
       setCapacityWarning('');
       setShowAddReg(false);
       fetchData();
@@ -189,6 +194,23 @@ export default function WorkshopProfile() {
 
   const toggleRegPaid = async (p) => {
     await base44.entities.WorkshopPurchase.update(p.id, { is_paid: !p.is_paid });
+    fetchData();
+  };
+
+  const addPlan = async () => {
+    if (!planForm.name || planForm.price === '' || planForm.price === null) return;
+    await base44.entities.WorkshopPlan.create({ workshop_id: id, name: planForm.name, price: Number(planForm.price) || 0, is_active: true });
+    setPlanForm({ name: '', price: '' });
+    fetchData();
+  };
+
+  const togglePlanActive = async (plan) => {
+    await base44.entities.WorkshopPlan.update(plan.id, { is_active: !plan.is_active });
+    fetchData();
+  };
+
+  const deletePlan = async (planId) => {
+    await base44.entities.WorkshopPlan.delete(planId);
     fetchData();
   };
 
@@ -339,20 +361,29 @@ export default function WorkshopProfile() {
               {showAddReg && (
                 <div className="mb-3 p-3 bg-muted/30 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm({ ...regForm, person_name: v })} onPhoneChange={v => setRegForm({ ...regForm, person_phone: v })} />
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام</label>
+                    <select value={regForm.plan_id} onChange={(e) => { const plan = plans.find(p => p.id === e.target.value); setRegForm({ ...regForm, plan_id: e.target.value, price: plan ? plan.price : (workshop.price || '') }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                      <option value="">دستی (بدون پلن)</option>
+                      {plans.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
+                    </select>
+                  </div>
                   <PriceInput value={regForm.price} onChange={v => setRegForm({ ...regForm, price: v })} />
                   <PriceInput value={regForm.donation} onChange={v => setRegForm({ ...regForm, donation: v })} placeholder="دونیشین (اختیاری)" />
                   <input type="number" placeholder="تعداد" value={regForm.quantity} onChange={e => setRegForm({ ...regForm, quantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
                   <JalaliDateInput value={regForm.purchase_date} onChange={v => setRegForm({ ...regForm, purchase_date: v })} />
                   <input type="number" placeholder="تعداد جلسه (اختیاری)" value={regForm.registered_sessions} onChange={e => setRegForm({ ...regForm, registered_sessions: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+                  {!regForm.is_paid && (
                   <select value={regForm.payment_method} onChange={e => setRegForm({ ...regForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
                     {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
+                  )}
                   <select value={regForm.how_met} onChange={e => setRegForm({ ...regForm, how_met: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
                     <option value="">نحوه آشنایی...</option>
                     {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                   <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={regForm.is_paid} onChange={e => setRegForm({ ...regForm, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
+                    <input type="checkbox" checked={regForm.is_paid} onChange={e => setRegForm({ ...regForm, is_paid: e.target.checked })} className="w-4 h-4" /> رایگان
                   </label>
                   {dupWarning && (
                     <div className="sm:col-span-2 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
@@ -386,6 +417,7 @@ export default function WorkshopProfile() {
                         {personByPhone[p.person_phone]
                           ? <Link to={`/people/${personByPhone[p.person_phone].id}`} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
                           : <span className="font-medium">{p.person_name || '-'}</span>}
+                        {p.plan_name && <span className="text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
                         {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
                         {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
                         <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
@@ -423,6 +455,35 @@ export default function WorkshopProfile() {
                 مدیریت حضور و غیاب
               </Link>
             </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-border p-5">
+            <h3 className="text-sm font-semibold mb-3">مدل‌های ثبت‌نام ({toPersianNum(plans.length)})</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+              <input type="text" placeholder="نام مدل (مثلاً تک جلسه)" value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+              <PriceInput value={planForm.price} onChange={v => setPlanForm({ ...planForm, price: v })} />
+              <button onClick={addPlan} className="flex items-center justify-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
+                <Plus className="w-4 h-4" /> افزودن مدل
+              </button>
+            </div>
+            {plans.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-2">هنوز مدل ثبت‌نامی تعریف نشده است</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {plans.map(pl => (
+                  <div key={pl.id} className="py-2.5 flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{pl.name}</span>
+                      <span className="text-muted-foreground">{formatCurrency(pl.price)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => togglePlanActive(pl)} className={`text-xs px-2 py-1 rounded-full ${pl.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{pl.is_active ? 'فعال' : 'غیرفعال'}</button>
+                      <button onClick={() => deletePlan(pl.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

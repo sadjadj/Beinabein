@@ -24,23 +24,26 @@ export default function WorkshopRegistrationsPage() {
   const [workshopFilter, setWorkshopFilter] = useState('');
   const [paidFilter, setPaidFilter] = useState('');
   const [dupWarning, setDupWarning] = useState('');
+  const [plans, setPlans] = useState([]);
   const [form, setForm] = useState({
     workshop_id: '', person_name: '', person_phone: '', price: '', quantity: 1,
     purchase_date: todayGregorian(), payment_method: 'cash', how_met: 'other',
-    is_paid: false, registered_sessions: '', donation: ''
+    is_paid: false, registered_sessions: '', donation: '', plan_id: ''
   });
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [ws, purchs, ppl] = await Promise.all([
+      const [ws, purchs, ppl, planList] = await Promise.all([
         base44.entities.Workshop.list('-start_date', 500),
         base44.entities.WorkshopPurchase.list('-purchase_date', 1000),
-        base44.entities.Person.list('-created_date', 1000)
+        base44.entities.Person.list('-created_date', 1000),
+        base44.entities.WorkshopPlan.list('-created_date', 1000)
       ]);
       setWorkshops(ws);
       setPurchases(purchs);
       setPersons(ppl);
+      setPlans(planList);
     } finally { setLoading(false); }
   };
 
@@ -91,9 +94,10 @@ export default function WorkshopRegistrationsPage() {
         how_met: form.how_met || 'other',
         is_paid: form.is_paid,
         registered_sessions: form.registered_sessions ? Number(form.registered_sessions) : null,
-        donation: Number(form.donation) || 0
+        donation: Number(form.donation) || 0,
+        plan_name: plans.find(p => p.id === form.plan_id)?.name || ''
       });
-      setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: 'other', is_paid: false, registered_sessions: '', donation: '' });
+      setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: 'other', is_paid: false, registered_sessions: '', donation: '', plan_id: '' });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -148,8 +152,15 @@ export default function WorkshopRegistrationsPage() {
               <WorkshopSearchSelect
                 workshops={workshops.filter(w => !w.is_ended)}
                 value={form.workshop_id}
-                onChange={(wid) => { const ws = workshopById[wid]; setForm({ ...form, workshop_id: wid, price: ws?.price || '' }); }}
+                onChange={(wid) => { const ws = workshopById[wid]; setForm({ ...form, workshop_id: wid, price: ws?.price || '', plan_id: '' }); }}
               />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام</label>
+              <select value={form.plan_id} onChange={(e) => { const plan = plans.find(p => p.id === e.target.value); setForm({ ...form, plan_id: e.target.value, price: plan ? plan.price : (workshopById[form.workshop_id]?.price || '') }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" disabled={!form.workshop_id}>
+                <option value="">دستی (بدون پلن)</option>
+                {plans.filter(p => p.workshop_id === form.workshop_id && p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
+              </select>
             </div>
             <PersonSearch personName={form.person_name} personPhone={form.person_phone} onNameChange={v => setForm({ ...form, person_name: v })} onPhoneChange={v => setForm({ ...form, person_phone: v })} />
             <div>
@@ -172,12 +183,14 @@ export default function WorkshopRegistrationsPage() {
               <label className="text-xs text-muted-foreground block mb-1">تاریخ ثبت</label>
               <JalaliDateInput value={form.purchase_date} onChange={v => setForm({ ...form, purchase_date: v })} showToday={false} />
             </div>
+            {!form.is_paid && (
             <div>
               <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>
               <select value={form.payment_method} onChange={e => setForm({ ...form, payment_method: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
                 {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
+            )}
             <div>
               <label className="text-xs text-muted-foreground block mb-1">نحوه آشنایی</label>
               <select value={form.how_met} onChange={e => setForm({ ...form, how_met: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
@@ -185,7 +198,7 @@ export default function WorkshopRegistrationsPage() {
               </select>
             </div>
             <label className="flex items-center gap-2 text-sm self-end pb-2">
-              <input type="checkbox" checked={form.is_paid} onChange={e => setForm({ ...form, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
+              <input type="checkbox" checked={form.is_paid} onChange={e => setForm({ ...form, is_paid: e.target.checked })} className="w-4 h-4" /> رایگان
             </label>
           </div>
           {dupWarning && (
@@ -240,6 +253,7 @@ export default function WorkshopRegistrationsPage() {
                   <tr key={p.id} className="border-t border-border hover:bg-muted/30">
                     <td className="p-3">
                       <Link to={`/workshops/${p.workshop_id}`} className="font-medium hover:text-[#B74B40]">{p.workshop_title || '-'}</Link>
+                      {p.plan_name && <span className="text-xs text-[#8CB9C0] block mt-0.5">{p.plan_name}</span>}
                       {p.registered_sessions && <span className="text-xs text-[#B9834B] block mt-0.5">{toPersianNum(p.registered_sessions)} جلسه</span>}
                     </td>
                     <td className="p-3">
