@@ -22,6 +22,9 @@ export default function PeoplePage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ full_name: '', phone: '', how_met: '', age: '', gender: '', first_usage: '', notes: '', social_id: '' });
   const [adding, setAdding] = useState(false);
+  const [howMetFilter, setHowMetFilter] = useState('');
+  const [lastServiceFilter, setLastServiceFilter] = useState('');
+  const [sortByActivity, setSortByActivity] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -74,15 +77,31 @@ export default function PeoplePage() {
   const genderFiltered = genderFilter === 'unknown'
     ? people.filter(p => !p.gender)
     : genderFilter ? people.filter(p => p.gender === genderFilter) : people;
-  const filtered = advancedPersonSearch(genderFiltered, search, allData);
+  let filtered = advancedPersonSearch(genderFiltered, search, allData);
+  if (howMetFilter) filtered = filtered.filter(p => p.how_met === howMetFilter);
+  if (lastServiceFilter) {
+    filtered = filtered.filter(p => {
+      const ls = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases);
+      return ls && ls.type === lastServiceFilter;
+    });
+  }
   const newThisMonth = countNewThisMonth(people);
 
   const isComplete = (p) => !!(p.full_name && p.phone && p.how_met && p.gender);
   const sortedFiltered = [...filtered].sort((a, b) => {
     const aComplete = isComplete(a);
     const bComplete = isComplete(b);
-    if (aComplete === bComplete) return 0;
-    return aComplete ? -1 : 1;
+    if (aComplete !== bComplete) return aComplete ? -1 : 1;
+    if (sortByActivity) {
+      const aCount = (allData.workspaceOrders.filter(o => o.person_phone === a.phone).length) +
+        (allData.itemPurchases.filter(i => i.person_phone === a.phone).length) +
+        (allData.workshopPurchases.filter(w => w.person_phone === a.phone).length);
+      const bCount = (allData.workspaceOrders.filter(o => o.person_phone === b.phone).length) +
+        (allData.itemPurchases.filter(i => i.person_phone === b.phone).length) +
+        (allData.workshopPurchases.filter(w => w.person_phone === b.phone).length);
+      return bCount - aCount;
+    }
+    return 0;
   });
 
   return (
@@ -183,11 +202,29 @@ export default function PeoplePage() {
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
-          <h3 className="text-sm font-semibold flex items-center gap-2">
+          <h3 className="text-sm font-semibold flex items-center gap-2 flex-wrap">
             فهرست افراد
             {genderFilter && (
               <button onClick={() => setGenderFilter('')} className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs font-medium flex items-center gap-1">
                 {genderFilter === 'male' ? 'آقا' : genderFilter === 'female' ? 'خانم' : 'نامشخص'}
+                <X className="w-3 h-3" />
+              </button>
+            )}
+            {howMetFilter && (
+              <button onClick={() => setHowMetFilter('')} className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs font-medium flex items-center gap-1">
+                {howMetLabels[howMetFilter] || howMetFilter}
+                <X className="w-3 h-3" />
+              </button>
+            )}
+            {lastServiceFilter && (
+              <button onClick={() => setLastServiceFilter('')} className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs font-medium flex items-center gap-1">
+                {lastServiceFilter}
+                <X className="w-3 h-3" />
+              </button>
+            )}
+            {sortByActivity && (
+              <button onClick={() => setSortByActivity(false)} className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs font-medium flex items-center gap-1">
+                مرتب بر اساس خدمات
                 <X className="w-3 h-3" />
               </button>
             )}
@@ -236,16 +273,20 @@ export default function PeoplePage() {
                       <tr key={p.id} className="border-t border-border hover:bg-[#FDF2F1]/30 cursor-pointer" onClick={() => navigate(`/people/${p.id}`)}>
                         <td className="p-3 font-medium text-gray-800">{p.full_name || '-'}</td>
                         <td className="p-3 text-muted-foreground">{p.phone}</td>
-                        <td className="p-3"><HowMetBadge value={p.how_met} /></td>
-                        <td className="p-3 text-center text-xs">
+                        <td className="p-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); if (p.how_met) setHowMetFilter(howMetFilter === p.how_met ? '' : p.how_met); }} title="فیلتر بر اساس نحوه آشنایی">
+                          <span className={howMetFilter === p.how_met ? 'ring-2 ring-[#B74B40]/30 rounded-md px-0.5' : ''}><HowMetBadge value={p.how_met} /></span>
+                        </td>
+                        <td className="p-3 text-center text-xs" onClick={(e) => { if (lastService) { e.stopPropagation(); setLastServiceFilter(lastServiceFilter === lastService.type ? '' : lastService.type); } }}>
                           {lastService ? (
-                            <span className="inline-flex items-center gap-1">
+                            <span className={`inline-flex items-center gap-1 cursor-pointer ${lastServiceFilter === lastService.type ? 'text-[#B74B40] font-medium' : ''}`}>
                               <span className="text-gray-700">{lastService.type}</span>
                               {lastService.date && <span className="text-muted-foreground">{formatJalaliShort(lastService.date)}</span>}
                             </span>
                           ) : '-'}
                         </td>
-                        <td className="p-3 text-center font-semibold">{toPersianNum(totalActivity)}</td>
+                        <td className="p-3 text-center font-semibold" onClick={(e) => { e.stopPropagation(); setSortByActivity(!sortByActivity); }} title="مرتب‌سازی بر اساس تعداد خدمات">
+                          <span className={`cursor-pointer ${sortByActivity ? 'text-[#B74B40]' : ''}`}>{toPersianNum(totalActivity)}</span>
+                        </td>
                       </tr>
                     );
                   })}

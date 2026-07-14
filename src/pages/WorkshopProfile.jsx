@@ -118,6 +118,10 @@ export default function WorkshopProfile() {
         facilitator_percentage: Number(form.facilitator_percentage) || 0,
         capacity: Number(form.capacity) || null
       });
+      if (form.title && form.title !== workshop.title) {
+        await base44.entities.WorkshopPurchase.updateMany({ workshop_id: id }, { $set: { workshop_title: form.title } });
+        await base44.entities.WorkshopSession.updateMany({ workshop_id: id }, { $set: { workshop_title: form.title } });
+      }
       setEditing(false);
       fetchData();
     } finally { setSubmitting(false); }

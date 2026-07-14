@@ -1,28 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, ClipboardCheck, RotateCcw, Receipt, MapPin, Menu, X, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, ClipboardCheck, RotateCcw, Receipt, MapPin, Menu, X, ClipboardList, ChevronDown } from 'lucide-react';
 
-const navItems = [
+const standaloneItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
-  { path: '/people', label: 'افراد', icon: Users },
-  { path: '/facilitators', label: 'تسهیلگرها', icon: UserCheck },
-  { path: '/brands', label: 'برندها', icon: Tag },
-  { path: '/artists', label: 'آرتیست‌ها', icon: Palette },
   { path: '/workspace', label: 'فضای کار', icon: Briefcase },
   { path: '/cafe', label: 'کافه', icon: Coffee },
-  { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },
-  { path: '/workshop-registrations', label: 'ثبت‌نام کارگاه‌ها', icon: ClipboardList },
+];
+
+const navGroups = [
+  {
+    label: 'افراد',
+    icon: Users,
+    children: [
+      { path: '/people', label: 'افراد', icon: Users },
+      { path: '/facilitators', label: 'تسهیلگرها', icon: UserCheck },
+      { path: '/brands', label: 'برندها', icon: Tag },
+      { path: '/artists', label: 'آرتیست‌ها', icon: Palette },
+    ]
+  },
+  {
+    label: 'کارگاه‌ها',
+    icon: GraduationCap,
+    children: [
+      { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },
+      { path: '/attendance', label: 'حضور غیاب', icon: ClipboardCheck },
+      { path: '/workshop-registrations', label: 'ثبت‌نام کارگاه‌ها', icon: ClipboardList },
+    ]
+  },
+  {
+    label: 'مالی',
+    icon: Wallet,
+    children: [
+      { path: '/accounting', label: 'حسابداری', icon: Wallet },
+      { path: '/returns', label: 'مرجوعی', icon: RotateCcw },
+      { path: '/expenses', label: 'هزینه کرد', icon: Receipt },
+    ]
+  },
+];
+
+const bottomItems = [
   { path: '/spaces', label: 'فضاها', icon: MapPin },
-  { path: '/attendance', label: 'حضور غیاب', icon: ClipboardCheck },
   { path: '/calendar', label: 'تقویم', icon: Calendar },
-  { path: '/accounting', label: 'حسابداری', icon: Wallet },
-  { path: '/expenses', label: 'هزینه کرد', icon: Receipt },
-  { path: '/returns', label: 'مرجوعی', icon: RotateCcw },
 ];
 
 export default function Layout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState({});
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
@@ -31,6 +56,9 @@ export default function Layout() {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
+
+  const toggleGroup = (label) => setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  const isGroupActive = (group) => group.children.some(c => location.pathname === c.path || location.pathname.startsWith(c.path + '/'));
 
   const Brand = ({ size = 'lg' }) => (
     <div className="flex items-center gap-2.5">
@@ -44,24 +72,66 @@ export default function Layout() {
     </div>
   );
 
+  const renderNav = () => (
+    <nav className="flex flex-col gap-1 p-3">
+      {standaloneItems.map(item => {
+        const active = location.pathname === item.path;
+        return (
+          <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[#FDF2F1] text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+            <item.icon className="w-5 h-5 flex-shrink-0" />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+      {navGroups.map(group => {
+        const childActive = isGroupActive(group);
+        const isOpen = openGroups[group.label] || childActive;
+        return (
+          <div key={group.label}>
+            <button onClick={() => toggleGroup(group.label)} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full text-right ${childActive ? 'text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+              <group.icon className="w-5 h-5 flex-shrink-0" />
+              <span className="flex-1 text-right">{group.label}</span>
+              <ChevronDown className={`w-4 h-4 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isOpen && (
+              <div className="mr-4 mt-0.5 mb-1 space-y-0.5 border-r border-border pr-2">
+                {group.children.map(item => {
+                  const active = location.pathname === item.path;
+                  return (
+                    <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[#FDF2F1] text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <div className="my-1 border-t border-border" />
+      {bottomItems.map(item => {
+        const active = location.pathname === item.path;
+        return (
+          <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[#FDF2F1] text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+            <item.icon className="w-5 h-5 flex-shrink-0" />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
   return (
     <div className="flex bg-muted/30">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 bg-white border-l border-border flex-col overflow-y-auto flex-shrink-0 sticky top-0 h-screen">
+      <aside className="hidden md:flex w-64 bg-white border-l border-border flex-col flex-shrink-0 sticky top-0 h-screen">
         <div className="p-6 border-b border-border flex-shrink-0">
           <Brand />
         </div>
-        <nav className="flex flex-col gap-1 p-3 flex-1">
-          {navItems.map(item => {
-            const active = location.pathname === item.path;
-            return (
-              <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[#FDF2F1] text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="flex-1 overflow-y-auto">
+          {renderNav()}
+        </div>
       </aside>
 
       {/* Mobile top bar */}
@@ -82,27 +152,19 @@ export default function Layout() {
       <div className={`md:hidden fixed inset-0 z-50 transition-opacity duration-200 ${mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
         <div className={`absolute right-0 top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col transition-transform duration-200 ease-out ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <Brand size="sm" />
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="w-9 h-9 rounded-lg hover:bg-muted flex items-center justify-center text-gray-700"
-                aria-label="بستن"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <nav className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">
-              {navItems.map(item => {
-                const active = location.pathname === item.path;
-                return (
-                  <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-[#FDF2F1] text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                    <item.icon className="w-5 h-5 flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
+          <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
+            <Brand size="sm" />
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="w-9 h-9 rounded-lg hover:bg-muted flex items-center justify-center text-gray-700"
+              aria-label="بستن"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {renderNav()}
+          </div>
         </div>
       </div>
 

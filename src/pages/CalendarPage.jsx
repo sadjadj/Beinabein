@@ -22,9 +22,10 @@ export default function CalendarPage() {
     fetchData();
   }, []);
 
+  const activeWorkshops = workshops.filter(w => !w.is_ended);
   const byDay = {};
   dayOrder.forEach(d => { byDay[d] = []; });
-  workshops.forEach(w => { if (w.day_of_week && byDay[w.day_of_week]) byDay[w.day_of_week].push(w); });
+  activeWorkshops.forEach(w => { if (w.day_of_week && byDay[w.day_of_week]) byDay[w.day_of_week].push(w); });
   Object.values(byDay).forEach(arr => arr.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || '')));
 
   return (
@@ -37,15 +38,15 @@ export default function CalendarPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-white rounded-xl border border-border p-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="w-4 h-4" /> کارگاه‌های فعال</div>
-          <p className="text-2xl font-bold mt-1">{toPersianNum(workshops.length)}</p>
+          <p className="text-2xl font-bold mt-1">{toPersianNum(activeWorkshops.length)}</p>
         </div>
         <div className="bg-white rounded-xl border border-border p-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Clock className="w-4 h-4" /> دائمی</div>
-          <p className="text-2xl font-bold mt-1">{toPersianNum(workshops.filter(w => w.is_permanent).length)}</p>
+          <p className="text-2xl font-bold mt-1">{toPersianNum(activeWorkshops.filter(w => w.is_permanent).length)}</p>
         </div>
         <div className="bg-white rounded-xl border border-border p-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="w-4 h-4" /> این هفته</div>
-          <p className="text-2xl font-bold mt-1">{toPersianNum(workshops.filter(w => w.start_date && w.start_date <= new Date().toISOString().split('T')[0]).length)}</p>
+          <p className="text-2xl font-bold mt-1">{toPersianNum(activeWorkshops.filter(w => w.start_date && w.start_date <= new Date().toISOString().split('T')[0]).length)}</p>
         </div>
       </div>
 
