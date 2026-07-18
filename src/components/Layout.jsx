@@ -10,7 +10,7 @@ const standaloneItems = [
 
 const navGroups = [
   {
-    label: 'افراد',
+    label: 'همه مشتریان',
     icon: Users,
     children: [
       { path: '/people', label: 'افراد', icon: Users },

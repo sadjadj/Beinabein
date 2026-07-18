@@ -47,12 +47,23 @@ function jalaliToGregorian(jy, jm, jd) {
   return { gy, gm, gdd };
 }
 
+// Parse a date string as a LOCAL date to avoid UTC off-by-one shifts.
+// Date-only strings ("YYYY-MM-DD") are interpreted as local midnight.
+function parseDateLocal(gregorianStr) {
+  if (!gregorianStr) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(gregorianStr)) {
+    const [y, m, d] = gregorianStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(gregorianStr);
+}
+
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 
 // Convert a Gregorian date string (YYYY-MM-DD) to Jalali date string (YYYY/MM/DD) with Persian digits
 export function toJalaliStr(gregorianDateStr) {
   if (!gregorianDateStr) return '';
-  const d = new Date(gregorianDateStr);
+  const d = parseDateLocal(gregorianDateStr);
   if (isNaN(d.getTime())) return '';
   const { jy, jm, jd } = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
   return `${jy}/${String(jm).padStart(2, '0')}/${String(jd).padStart(2, '0')}`;
@@ -88,7 +99,7 @@ export function todayGregorian() {
 // Format Jalali date with month name
 export function formatJalali(gregorianDateStr) {
   if (!gregorianDateStr) return '';
-  const d = new Date(gregorianDateStr);
+  const d = parseDateLocal(gregorianDateStr);
   if (isNaN(d.getTime())) return '';
   const { jy, jm, jd } = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
   return `${jd} ${jMonths[jm - 1]} ${jy}`;
@@ -97,7 +108,7 @@ export function formatJalali(gregorianDateStr) {
 // Format Jalali date without year (day + month name only)
 export function formatJalaliShort(gregorianDateStr) {
   if (!gregorianDateStr) return '';
-  const d = new Date(gregorianDateStr);
+  const d = parseDateLocal(gregorianDateStr);
   if (isNaN(d.getTime())) return '';
   const { jm, jd } = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
   return `${jd} ${jMonths[jm - 1]}`;
@@ -106,7 +117,7 @@ export function formatJalaliShort(gregorianDateStr) {
 // Get Jalali date parts {jy, jm, jd} from a Gregorian date string
 export function getJalaliParts(gregorianStr) {
   if (!gregorianStr) return null;
-  const d = new Date(gregorianStr);
+  const d = parseDateLocal(gregorianStr);
   if (isNaN(d.getTime())) return null;
   return gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
 }

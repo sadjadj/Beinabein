@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { GraduationCap, Users, Plus, Wallet, Search } from 'lucide-react';
+import { GraduationCap, Users, Plus, Wallet, Search, Archive, Calendar, Clock, MapPin } from 'lucide-react';
 import FacilitatorMultiSearch from '@/components/FacilitatorMultiSearch';
 import { Link } from 'react-router-dom';
-import { computeWorkshopStats, computeWorkshopRevenue, toPersianNum, formatCurrency } from '@/lib/stats';
+import { computeWorkshopRevenue, toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
-import { toJalaliStr, todayGregorian, formatJalaliShort } from '@/lib/jalali';
-import JalaliDateInput from '@/components/JalaliDateInput';
+import { todayGregorian, formatJalaliShort } from '@/lib/jalali';
 import FloatingDateInput from '@/components/FloatingDateInput';
-import FacilitatorSearch from '@/components/FacilitatorSearch';
 import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
@@ -27,7 +25,6 @@ export default function WorkshopsPage() {
   const [search, setSearch] = useState('');
   const [facilitatorFilter, setFacilitatorFilter] = useState('');
   const [spaceFilter, setSpaceFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
   const [form, setForm] = useState({
     title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '',
@@ -72,21 +69,17 @@ export default function WorkshopsPage() {
     } finally { setSubmitting(false); }
   };
 
-  const toggleFacilitator = (fid) => {
-    setForm(prev => ({
-      ...prev, facilitator_ids: prev.facilitator_ids.includes(fid)
-        ? prev.facilitator_ids.filter(id => id !== fid)
-        : [...prev.facilitator_ids, fid]
-    }));
-  };
-
-  const stats = computeWorkshopStats(workshops, purchases, null);
+  // Monthly stats (current Jalali month)
+  const monthRange = getDateRange('month', null, null);
+  const inMonth = (date) => !!(date && (!monthRange || (date >= monthRange.start && date <= monthRange.end)));
+  const monthWorkshops = workshops.filter(w => inMonth(w.start_date));
+  const monthPurchases = purchases.filter(p => inMonth(p.purchase_date));
+  const monthUniquePhones = new Set(monthPurchases.map(p => p.person_phone));
+  const monthRevenue = monthPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
 
   const filteredWorkshops = workshops.filter(w => {
     if (facilitatorFilter && !(w.facilitator_ids || []).includes(facilitatorFilter)) return false;
     if (spaceFilter && w.space !== spaceFilter) return false;
-    if (statusFilter === 'active' && w.is_ended) return false;
-    if (statusFilter === 'ended' && !w.is_ended) return false;
     if (!search) return true;
     const s = search.toLowerCase();
     const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join(' ');
@@ -101,6 +94,9 @@ export default function WorkshopsPage() {
     if (sortBy === 'name_desc') return (b.title || '').localeCompare(a.title || '');
     return (b.start_date || '').localeCompare(a.start_date || '');
   });
+
+  const activeWorkshops = sortedWorkshops.filter(w => !w.is_ended);
+  const archivedWorkshops = sortedWorkshops.filter(w => w.is_ended);
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -121,20 +117,10 @@ export default function WorkshopsPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="تعداد کارگاه" value={toPersianNum(stats.totalWorkshops)} icon={GraduationCap} color="terracotta" />
-        <StatCard label="مجموع ثبت‌نامی" value={toPersianNum(stats.totalParticipants)} icon={Users} color="teal" />
-        <StatCard label="افراد یونیک" value={toPersianNum(stats.uniqueCount)} icon={Users} color="ochre" />
-        <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">درآمد کل</p>
-              <p className="text-lg lg:text-xl font-bold mt-2 text-foreground break-words leading-tight">{formatCurrency(stats.totalRevenue)}</p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-[#FBF0F1] flex items-center justify-center flex-shrink-0">
-              <Wallet className="w-5 h-5 text-[#D98B94]" />
-            </div>
-          </div>
-        </div>
+        <StatCard label="کارگاه‌های این ماه" value={toPersianNum(monthWorkshops.length)} icon={GraduationCap} color="terracotta" />
+        <StatCard label="ثبت‌نامی این ماه" value={toPersianNum(monthPurchases.length)} icon={Users} color="teal" />
+        <StatCard label="افراد یونیک این ماه" value={toPersianNum(monthUniquePhones.size)} icon={Users} color="ochre" />
+        <StatCard label="درآمد این ماه" value={formatCurrency(monthRevenue)} icon={Wallet} color="pink" />
       </div>
 
       {showForm && (
@@ -191,12 +177,12 @@ export default function WorkshopsPage() {
               <div className="flex items-end gap-2">
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع</label>
-                    <FloatingDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} showToday={false} />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
-                    <FloatingDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} showToday={false} placeholder="" />
-                  </div>
+                  <FloatingDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} showToday={false} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
+                  <FloatingDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} showToday={false} placeholder="" />
+                </div>
               </div>
             </div>
             <textarea placeholder="توضیحات کارگاه" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
@@ -218,38 +204,68 @@ export default function WorkshopsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border space-y-3">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h3 className="text-sm font-semibold">کارگاه‌ها ({toPersianNum(filteredWorkshops.length)})</h3>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <select value={facilitatorFilter} onChange={e => setFacilitatorFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
-              <option value="">همه تسهیلگرها</option>
-              {facilitators.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
-            </select>
-            <select value={spaceFilter} onChange={e => setSpaceFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
-              <option value="">همه فضاها</option>
-              {spaces.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-            </select>
-            <div className="flex items-center gap-1">
-              {[['', 'همه'], ['active', 'فعال'], ['ended', 'پایان‌یافته']].map(([val, lbl]) => (
-                <button key={val} onClick={() => setStatusFilter(val)} className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${statusFilter === val ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>{lbl}</button>
-              ))}
-            </div>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
-              <option value="date_desc">جدیدترین</option>
-              <option value="date_asc">قدیمی‌ترین</option>
-              <option value="name_asc">نام (A-Z)</option>
-              <option value="name_desc">نام (Z-A)</option>
-            </select>
-          </div>
-        </div>
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <select value={facilitatorFilter} onChange={e => setFacilitatorFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+          <option value="">همه تسهیلگرها</option>
+          {facilitators.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
+        </select>
+        <select value={spaceFilter} onChange={e => setSpaceFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+          <option value="">همه فضاها</option>
+          {spaces.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+        </select>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+          <option value="date_desc">جدیدترین</option>
+          <option value="date_asc">قدیمی‌ترین</option>
+          <option value="name_asc">نام (A-Z)</option>
+          <option value="name_desc">نام (Z-A)</option>
+        </select>
+      </div>
+
+      {/* Active workshops — cards */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">کارگاه‌های فعال ({toPersianNum(activeWorkshops.length)})</h3>
         {loading ? (
-          <TableSkeleton rows={6} cols={6} />
-        ) : filteredWorkshops.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">{search ? 'نتیجه‌ای یافت نشد' : 'هنوز کارگاهی ثبت نشده است'}</div>
+          <TableSkeleton rows={4} cols={4} />
+        ) : activeWorkshops.length === 0 ? (
+          <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground text-sm">{search || facilitatorFilter || spaceFilter ? 'نتیجه‌ای یافت نشد' : 'هنوز کارگاه فعالی ثبت نشده است'}</div>
         ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activeWorkshops.map(w => {
+              const rev = computeWorkshopRevenue(w, purchases.filter(p => p.workshop_id === w.id));
+              const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
+              return (
+                <Link key={w.id} to={`/workshops/${w.id}`} className="bg-white rounded-xl border border-border p-5 hover:shadow-md hover:border-[#B74B40]/30 transition-all flex flex-col">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-gray-900 truncate">{w.title}</h3>
+                      {w.tags && <p className="text-xs text-muted-foreground mt-1 truncate">{w.tags}</p>}
+                    </div>
+                    {w.is_permanent && <span className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs flex-shrink-0">دائمی</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3 text-xs text-muted-foreground">
+                    {w.day_of_week && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {dayLabels[w.day_of_week]}</span>}
+                    {(w.start_time || w.end_time) && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {w.start_time}{w.end_time ? ` - ${w.end_time}` : ''}</span>}
+                    {w.space && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {w.space}</span>}
+                  </div>
+                  {facNames && <p className="text-xs text-muted-foreground mt-2 truncate">{facNames}</p>}
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+                    <span className="text-sm font-medium">{toPersianNum(rev.purchaseCount)} ثبت‌نام{w.capacity ? ` از ${toPersianNum(w.capacity)}` : ''}</span>
+                    <span className="text-sm font-bold text-[#B74B40]">{formatCurrency(w.price)}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Archived workshops — table */}
+      {archivedWorkshops.length > 0 && (
+        <div className="bg-white rounded-xl border border-border overflow-hidden">
+          <div className="p-4 border-b border-border">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Archive className="w-4 h-4 text-muted-foreground" /> کارگاه‌های آرشیو شده ({toPersianNum(archivedWorkshops.length)})</h3>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
@@ -257,36 +273,34 @@ export default function WorkshopsPage() {
                   <th className="text-right p-3 font-medium">کارگاه</th>
                   <th className="text-right p-3 font-medium">تسهیلگر</th>
                   <th className="text-right p-3 font-medium">روز</th>
-                  <th className="text-right p-3 font-medium">ساعت</th>
                   <th className="text-right p-3 font-medium">تاریخ</th>
                   <th className="text-right p-3 font-medium">فضا</th>
                   <th className="text-center p-3 font-medium">ثبت‌نامی</th>
                 </tr>
               </thead>
               <tbody>
-                {sortedWorkshops.map(w => {
+                {archivedWorkshops.map(w => {
                   const rev = computeWorkshopRevenue(w, purchases.filter(p => p.workshop_id === w.id));
                   const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
                   return (
                     <tr key={w.id} className="border-t border-border hover:bg-muted/30">
                       <td className="p-3">
-                        <Link to={`/workshops/${w.id}`} className="font-medium hover:text-[#B74B40]">{w.title}</Link>
+                        <Link to={`/workshops/${w.id}`} className="font-medium text-muted-foreground hover:text-[#B74B40]">{w.title}</Link>
                         {w.tags && <p className="text-xs text-muted-foreground mt-0.5">{w.tags}</p>}
                       </td>
                       <td className="p-3 text-muted-foreground text-xs">{facNames || '-'}</td>
                       <td className="p-3 text-xs">{w.day_of_week ? dayLabels[w.day_of_week] : '-'}</td>
-                      <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">{w.start_time}{w.end_time ? ` - ${w.end_time}` : ''}</td>
                       <td className="p-3 text-xs whitespace-nowrap">{w.start_date ? formatJalaliShort(w.start_date) : '-'}</td>
                       <td className="p-3 text-xs">{w.space || '-'}</td>
-                      <td className="p-3 text-center font-medium">{toPersianNum(rev.participantCount)}</td>
+                      <td className="p-3 text-center font-medium">{toPersianNum(rev.purchaseCount)}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

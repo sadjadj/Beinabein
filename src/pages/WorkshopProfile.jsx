@@ -136,6 +136,11 @@ export default function WorkshopProfile() {
     navigate('/workshops');
   };
 
+  const toggleWorkshopActive = async () => {
+    await base44.entities.Workshop.update(id, { is_ended: !workshop.is_ended });
+    fetchData();
+  };
+
   const toggleFacilitator = (fid) => {
     setForm(prev => ({
       ...prev, facilitator_ids: prev.facilitator_ids.includes(fid)
@@ -330,7 +335,7 @@ export default function WorkshopProfile() {
                   {workshop.space && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {workshop.space}</span>}
                 </div>
                 <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                  <span className="flex items-center gap-1 text-muted-foreground"><Users className="w-4 h-4" /> {toPersianNum(rev.participantCount)} ثبت‌نام{workshop.capacity ? ` از ${toPersianNum(workshop.capacity)}` : ''}</span>
+                  <span className="flex items-center gap-1 text-muted-foreground"><Users className="w-4 h-4" /> {toPersianNum(rev.purchaseCount)} ثبت‌نام{workshop.capacity ? ` از ${toPersianNum(workshop.capacity)}` : ''}</span>
                   <span className="font-medium text-[#B74B40]">{formatCurrency(workshop.price)}</span>
                   {workshop.is_permanent && <span className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs">دائمی</span>}
                   {workshop.is_ended && <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">پایان یافته</span>}
@@ -344,9 +349,14 @@ export default function WorkshopProfile() {
                   ))}
                 </div>
               </div>
-              <button onClick={startEdit} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted flex-shrink-0">
-                <Pencil className="w-3.5 h-3.5" /> ویرایش
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button onClick={toggleWorkshopActive} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg border text-sm ${workshop.is_ended ? 'border-green-200 text-green-600 hover:bg-green-50' : 'border-amber-200 text-[#B9834B] hover:bg-[#FBF3EC]'}`}>
+                  {workshop.is_ended ? 'فعال‌سازی' : 'غیرفعال‌سازی'}
+                </button>
+                <button onClick={startEdit} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted flex-shrink-0">
+                  <Pencil className="w-3.5 h-3.5" /> ویرایش
+                </button>
+              </div>
             </div>
           </div>
 
