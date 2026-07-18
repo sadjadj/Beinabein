@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, ClipboardCheck, RotateCcw, Receipt, MapPin, Menu, X, ClipboardList, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, ClipboardCheck, RotateCcw, Receipt, MapPin, Menu, X, ClipboardList, ChevronDown, BarChart3, FileText } from 'lucide-react';
 
 const standaloneItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
@@ -33,6 +33,7 @@ const navGroups = [
     icon: Wallet,
     children: [
       { path: '/accounting', label: 'حسابداری', icon: Wallet },
+      { path: '/financial-report', label: 'گزارش مالی', icon: BarChart3 },
       { path: '/returns', label: 'مرجوعی', icon: RotateCcw },
       { path: '/expenses', label: 'هزینه کرد', icon: Receipt },
     ]
@@ -42,6 +43,7 @@ const navGroups = [
 const bottomItems = [
   { path: '/spaces', label: 'فضاها', icon: MapPin },
   { path: '/calendar', label: 'تقویم', icon: Calendar },
+  { path: '/daily-report', label: 'گزارش روز', icon: FileText },
 ];
 
 export default function Layout() {

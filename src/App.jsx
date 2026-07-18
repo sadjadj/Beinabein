@@ -31,6 +31,8 @@ import SpacesPage from '@/pages/SpacesPage';
 import WorkshopProfile from '@/pages/WorkshopProfile';
 import WorkspaceOrderDetail from '@/pages/WorkspaceOrderDetail';
 import InvoiceDetail from '@/pages/InvoiceDetail';
+import DailyReport from '@/pages/DailyReport';
+import FinancialReport from '@/pages/FinancialReport';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -83,6 +85,8 @@ const AuthenticatedApp = () => {
       <Route path="/workshops/:id" element={<WorkshopProfile />} />
       <Route path="/workspace/:id" element={<WorkspaceOrderDetail />} />
       <Route path="/accounting/:type/:id" element={<InvoiceDetail />} />
+      <Route path="/daily-report" element={<DailyReport />} />
+      <Route path="/financial-report" element={<FinancialReport />} />
       </Route>
     <Route path="*" element={<PageNotFound />} />
     </Routes>

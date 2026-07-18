@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Calendar, Clock, MapPin } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { dayLabels, dayOrder } from '@/lib/labels';
-import { toJalaliStr } from '@/lib/jalali';
+import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 
 export default function CalendarPage() {
@@ -22,7 +22,8 @@ export default function CalendarPage() {
     fetchData();
   }, []);
 
-  const activeWorkshops = workshops.filter(w => !w.is_ended);
+  const today = todayGregorian();
+  const activeWorkshops = workshops.filter(w => !w.is_ended && (!w.end_date || w.end_date >= today));
   const byDay = {};
   dayOrder.forEach(d => { byDay[d] = []; });
   activeWorkshops.forEach(w => { if (w.day_of_week && byDay[w.day_of_week]) byDay[w.day_of_week].push(w); });

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, LabelList } from 'recharts';
 import StatCard from '@/components/StatCard';
+import { useNavigate } from 'react-router-dom';
 import { Users, Repeat, Layers, ChevronDown, Wallet } from 'lucide-react';
 import { computeOverallStats, computeDailyUniques, computeSectionDistribution, getDateRange, toPersianNum, formatPercent, formatCurrency } from '@/lib/stats';
 import { toJalaliStr } from '@/lib/jalali';
@@ -21,6 +22,7 @@ const presets = [
 ];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [] });
   const [preset, setPreset] = useState('week');
@@ -133,18 +135,19 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-white rounded-xl border border-border p-5">
-          <h3 className="text-sm font-semibold mb-4">روند افراد یونیک روزانه</h3>
+          <h3 className="text-sm font-semibold mb-1">روند افراد یونیک روزانه</h3>
+          <p className="text-xs text-muted-foreground mb-3">برای مشاهده گزارش روز، روی ستون کلیک کنید</p>
           {dailyUniques.length === 0 ? (
             <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای در این بازه نیست</div>
           ) : (
             <>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={dailyUniques}>
+                <BarChart data={dailyUniques} cursor="pointer">
                   <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
                   <XAxis dataKey="date" tickFormatter={toJalaliStr} tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip labelFormatter={toJalaliStr} formatter={(v) => [toPersianNum(v) + ' نفر', 'افراد یونیک']} />
-                  <Bar dataKey="count" fill="#B74B40" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="count" fill="#B74B40" radius={[4, 4, 0, 0]} onClick={(d) => d && d.date && navigate(`/daily-report?date=${d.date}`)} className="cursor-pointer">
                     <LabelList dataKey="count" position="top" formatter={toPersianNum} style={{ fontSize: '10px', fill: '#71717a' }} />
                   </Bar>
                 </BarChart>
