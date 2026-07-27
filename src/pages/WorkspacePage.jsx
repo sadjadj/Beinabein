@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Briefcase, Users, Repeat, Plus, ChevronLeft, Pencil, Trash2 } from 'lucide-react';
+import { Briefcase, Users, Repeat, Plus, ChevronLeft, Pencil, Trash2, Search } from 'lucide-react';
+import ExportButton from '@/components/ExportButton';
 import { computeWorkspaceStats, findOrCreatePerson, toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
@@ -24,6 +25,7 @@ export default function WorkspacePage() {
   const [editingSubId, setEditingSubId] = useState(null);
   const [editSubForm, setEditSubForm] = useState({});
   const [sortBy, setSortBy] = useState('date_desc');
+  const [orderSearch, setOrderSearch] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -99,6 +101,35 @@ export default function WorkspacePage() {
     if (sortBy === 'name_desc') return (b.person_name || '').localeCompare(a.person_name || '');
     return (b.purchase_date || '').localeCompare(a.purchase_date || '');
   });
+
+  const filteredRecords = sortedRecords.filter(r => {
+    if (!orderSearch) return true;
+    const s = orderSearch.toLowerCase();
+    return (r.person_name || '').toLowerCase().includes(s) ||
+      (r.person_phone || '').includes(orderSearch) ||
+      (r.subscription_name || '').toLowerCase().includes(s);
+  });
+
+  const wsExportColumns = [
+    { key: 'date', label: 'تاریخ خرید' },
+    { key: 'subscription', label: 'اشتراک' },
+    { key: 'name', label: 'نام' },
+    { key: 'phone', label: 'شماره' },
+    { key: 'entry', label: 'ورود' },
+    { key: 'method', label: 'مدل پرداخت' },
+    { key: 'status', label: 'وضعیت' },
+    { key: 'amount', label: 'مبلغ' },
+  ];
+  const wsExportRows = filteredRecords.map(r => ({
+    date: r.purchase_date ? toJalaliStr(r.purchase_date) : '',
+    subscription: r.subscription_name || '',
+    name: r.person_name || '',
+    phone: r.person_phone || '',
+    entry: r.entry_time || '',
+    method: paymentMethodLabels[r.payment_method] || r.payment_method || '',
+    status: r.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده',
+    amount: (r.price || 0) * (r.quantity || 1),
+  }));
 
   if (loading) {
     return (
@@ -264,19 +295,28 @@ export default function WorkspacePage() {
           </div>
 
           <div className="bg-white rounded-xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center justify-between gap-2 flex-wrap">
-              <h3 className="text-sm font-semibold">سفارش‌های اخیر</h3>
-              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
-                <option value="date_desc">جدیدترین</option>
-                <option value="date_asc">قدیمی‌ترین</option>
-                <option value="name_asc">نام (A-Z)</option>
-                <option value="name_desc">نام (Z-A)</option>
-              </select>
+            <div className="p-4 border-b border-border space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <h3 className="text-sm font-semibold">سفارش‌های اخیر</h3>
+                <div className="flex items-center gap-2">
+                  <ExportButton filename="سفارش‌های-فضای-کار" columns={wsExportColumns} rows={wsExportRows} />
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+                    <option value="date_desc">جدیدترین</option>
+                    <option value="date_asc">قدیمی‌ترین</option>
+                    <option value="name_asc">نام (A-Z)</option>
+                    <option value="name_desc">نام (Z-A)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+                <input type="text" placeholder="جستجوی نام، شماره، اشتراک..." value={orderSearch} onChange={e => setOrderSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-full sm:w-72" />
+              </div>
             </div>
             {loading ? (
               <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
-            ) : records.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">هنوز سفارشی ثبت نشده است</div>
+            ) : filteredRecords.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">{orderSearch ? 'نتیجه‌ای یافت نشد' : 'هنوز سفارشی ثبت نشده است'}</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -293,7 +333,7 @@ export default function WorkspacePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedRecords.map(r => (
+                    {filteredRecords.map(r => (
                       <tr key={r.id} className="border-t border-border hover:bg-[#FDF2F1]/30 cursor-pointer" onClick={() => navigate(`/workspace/${r.id}`)}>
                         <td className="p-3">{r.purchase_date ? toJalaliStr(r.purchase_date) : '-'}</td>
                         <td className="p-3">{r.subscription_name || '-'}</td>

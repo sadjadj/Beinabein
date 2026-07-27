@@ -59,8 +59,12 @@ export default function Layout() {
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
-  const toggleGroup = (label) => setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
   const isGroupActive = (group) => group.children.some(c => location.pathname === c.path || location.pathname.startsWith(c.path + '/'));
+  const toggleGroup = (label) => {
+    const group = navGroups.find(g => g.label === label);
+    const currentlyOpen = openGroups[label] !== undefined ? openGroups[label] : !!(group && isGroupActive(group));
+    setOpenGroups(prev => ({ ...prev, [label]: !currentlyOpen }));
+  };
 
   const Brand = ({ size = 'lg' }) => (
     <div className="flex items-center gap-2.5">
@@ -87,7 +91,7 @@ export default function Layout() {
       })}
       {navGroups.map(group => {
         const childActive = isGroupActive(group);
-        const isOpen = openGroups[group.label] || childActive;
+        const isOpen = openGroups[group.label] !== undefined ? openGroups[group.label] : childActive;
         return (
           <div key={group.label}>
             <button onClick={() => toggleGroup(group.label)} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full text-right ${childActive ? 'text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>

@@ -11,6 +11,7 @@ import JalaliDateInput from '@/components/JalaliDateInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
+import ExportButton from '@/components/ExportButton';
 
 export default function PeoplePage() {
   const navigate = useNavigate();
@@ -102,6 +103,29 @@ export default function PeoplePage() {
       return bCount - aCount;
     }
     return 0;
+  });
+
+  const peopleExportColumns = [
+    { key: 'name', label: 'نام' },
+    { key: 'phone', label: 'شماره' },
+    { key: 'howMet', label: 'نحوه آشنایی' },
+    { key: 'lastService', label: 'آخرین خدمت' },
+    { key: 'lastServiceDate', label: 'تاریخ آخرین خدمت' },
+    { key: 'total', label: 'مجموع خدمات' },
+  ];
+  const peopleExportRows = sortedFiltered.map(p => {
+    const lastService = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases);
+    const totalActivity = (allData.workspaceOrders.filter(o => o.person_phone === p.phone).length) +
+      (allData.itemPurchases.filter(i => i.person_phone === p.phone).length) +
+      (allData.workshopPurchases.filter(w => w.person_phone === p.phone).length);
+    return {
+      name: p.full_name || '',
+      phone: p.phone || '',
+      howMet: howMetLabels[p.how_met] || p.how_met || '',
+      lastService: lastService ? lastService.type : '',
+      lastServiceDate: lastService && lastService.date ? formatJalaliShort(lastService.date) : '',
+      total: totalActivity,
+    };
   });
 
   return (
@@ -230,6 +254,7 @@ export default function PeoplePage() {
             )}
           </h3>
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <ExportButton filename="لیست-افراد" columns={peopleExportColumns} rows={peopleExportRows} />
             <button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] flex-shrink-0">
               <Plus className="w-4 h-4" /> افزودن
             </button>

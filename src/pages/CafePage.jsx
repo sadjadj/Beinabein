@@ -11,6 +11,7 @@ import PersonSearch from '@/components/PersonSearch';
 import PriceInput from '@/components/PriceInput';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import ExportButton from '@/components/ExportButton';
 
 export default function CafePage() {
   const [items, setItems] = useState([]);
@@ -164,6 +165,29 @@ export default function CafePage() {
       itemCount: g.items.reduce((s, i) => s + (i.quantity || 1), 0)
     })).sort((a, b) => (b.purchase_date || '').localeCompare(a.purchase_date || ''));
   })();
+
+  const cafeExportColumns = [
+    { key: 'date', label: 'تاریخ' },
+    { key: 'invoice', label: 'شماره فاکتور' },
+    { key: 'name', label: 'نام' },
+    { key: 'phone', label: 'شماره' },
+    { key: 'items', label: 'آیتم‌ها' },
+    { key: 'count', label: 'تعداد آیتم' },
+    { key: 'method', label: 'مدل پرداخت' },
+    { key: 'status', label: 'وضعیت' },
+    { key: 'total', label: 'مبلغ کل' },
+  ];
+  const cafeExportRows = invoiceGroups.map(g => ({
+    date: g.purchase_date ? toJalaliStr(g.purchase_date) : '',
+    invoice: g.invoiceId || '',
+    name: g.person_name || '',
+    phone: g.person_phone || '',
+    items: g.items.map(i => `${i.item_name} ×${i.quantity}`).join('، '),
+    count: g.itemCount,
+    method: paymentMethodLabels[g.payment_method] || g.payment_method || '',
+    status: g.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده',
+    total: g.totalAmount,
+  }));
 
   const toggleInvoicePaid = async (group) => {
     await base44.entities.ItemPurchase.updateMany({ invoice_id: group.invoiceId }, { $set: { is_paid: !group.is_paid } });
@@ -471,7 +495,10 @@ export default function CafePage() {
           </div>
 
           <div className="bg-white rounded-xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">فاکتورهای اخیر</h3></div>
+            <div className="p-4 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold">فاکتورهای اخیر</h3>
+              <ExportButton filename="فاکتورهای-کافه" columns={cafeExportColumns} rows={cafeExportRows} />
+            </div>
             {loading ? (
               <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
             ) : invoiceGroups.length === 0 ? (

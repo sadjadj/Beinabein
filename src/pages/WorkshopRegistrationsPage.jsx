@@ -12,6 +12,7 @@ import WorkshopSearchSelect from '@/components/WorkshopSearchSelect';
 import { toPersianNum, formatCurrency, findOrCreatePerson } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
+import ExportButton from '@/components/ExportButton';
 
 export default function WorkshopRegistrationsPage() {
   const [workshops, setWorkshops] = useState([]);
@@ -70,6 +71,27 @@ export default function WorkshopRegistrationsPage() {
       (p.workshop_title || '').toLowerCase().includes(s);
   });
 
+  const regExportColumns = [
+    { key: 'workshop', label: 'کارگاه' },
+    { key: 'plan', label: 'مدل ثبت‌نام' },
+    { key: 'name', label: 'نام' },
+    { key: 'phone', label: 'تلفن' },
+    { key: 'date', label: 'تاریخ' },
+    { key: 'price', label: 'مبلغ' },
+    { key: 'donation', label: 'دونیشین' },
+    { key: 'status', label: 'پرداخت' },
+  ];
+  const regExportRows = filtered.map(p => ({
+    workshop: p.workshop_title || '',
+    plan: p.plan_name || '',
+    name: p.person_name || '',
+    phone: p.person_phone || '',
+    date: p.purchase_date ? formatJalaliShort(p.purchase_date) : '',
+    price: (Number(p.price) || 0) * (Number(p.quantity) || 1),
+    donation: Number(p.donation) || 0,
+    status: p.is_paid ? 'پرداخت‌شده' : 'پرداخت‌نشده',
+  }));
+
   const addRegistration = async () => {
     if (!form.workshop_id || !form.person_phone) return;
     const dup = purchases.find(p => p.workshop_id === form.workshop_id && p.person_phone === form.person_phone);
@@ -116,6 +138,7 @@ export default function WorkshopRegistrationsPage() {
           <p className="text-sm text-muted-foreground mt-1">ثبت و مدیریت ثبت‌نامی‌های همه کارگاه‌ها</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <ExportButton filename="ثبت‌نام‌های-کارگاه" columns={regExportColumns} rows={regExportRows} />
           <div className="relative flex-1 sm:flex-none min-w-[140px]">
             <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
             <input type="text" placeholder="جستجوی نام / تلفن / کارگاه..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-64" />
