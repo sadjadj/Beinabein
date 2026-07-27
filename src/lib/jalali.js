@@ -59,6 +59,7 @@ function parseDateLocal(gregorianStr) {
 }
 
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+export const jalaliMonthNames = jMonths;
 
 // Convert a Gregorian date string (YYYY-MM-DD) to Jalali date string (YYYY/MM/DD) with Persian digits
 export function toJalaliStr(gregorianDateStr) {

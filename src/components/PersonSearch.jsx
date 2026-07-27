@@ -4,12 +4,18 @@ import { X } from 'lucide-react';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 
 export default function PersonSearch({ personName, personPhone, onNameChange, onPhoneChange, onPersonFound }) {
+  const [displayName, setDisplayName] = useState(personName);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [phoneLocked, setPhoneLocked] = useState(false);
 
+  // Sync internal display when parent resets (e.g., form reset / cancel cart)
   useEffect(() => {
-    if (!personName || personName.trim().length < 2) {
+    setDisplayName(personName);
+  }, [personName]);
+
+  useEffect(() => {
+    if (!displayName || displayName.trim().length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -18,7 +24,7 @@ export default function PersonSearch({ personName, personPhone, onNameChange, on
       try {
         const all = await base44.entities.Person.list('-created_date', 500);
         const matches = all
-          .filter(p => p.full_name && p.full_name.toLowerCase().includes(personName.trim().toLowerCase()))
+          .filter(p => p.full_name && p.full_name.toLowerCase().includes(displayName.trim().toLowerCase()))
           .slice(0, 6);
         setSuggestions(matches);
         setShowSuggestions(matches.length > 0);
@@ -27,14 +33,22 @@ export default function PersonSearch({ personName, personPhone, onNameChange, on
       }
     }, 250);
     return () => clearTimeout(timer);
-  }, [personName]);
+  }, [displayName]);
 
   const selectPerson = (person) => {
-    onNameChange(person.full_name || '');
+    const fullName = person.full_name || '';
+    setDisplayName(fullName);
+    onNameChange(fullName);
     onPhoneChange(person.phone || '');
     onPersonFound?.(person);
     setShowSuggestions(false);
     setPhoneLocked(true);
+  };
+
+  const handleInputChange = (e) => {
+    const val = sanitizeName(e.target.value);
+    setDisplayName(val);
+    onNameChange(val);
   };
 
   const clearPhone = () => {
@@ -42,16 +56,14 @@ export default function PersonSearch({ personName, personPhone, onNameChange, on
     setPhoneLocked(false);
   };
 
-  const isLocked = phoneLocked;
-
   return (
     <div className="flex flex-col gap-2 flex-shrink-0">
       <div className="relative">
         <input
           type="text"
           placeholder="نام مشتری"
-          value={personName}
-          onChange={e => onNameChange(sanitizeName(e.target.value))}
+          value={displayName}
+          onChange={handleInputChange}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm"
         />
@@ -77,12 +89,12 @@ export default function PersonSearch({ personName, personPhone, onNameChange, on
           placeholder="۰xxxxxxxxxx"
           value={personPhone}
           onChange={e => onPhoneChange(sanitizePhone(e.target.value))}
-          readOnly={isLocked}
+          readOnly={phoneLocked}
           required
           dir="ltr"
-          className={`w-full px-3 py-2 pl-8 rounded-lg border border-input bg-background text-sm text-right ${isLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+          className={`w-full px-3 py-2 pl-8 rounded-lg border border-input bg-background text-sm text-right ${phoneLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
         />
-        {isLocked && (
+        {phoneLocked && (
           <button type="button" onClick={clearPhone} className="absolute left-2 top-[calc(50%+12px)] -translate-y-1/2 text-muted-foreground hover:text-foreground">
             <X className="w-4 h-4" />
           </button>
