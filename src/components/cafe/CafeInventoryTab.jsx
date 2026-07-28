@@ -2,12 +2,25 @@ import React, { useState } from 'react';
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
 import PriceInput from '@/components/PriceInput';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 
 export default function CafeInventoryTab({ items, categories, onItemSubmit, onDeleteItem, onToggleVisible, onEditCategories }) {
   const [itemForm, setItemForm] = useState({ name: '', category: '', price: '', brand: '' });
   const [submitting, setSubmitting] = useState(false);
   const [editingItemId, setEditingItemId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await onDeleteItem(deleteTarget);
+      setDeleteTarget(null);
+    }
+  };
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
@@ -108,7 +121,7 @@ export default function CafeInventoryTab({ items, categories, onItemSubmit, onDe
                       <td className="p-3 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button onClick={() => startEdit(item)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
-                          <button onClick={() => onDeleteItem(item.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                           <button onClick={() => setDeleteTarget(item)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>
@@ -154,6 +167,23 @@ export default function CafeInventoryTab({ items, categories, onItemSubmit, onDe
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="text-center">
+          <AlertDialogHeader className="text-center">
+            <AlertDialogTitle className="text-center">حذف آیتم</AlertDialogTitle>
+            <AlertDialogDescription className="text-center block">
+              آیا از حذف این آیتم اطمینان دارید؟ این عملیات قابل بازگشت نیست.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex items-center justify-center gap-3 sm:justify-center">
+            <AlertDialogCancel className="mx-2">انصراف</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white mx-2">
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

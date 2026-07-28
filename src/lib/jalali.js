@@ -61,6 +61,18 @@ function parseDateLocal(gregorianStr) {
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 export const jalaliMonthNames = jMonths;
 
+const jWeekdays = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'];
+
+// Format Jalali date with weekday name and full date (e.g. "دوشنبه 5 تیر 1405")
+export function formatJalaliFull(gregorianDateStr) {
+  if (!gregorianDateStr) return '';
+  const d = parseDateLocal(gregorianDateStr);
+  if (isNaN(d.getTime())) return '';
+  const { jy, jm, jd } = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  const weekday = jWeekdays[(d.getDay() + 1) % 7];
+  return `${weekday} ${jd} ${jMonths[jm - 1]} ${jy}`;
+}
+
 // Convert a Gregorian date string (YYYY-MM-DD) to Jalali date string (YYYY/MM/DD) with Persian digits
 export function toJalaliStr(gregorianDateStr) {
   if (!gregorianDateStr) return '';

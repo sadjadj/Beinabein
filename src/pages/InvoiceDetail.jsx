@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ArrowRight, CheckCircle, AlertCircle, Pencil, Check, X, Trash2 } from 'lucide-react';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
@@ -23,8 +23,10 @@ const entityMap = {
 export default function InvoiceDetail() {
   const { type, id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [invoice, setInvoice] = useState(null);
   const [allItems, setAllItems] = useState([]);
+  const [personId, setPersonId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -33,11 +35,20 @@ export default function InvoiceDetail() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const cfg = entityMap[type];
 
+  const fromPath = location.state?.from || '/accounting';
+  const fromLabels = { '/cafe': 'کافه', '/accounting': 'حسابداری', '/workspace': 'فضای کار' };
+  const fromLabel = fromLabels[fromPath] || 'حسابداری';
+
   const fetchData = async () => {
     setLoading(true);
     try {
       const data = await base44.entities[cfg.entity].get(id);
       setInvoice(data);
+
+      if (data.person_phone) {
+        const persons = await base44.entities.Person.filter({ phone: data.person_phone });
+        if (persons.length > 0) setPersonId(persons[0].id);
+      }
 
       if (type === 'cafe') {
         let related = [];
@@ -135,7 +146,7 @@ export default function InvoiceDetail() {
     } else {
       await base44.entities[cfg.entity].delete(id);
     }
-    navigate('/accounting');
+    navigate(fromPath);
   };
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
@@ -148,8 +159,8 @@ export default function InvoiceDetail() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-3xl mx-auto">
-      <button onClick={() => navigate('/accounting')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowRight className="w-4 h-4" /> بازگشت به حسابداری
+      <button onClick={() => navigate(fromPath)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowRight className="w-4 h-4" /> بازگشت به {fromLabel}
       </button>
 
       <div className="bg-white rounded-xl border border-border p-6">
@@ -289,7 +300,11 @@ export default function InvoiceDetail() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t border-border">
               <div>
                 <p className="text-xs text-muted-foreground">نام مشتری</p>
-                <p className="text-sm font-medium mt-1">{invoice.person_name || '-'}</p>
+                {personId ? (
+                  <Link to={`/people/${personId}`} className="text-sm font-medium mt-1 inline-block hover:text-[#B74B40] hover:underline">{invoice.person_name || '-'}</Link>
+                ) : (
+                  <p className="text-sm font-medium mt-1">{invoice.person_name || '-'}</p>
+                )}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">شماره تماس</p>
@@ -346,10 +361,10 @@ export default function InvoiceDetail() {
       </div>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent className="text-right">
-          <AlertDialogHeader className="text-right">
-            <AlertDialogTitle className="text-right">حذف فاکتور</AlertDialogTitle>
-            <AlertDialogDescription className="text-right block">
+        <AlertDialogContent className="text-center">
+          <AlertDialogHeader className="text-center">
+            <AlertDialogTitle className="text-center">حذف فاکتور</AlertDialogTitle>
+            <AlertDialogDescription className="text-center block">
               آیا از حذف این فاکتور اطمینان دارید؟ این عملیات قابل بازگشت نیست.
             </AlertDialogDescription>
           </AlertDialogHeader>

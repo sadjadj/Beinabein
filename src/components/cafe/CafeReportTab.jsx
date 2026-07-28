@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { todayGregorian, getJalaliParts, jalaliToGregorianStr, toPersianDigits } from '@/lib/jalali';
+import { ShoppingBag, Users, TrendingUp, Wallet } from 'lucide-react';
+import StatCard from '@/components/StatCard';
+import { todayGregorian, getJalaliParts, jalaliToGregorianStr, toPersianDigits, formatJalaliFull } from '@/lib/jalali';
 import { formatCurrency, toPersianNum } from '@/lib/stats';
 import JalaliDateInput from '@/components/JalaliDateInput';
 
 const RANGE_PRESETS = [
-  { key: 'today', label: 'امروز' },
   { key: 'week', label: 'این هفته' },
   { key: 'month', label: 'این ماه' },
   { key: 'custom', label: 'بازه دلخواه' },
@@ -14,7 +15,6 @@ const RANGE_PRESETS = [
 function getRangeStart(preset) {
   const today = todayGregorian();
   const parts = getJalaliParts(today);
-  if (preset === 'today') return today;
   if (preset === 'week') {
     const jsDay = new Date().getDay(); // 0=Sunday, 6=Saturday
     const persianDay = (jsDay + 1) % 7; // Saturday=0 ... Friday=6
@@ -38,8 +38,18 @@ function buildDateRange(start, end) {
   return dates;
 }
 
+function CustomTooltip({ active, payload, label, unitLabel, formatter }) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div className="bg-white border border-border rounded-lg shadow-lg p-3 text-sm">
+      <p className="font-medium text-foreground mb-1">{formatJalaliFull(label)}</p>
+      <p className="text-muted-foreground">{unitLabel}: <span className="font-medium text-foreground">{formatter(payload[0].value)}</span></p>
+    </div>
+  );
+}
+
 export default function CafeReportTab({ purchases }) {
-  const [rangePreset, setRangePreset] = useState('today');
+  const [rangePreset, setRangePreset] = useState('month');
   const [customStart, setCustomStart] = useState(todayGregorian());
   const [customEnd, setCustomEnd] = useState(todayGregorian());
 
@@ -67,6 +77,25 @@ export default function CafeReportTab({ purchases }) {
     });
   }, [purchases, startDate, endDate]);
 
+  // Today's metrics
+  const todayStr = todayGregorian();
+  const todayPurchases = purchases.filter(p => p.purchase_date === todayStr);
+  const todayRevenue = todayPurchases.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
+  const todayInvoiceIds = new Set();
+  const todayPhoneKeys = new Set();
+  todayPurchases.forEach(p => {
+    if (p.invoice_id) todayInvoiceIds.add(p.invoice_id);
+    else todayPhoneKeys.add(`${p.person_phone}-${p.purchase_date}`);
+  });
+  const todayInvoiceCount = todayInvoiceIds.size + todayPhoneKeys.size;
+  const todayItemCount = todayPurchases.reduce((s, p) => s + (p.quantity || 1), 0);
+
+  // Range totals for stat cards
+  const rangePurchases = purchases.filter(p => p.purchase_date >= startDate && p.purchase_date <= endDate);
+  const totalPurchases = rangePurchases.length;
+  const uniqueBuyers = new Set(rangePurchases.map(p => p.person_phone)).size;
+  const totalRevenue = rangePurchases.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
+
   const allParts = chartData.map(d => getJalaliParts(d.date)).filter(Boolean);
   const sameMonth = allParts.length > 0 && allParts.every(p => p.jy === allParts[0].jy && p.jm === allParts[0].jm);
   const sameYear = allParts.length > 0 && allParts.every(p => p.jy === allParts[0].jy);
@@ -79,12 +108,15 @@ export default function CafeReportTab({ purchases }) {
     return `${toPersianDigits(p.jd)}/${toPersianDigits(p.jm)}/${toPersianDigits(p.jy)}`;
   };
 
-  const totalRevenue = chartData.reduce((s, d) => s + d.revenue, 0);
-  const totalInvoices = chartData.reduce((s, d) => s + d.invoiceCount, 0);
-  const totalItems = chartData.reduce((s, d) => s + d.itemCount, 0);
-
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        <StatCard label="تعداد خرید" value={toPersianNum(totalPurchases)} icon={ShoppingBag} color="terracotta" />
+        <StatCard label="خریداران یونیک" value={toPersianNum(uniqueBuyers)} icon={Users} color="pink" />
+        <StatCard label="درآمد کل" value={formatCurrency(totalRevenue)} icon={TrendingUp} color="ochre" />
+        <StatCard label="فروش امروز" value={formatCurrency(todayRevenue)} icon={Wallet} color="teal" />
+      </div>
+
       <div className="bg-white rounded-xl border border-border p-4">
         <div className="flex items-center gap-2 flex-wrap mb-3">
           {RANGE_PRESETS.map(p => (
@@ -105,15 +137,20 @@ export default function CafeReportTab({ purchases }) {
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">تا تاریخ</label>
-              <JalaliDateInput value={customEnd} onChange={setCustomEnd} showToday={false} />
+              <JalaliDateInput value={customEnd} onChange={setCustomEnd} showToday={true} />
             </div>
           </div>
         )}
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-1">مجموع مبلغ درآمد</h3>
-        <p className="text-2xl font-bold text-[#B74B40] mb-4">{formatCurrency(totalRevenue)}</p>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-semibold">مجموع مبلغ درآمد</h3>
+          <div className="text-left">
+            <span className="text-xs text-muted-foreground">درآمد امروز: </span>
+            <span className="text-sm font-bold text-[#B74B40]">{formatCurrency(todayRevenue)}</span>
+          </div>
+        </div>
         {chartData.length === 0 ? (
           <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
         ) : (
@@ -122,7 +159,7 @@ export default function CafeReportTab({ purchases }) {
               <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
               <XAxis dataKey="date" tickFormatter={tickFormatter} tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => Number(v).toLocaleString('fa-IR')} width={70} />
-              <Tooltip labelFormatter={tickFormatter} formatter={(v) => [formatCurrency(v), 'درآمد']} />
+              <Tooltip content={<CustomTooltip unitLabel="درآمد" formatter={formatCurrency} />} />
               <Bar dataKey="revenue" fill="#B74B40" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -130,8 +167,13 @@ export default function CafeReportTab({ purchases }) {
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-1">تعداد فاکتورهای ثبت شده</h3>
-        <p className="text-2xl font-bold text-[#B74B40] mb-4">{toPersianNum(totalInvoices)}</p>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-semibold">تعداد فاکتورهای ثبت شده</h3>
+          <div className="text-left">
+            <span className="text-xs text-muted-foreground">فاکتورهای امروز: </span>
+            <span className="text-sm font-bold text-[#D98B94]">{toPersianNum(todayInvoiceCount)}</span>
+          </div>
+        </div>
         {chartData.length === 0 ? (
           <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
         ) : (
@@ -140,7 +182,7 @@ export default function CafeReportTab({ purchases }) {
               <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
               <XAxis dataKey="date" tickFormatter={tickFormatter} tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => Number(v).toLocaleString('fa-IR')} width={40} />
-              <Tooltip labelFormatter={tickFormatter} formatter={(v) => [toPersianNum(v), 'فاکتور']} />
+              <Tooltip content={<CustomTooltip unitLabel="تعداد فاکتور" formatter={toPersianNum} />} />
               <Bar dataKey="invoiceCount" fill="#D98B94" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -148,8 +190,13 @@ export default function CafeReportTab({ purchases }) {
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-1">مجموع تعداد آیتم‌های ثبت شده</h3>
-        <p className="text-2xl font-bold text-[#B74B40] mb-4">{toPersianNum(totalItems)}</p>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-semibold">مجموع تعداد آیتم‌های ثبت شده</h3>
+          <div className="text-left">
+            <span className="text-xs text-muted-foreground">آیتم‌های امروز: </span>
+            <span className="text-sm font-bold text-[#B9834B]">{toPersianNum(todayItemCount)}</span>
+          </div>
+        </div>
         {chartData.length === 0 ? (
           <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
         ) : (
@@ -158,7 +205,7 @@ export default function CafeReportTab({ purchases }) {
               <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
               <XAxis dataKey="date" tickFormatter={tickFormatter} tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => Number(v).toLocaleString('fa-IR')} width={40} />
-              <Tooltip labelFormatter={tickFormatter} formatter={(v) => [toPersianNum(v), 'آیتم']} />
+              <Tooltip content={<CustomTooltip unitLabel="تعداد آیتم" formatter={toPersianNum} />} />
               <Bar dataKey="itemCount" fill="#B9834B" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

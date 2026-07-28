@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Check, X, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels, purchaseReasonLabels } from '@/lib/labels';
@@ -14,6 +14,7 @@ const cafePaymentMethods = Object.entries(paymentMethodLabels).filter(([k]) => k
 
 export default function InvoiceList({ groups, people, onTogglePaid, onSaveEdit, onDelete, emptyMessage = 'هنوز خریدی ثبت نشده است' }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [expandedInvoice, setExpandedInvoice] = useState(null);
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
   const [editInvoiceForm, setEditInvoiceForm] = useState({});
@@ -54,7 +55,7 @@ export default function InvoiceList({ groups, people, onTogglePaid, onSaveEdit, 
             <div key={groupKey} className="p-3">
               <div
                 className={`flex items-center justify-between gap-2 flex-wrap ${!isEditing ? 'cursor-pointer' : ''}`}
-                onClick={() => !isEditing && navigate(`/accounting/cafe/${group.items[0].id}`)}
+                onClick={() => !isEditing && navigate(`/accounting/cafe/${group.items[0].id}`, { state: { from: location.pathname } })}
               >
                 <div className="flex items-center gap-3 text-sm">
                   <button
@@ -113,10 +114,10 @@ export default function InvoiceList({ groups, people, onTogglePaid, onSaveEdit, 
         })}
       </div>
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent className="text-right">
-          <AlertDialogHeader className="text-right">
-            <AlertDialogTitle className="text-right">حذف فاکتور</AlertDialogTitle>
-            <AlertDialogDescription className="text-right block">
+        <AlertDialogContent className="text-center">
+          <AlertDialogHeader className="text-center">
+            <AlertDialogTitle className="text-center">حذف فاکتور</AlertDialogTitle>
+            <AlertDialogDescription className="text-center block">
               آیا از حذف این فاکتور اطمینان دارید؟ این عملیات قابل بازگشت نیست.
             </AlertDialogDescription>
           </AlertDialogHeader>
