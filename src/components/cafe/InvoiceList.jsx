@@ -113,16 +113,16 @@ export default function InvoiceList({ groups, people, onTogglePaid, onSaveEdit, 
         })}
       </div>
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>حذف فاکتور</AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className="text-right">
+          <AlertDialogHeader className="text-right">
+            <AlertDialogTitle className="text-right">حذف فاکتور</AlertDialogTitle>
+            <AlertDialogDescription className="text-right block">
               آیا از حذف این فاکتور اطمینان دارید؟ این عملیات قابل بازگشت نیست.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">
+          <AlertDialogFooter className="flex items-center justify-center gap-3 sm:justify-center">
+            <AlertDialogCancel className="mx-2">انصراف</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white mx-2">
               حذف
             </AlertDialogAction>
           </AlertDialogFooter>

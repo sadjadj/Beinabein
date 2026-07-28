@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Plus, Minus, X } from 'lucide-react';
-import { toPersianNum, formatCurrency, findOrCreatePerson } from '@/lib/stats';
+import { ShoppingCart, Plus, Minus, X, Pencil } from 'lucide-react';
+import { toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels, purchaseReasonLabels } from '@/lib/labels';
 import { todayGregorian } from '@/lib/jalali';
 import { persianToEnglish } from '@/lib/inputUtils';
@@ -24,14 +24,16 @@ const cafeExportColumns = [
   { key: 'total', label: 'مبلغ کل' },
 ];
 
-export default function CafeOrderTab({ items, people, invoiceGroups, onCheckout, onTogglePaid, onSaveEdit, onDelete }) {
+export default function CafeOrderTab({ items, people, invoiceGroups, onCheckout, onTogglePaid, onSaveEdit, onDelete, onEditInventory }) {
   const [cart, setCart] = useState([]);
   const [cartDiscount, setCartDiscount] = useState({ type: 'percent', value: 0 });
   const [checkout, setCheckout] = useState({ person_name: '', person_phone: '', purchase_date: todayGregorian(), payment_method: 'cash', purchase_reason: 'independent' });
   const [submitting, setSubmitting] = useState(false);
 
+  const visibleItems = items.filter(i => i.is_visible !== false);
+
   const groupedItems = {};
-  items.forEach(item => {
+  visibleItems.forEach(item => {
     const cat = item.category || 'بدون دسته‌بندی';
     if (!groupedItems[cat]) groupedItems[cat] = [];
     groupedItems[cat].push(item);
@@ -92,9 +94,14 @@ export default function CafeOrderTab({ items, people, invoiceGroups, onCheckout,
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><ShoppingCart className="w-4 h-4 text-[#B74B40]" /> ثبت خرید جدید</h3>
-        {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">ابتدا آیتمی به انبار اضافه کنید</p>
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <h3 className="text-sm font-semibold flex items-center gap-2"><ShoppingCart className="w-4 h-4 text-[#B74B40]" /> ثبت خرید جدید</h3>
+          <button type="button" onClick={onEditInventory} className="flex items-center gap-1 text-xs text-[#B74B40] hover:underline">
+            <Pencil className="w-3.5 h-3.5" /> ویرایش انبار آیتم‌ها
+          </button>
+        </div>
+        {visibleItems.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">{items.length > 0 ? 'هیچ آیتمی برای نمایش فعال نیست. از انبار آیتم‌ها گزینه «نمایش» را فعال کنید.' : 'ابتدا آیتمی به انبار اضافه کنید'}</p>
         ) : (
           <div className="space-y-4">
             {Object.entries(groupedItems).map(([cat, catItems]) => (
@@ -116,10 +123,7 @@ export default function CafeOrderTab({ items, people, invoiceGroups, onCheckout,
 
             {cart.length > 0 && (
               <div className="border-t border-border pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-medium">سبد خرید</p>
-                  <button type="button" onClick={cancelCart} className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">لغو سبد</button>
-                </div>
+                <p className="text-sm font-medium mb-3">سبد خرید</p>
                 <div className="space-y-2">
                   {cart.map(c => (
                     <div key={c.item_id} className="flex items-center justify-between bg-muted/30 rounded-lg p-2.5 gap-2 flex-wrap">
@@ -180,14 +184,19 @@ export default function CafeOrderTab({ items, people, invoiceGroups, onCheckout,
                     {Object.entries(purchaseReasonLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </div>
-                <div className="sm:col-span-2 lg:col-span-3 flex items-center justify-between">
+                <div className="sm:col-span-2 lg:col-span-3 flex items-center justify-between gap-2">
                   <div className="text-sm">
                     <span className="text-muted-foreground">مبلغ نهایی قابل پرداخت: </span>
                     <span className="font-bold text-[#B74B40]">{formatCurrency(finalTotal)}</span>
                   </div>
-                  <button type="submit" disabled={submitting} className="px-6 py-2.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-                    {submitting ? 'در حال ثبت...' : 'ثبت خرید'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={cancelCart} className="px-4 py-2.5 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50">
+                      لغو سبد
+                    </button>
+                    <button type="submit" disabled={submitting} className="px-6 py-2.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                      {submitting ? 'در حال ثبت...' : 'ثبت خرید'}
+                    </button>
+                  </div>
                 </div>
               </form>
             )}

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import InvoiceList from '@/components/cafe/InvoiceList';
 import ExportButton from '@/components/ExportButton';
-import { toJalaliStr } from '@/lib/jalali';
+import { toJalaliStr, toPersianDigits } from '@/lib/jalali';
 import { paymentMethodLabels } from '@/lib/labels';
+import { toPersianNum } from '@/lib/stats';
 
 const cafeExportColumns = [
   { key: 'date', label: 'تاریخ' },
@@ -17,11 +19,27 @@ const cafeExportColumns = [
   { key: 'total', label: 'مبلغ کل' },
 ];
 
+const PAGE_SIZE = 30;
+
 export default function CafeHistoryTab({ invoiceGroups, people, historyRange, setHistoryRange, monthName, onTogglePaid, onSaveEdit, onDelete }) {
-  const filteredGroups = invoiceGroups.filter(g => {
-    if (!g.purchase_date) return false;
-    return g.purchase_date >= historyRange.start && g.purchase_date <= historyRange.end;
-  });
+  const [filters, setFilters] = useState({ paidStatus: 'all', customerName: '', paymentMethod: 'all' });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const filteredGroups = useMemo(() => {
+    return invoiceGroups.filter(g => {
+      if (!g.purchase_date) return false;
+      if (g.purchase_date < historyRange.start || g.purchase_date > historyRange.end) return false;
+      if (filters.paidStatus === 'paid' && !g.is_paid) return false;
+      if (filters.paidStatus === 'unpaid' && g.is_paid) return false;
+      if (filters.customerName && !(g.person_name || '').includes(filters.customerName)) return false;
+      if (filters.paymentMethod !== 'all' && g.payment_method !== filters.paymentMethod) return false;
+      return true;
+    });
+  }, [invoiceGroups, historyRange, filters]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedGroups = filteredGroups.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const exportRows = filteredGroups.map(g => ({
     date: g.purchase_date ? toJalaliStr(g.purchase_date) : '',
@@ -35,6 +53,8 @@ export default function CafeHistoryTab({ invoiceGroups, people, historyRange, se
     total: g.totalAmount,
   }));
 
+  const resetPage = () => setCurrentPage(1);
+
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl border border-border p-4">
@@ -42,28 +62,73 @@ export default function CafeHistoryTab({ invoiceGroups, people, historyRange, se
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-muted-foreground block mb-1">از تاریخ</label>
-            <JalaliDateInput value={historyRange.start} onChange={v => setHistoryRange({ ...historyRange, start: v })} />
+            <JalaliDateInput value={historyRange.start} onChange={v => { setHistoryRange({ ...historyRange, start: v }); resetPage(); }} showToday={false} />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">تا تاریخ</label>
-            <JalaliDateInput value={historyRange.end} onChange={v => setHistoryRange({ ...historyRange, end: v })} />
+            <JalaliDateInput value={historyRange.end} onChange={v => { setHistoryRange({ ...historyRange, end: v }); resetPage(); }} />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-border p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">وضعیت پرداخت</label>
+            <select value={filters.paidStatus} onChange={e => { setFilters({ ...filters, paidStatus: e.target.value }); resetPage(); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+              <option value="all">همه</option>
+              <option value="paid">پرداخت شده</option>
+              <option value="unpaid">پرداخت‌نشده</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">نام مشتری</label>
+            <input type="text" placeholder="جستجو نام..." value={filters.customerName} onChange={e => { setFilters({ ...filters, customerName: e.target.value }); resetPage(); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>
+            <select value={filters.paymentMethod} onChange={e => { setFilters({ ...filters, paymentMethod: e.target.value }); resetPage(); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+              <option value="all">همه</option>
+              {Object.entries(paymentMethodLabels).filter(([k]) => k !== 'azno').map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between gap-2 flex-wrap">
-          <h3 className="text-sm font-semibold">فاکتورهای تاریخچه</h3>
+          <h3 className="text-sm font-semibold">فاکتورهای بازه انتخاب شده ({toPersianNum(filteredGroups.length)})</h3>
           {filteredGroups.length > 0 && <ExportButton filename="فاکتورهای-کافه-تاریخچه" columns={cafeExportColumns} rows={exportRows} />}
         </div>
         <InvoiceList
-          groups={filteredGroups}
+          groups={paginatedGroups}
           people={people}
           onTogglePaid={onTogglePaid}
           onSaveEdit={onSaveEdit}
           onDelete={onDelete}
           emptyMessage="در این بازه فاکتوری ثبت نشده است"
         />
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 p-4 border-t border-border">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={safePage === 1}
+              className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 hover:bg-muted"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <span className="text-sm text-muted-foreground">
+              صفحه {toPersianNum(safePage)} از {toPersianNum(totalPages)}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={safePage === totalPages}
+              className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 hover:bg-muted"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

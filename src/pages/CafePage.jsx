@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { findOrCreatePerson } from '@/lib/stats';
 import { todayGregorian, getJalaliParts, jalaliToGregorianStr, jalaliMonthNames } from '@/lib/jalali';
 import { Skeleton } from '@/components/SkeletonPatterns';
+import { ArrowRight } from 'lucide-react';
 import CafeOrderTab from '@/components/cafe/CafeOrderTab';
 import CafeInventoryTab from '@/components/cafe/CafeInventoryTab';
 import CafeCategoryTab from '@/components/cafe/CafeCategoryTab';
@@ -15,8 +16,8 @@ export default function CafePage() {
   const [people, setPeople] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mainTab, setMainTab] = useState('register');
-  const [subTab, setSubTab] = useState('orders');
+  const [mainTab, setMainTab] = useState('order');
+  const [orderView, setOrderView] = useState('order');
 
   const todayParts = getJalaliParts(todayGregorian());
   const currentMonthName = jalaliMonthNames[todayParts.jm - 1];
@@ -47,7 +48,7 @@ export default function CafePage() {
   const invoiceGroups = (() => {
     const groups = {};
     purchases.forEach(p => {
-      const key = p.invoice_id || `no-inv-${p.id}`;
+      const key = p.invoice_id || `no-inv-${p.person_phone}-${p.purchase_date}`;
       if (!groups[key]) groups[key] = { invoiceId: p.invoice_id, items: [], person_name: p.person_name, person_phone: p.person_phone, purchase_date: p.purchase_date, payment_method: p.payment_method, purchase_reason: p.purchase_reason, is_paid: p.is_paid };
       groups[key].items.push(p);
     });
@@ -65,9 +66,9 @@ export default function CafePage() {
       await base44.entities.ItemPurchase.updateMany({ invoice_id: group.invoiceId }, { $set: { is_paid: newPaid } });
       setPurchases(prev => prev.map(p => p.invoice_id === group.invoiceId ? { ...p, is_paid: newPaid } : p));
     } else {
-      const itemId = group.items[0].id;
-      await base44.entities.ItemPurchase.update(itemId, { is_paid: newPaid });
-      setPurchases(prev => prev.map(p => p.id === itemId ? { ...p, is_paid: newPaid } : p));
+      const itemIds = group.items.map(i => i.id);
+      await base44.entities.ItemPurchase.updateMany({ id: { $in: itemIds } }, { $set: { is_paid: newPaid } });
+      setPurchases(prev => prev.map(p => itemIds.includes(p.id) ? { ...p, is_paid: newPaid } : p));
     }
   };
 
@@ -77,9 +78,9 @@ export default function CafePage() {
       await base44.entities.ItemPurchase.updateMany({ invoice_id: group.invoiceId }, { $set: updates });
       setPurchases(prev => prev.map(p => p.invoice_id === group.invoiceId ? { ...p, ...updates } : p));
     } else {
-      const itemId = group.items[0].id;
-      await base44.entities.ItemPurchase.update(itemId, updates);
-      setPurchases(prev => prev.map(p => p.id === itemId ? { ...p, ...updates } : p));
+      const itemIds = group.items.map(i => i.id);
+      await base44.entities.ItemPurchase.updateMany({ id: { $in: itemIds } }, { $set: updates });
+      setPurchases(prev => prev.map(p => itemIds.includes(p.id) ? { ...p, ...updates } : p));
     }
   };
 
@@ -88,9 +89,9 @@ export default function CafePage() {
       await base44.entities.ItemPurchase.deleteMany({ invoice_id: group.invoiceId });
       setPurchases(prev => prev.filter(p => p.invoice_id !== group.invoiceId));
     } else {
-      const itemId = group.items[0].id;
-      await base44.entities.ItemPurchase.delete(itemId);
-      setPurchases(prev => prev.filter(p => p.id !== itemId));
+      const itemIds = group.items.map(i => i.id);
+      await base44.entities.ItemPurchase.deleteMany({ id: { $in: itemIds } });
+      setPurchases(prev => prev.filter(p => !itemIds.includes(p.id)));
     }
   };
 
@@ -122,7 +123,6 @@ export default function CafePage() {
       }))
     );
 
-    // Fetch the newly created purchases and merge into state (no full refetch)
     const newPurchases = await base44.entities.ItemPurchase.filter({ invoice_id: invoiceId });
     setPurchases(prev => [...newPurchases, ...prev]);
     if (person && !people.find(p => p.phone === checkout.person_phone)) {
@@ -136,7 +136,7 @@ export default function CafePage() {
       await base44.entities.InventoryItem.update(editingItemId, { name: form.name, category: form.category, price: Number(form.price) || 0, brand: form.brand || '' });
       setItems(prev => prev.map(i => i.id === editingItemId ? { ...i, ...form, price: Number(form.price) || 0 } : i));
     } else {
-      const created = await base44.entities.InventoryItem.create({ ...form, price: Number(form.price) || 0 });
+      const created = await base44.entities.InventoryItem.create({ ...form, price: Number(form.price) || 0, is_visible: true });
       setItems(prev => [created, ...prev]);
     }
   };
@@ -144,6 +144,12 @@ export default function CafePage() {
   const deleteItem = async (id) => {
     await base44.entities.InventoryItem.delete(id);
     setItems(prev => prev.filter(i => i.id !== id));
+  };
+
+  const toggleItemVisible = async (id, currentVisible) => {
+    const newVisible = !currentVisible;
+    await base44.entities.InventoryItem.update(id, { is_visible: newVisible });
+    setItems(prev => prev.map(i => i.id === id ? { ...i, is_visible: newVisible } : i));
   };
 
   // ─── Category handlers ───
@@ -171,14 +177,9 @@ export default function CafePage() {
   }
 
   const mainTabs = [
-    { key: 'register', label: 'ثبت' },
-    { key: 'history', label: 'تاریخچه' },
+    { key: 'order', label: 'سفارش جدید' },
+    { key: 'history', label: 'تاریخچه سفارشات' },
     { key: 'report', label: 'گزارش' },
-  ];
-  const subTabs = [
-    { key: 'orders', label: 'سفارش جدید' },
-    { key: 'inventory', label: 'انبار آیتم‌ها' },
-    { key: 'categories', label: 'کتگوری' },
   ];
 
   return (
@@ -194,14 +195,14 @@ export default function CafePage() {
         ))}
       </div>
 
-      {mainTab === 'register' && (
+      {mainTab === 'order' && (
         <>
-          <div className="flex gap-2 flex-wrap">
-            {subTabs.map(t => (
-              <button key={t.key} onClick={() => setSubTab(t.key)} className={`px-4 py-2 rounded-lg text-sm font-medium ${subTab === t.key ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>{t.label}</button>
-            ))}
-          </div>
-          {subTab === 'orders' && (
+          {orderView !== 'order' && (
+            <button onClick={() => setOrderView('order')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowRight className="w-4 h-4" /> بازگشت به سفارش جدید
+            </button>
+          )}
+          {orderView === 'order' && (
             <CafeOrderTab
               items={items}
               people={people}
@@ -210,17 +211,20 @@ export default function CafePage() {
               onTogglePaid={toggleInvoicePaid}
               onSaveEdit={saveEditInvoice}
               onDelete={deleteInvoice}
+              onEditInventory={() => setOrderView('inventory')}
             />
           )}
-          {subTab === 'inventory' && (
+          {orderView === 'inventory' && (
             <CafeInventoryTab
               items={items}
               categories={categories}
               onItemSubmit={handleItemSubmit}
               onDeleteItem={deleteItem}
+              onToggleVisible={toggleItemVisible}
+              onEditCategories={() => setOrderView('categories')}
             />
           )}
-          {subTab === 'categories' && (
+          {orderView === 'categories' && (
             <CafeCategoryTab
               categories={categories}
               onCategorySubmit={handleCategorySubmit}
