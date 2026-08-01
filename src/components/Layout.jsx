@@ -25,7 +25,7 @@ const navGroups = [
     children: [
       { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },
       { path: '/attendance', label: 'حضور غیاب', icon: ClipboardCheck },
-      { path: '/workshop-registrations', label: 'ثبت‌نام افراد در کارگاه‌ها', icon: ClipboardList },
+      { path: '/workshop-registrations', label: 'ثبت‌نام کارگاه‌ها', icon: ClipboardList },
     ]
   },
   {

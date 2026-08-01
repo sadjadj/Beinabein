@@ -87,7 +87,6 @@ export default function InvoiceDetail() {
         how_met: invoice.how_met || 'other',
         is_paid: invoice.is_paid || false,
         registered_sessions: invoice.registered_sessions || '',
-        notes: invoice.notes || '',
       });
     }
     setEditing(true);
@@ -118,10 +117,7 @@ export default function InvoiceDetail() {
           is_paid: form.is_paid,
         };
         if (cfg.hasHowMet) payload.how_met = form.how_met || 'other';
-        if (type === 'workshop') {
-          payload.registered_sessions = form.registered_sessions ? Number(form.registered_sessions) : null;
-          payload.notes = form.notes || '';
-        }
+        if (type === 'workshop') payload.registered_sessions = form.registered_sessions ? Number(form.registered_sessions) : null;
         await base44.entities[cfg.entity].update(id, payload);
       }
       setEditing(false);
@@ -244,12 +240,6 @@ export default function InvoiceDetail() {
                     <PersianNumberInput value={form.registered_sessions} onChange={v => setForm({ ...form, registered_sessions: v })} placeholder="تعداد جلسات" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />
                   </div>
                 )}
-                {type === 'workshop' && (
-                  <div className="sm:col-span-2">
-                    <label className="text-xs text-muted-foreground block mb-1">توضیحات</label>
-                    <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-                  </div>
-                )}
                 <label className="flex items-center gap-2 text-sm self-end pb-2">
                   <input type="checkbox" checked={form.is_paid} onChange={e => setForm({ ...form, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
                 </label>
@@ -349,13 +339,6 @@ export default function InvoiceDetail() {
                 </div>
               )}
             </div>
-
-            {type === 'workshop' && invoice.notes && (
-              <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-1">توضیحات</p>
-                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed bg-muted/30 rounded-lg p-3">{invoice.notes}</p>
-              </div>
-            )}
 
             <div className="mt-6 pt-6 border-t border-border flex items-center justify-between">
               <span className="text-sm text-muted-foreground">وضعیت پرداخت</span>
