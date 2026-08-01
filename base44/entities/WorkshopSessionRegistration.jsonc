@@ -1,0 +1,31 @@
+{
+  "name": "WorkshopSessionRegistration",
+  "type": "object",
+  "properties": {
+    "workshop_id": {
+      "type": "string",
+      "title": "\u06a9\u0627\u0631\u06af\u0627\u0647"
+    },
+    "purchase_id": {
+      "type": "string",
+      "title": "\u062b\u0628\u062a\u200c\u0646\u0627\u0645"
+    },
+    "person_phone": {
+      "type": "string",
+      "title": "\u0634\u0645\u0627\u0631\u0647 \u062a\u0644\u0641\u0646"
+    },
+    "person_name": {
+      "type": "string",
+      "title": "\u0646\u0627\u0645 \u0645\u0634\u062a\u0631\u06cc"
+    },
+    "session_number": {
+      "type": "number",
+      "title": "\u0634\u0645\u0627\u0631\u0647 \u062c\u0644\u0633\u0647"
+    }
+  },
+  "required": [
+    "workshop_id",
+    "purchase_id",
+    "session_number"
+  ]
+}
