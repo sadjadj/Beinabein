@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import { GraduationCap, Users, Plus, Wallet, Search, Archive, Calendar, Clock, MapPin } from 'lucide-react';
@@ -22,23 +22,10 @@ export default function WorkshopsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [search, setSearch] = useState(searchParams.get('q') || '');
-  const [facilitatorFilter, setFacilitatorFilter] = useState(searchParams.get('fac') || '');
-  const [spaceFilter, setSpaceFilter] = useState(searchParams.get('space') || '');
-  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'date_desc');
-  const [archivedPage, setArchivedPage] = useState(1);
-  const PAGE_SIZE = 10;
-
-  useEffect(() => {
-    const params = {};
-    if (search) params.q = search;
-    if (facilitatorFilter) params.fac = facilitatorFilter;
-    if (spaceFilter) params.space = spaceFilter;
-    if (sortBy !== 'date_desc') params.sort = sortBy;
-    setSearchParams(params, { replace: true });
-    setArchivedPage(1);
-  }, [search, facilitatorFilter, spaceFilter, sortBy]);
+  const [search, setSearch] = useState('');
+  const [facilitatorFilter, setFacilitatorFilter] = useState('');
+  const [spaceFilter, setSpaceFilter] = useState('');
+  const [sortBy, setSortBy] = useState('date_desc');
   const [form, setForm] = useState({
     title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '',
     facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday',
@@ -109,10 +96,7 @@ export default function WorkshopsPage() {
   });
 
   const activeWorkshops = sortedWorkshops.filter(w => !w.is_ended);
-  const archivedWorkshops = [...filteredWorkshops].filter(w => w.is_ended)
-    .sort((a, b) => (b.updated_date || '').localeCompare(a.updated_date || ''));
-  const archivedTotalPages = Math.max(1, Math.ceil(archivedWorkshops.length / PAGE_SIZE));
-  const archivedPaged = archivedWorkshops.slice((archivedPage - 1) * PAGE_SIZE, archivedPage * PAGE_SIZE);
+  const archivedWorkshops = sortedWorkshops.filter(w => w.is_ended);
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -133,10 +117,10 @@ export default function WorkshopsPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="کارگاه‌های این ماه" value={toPersianNum(monthWorkshops.length)} icon={GraduationCap} color="terracotta" info="تعداد کارگاه‌هایی که در ماه شمسی جاری آغاز شده‌اند." />
-        <StatCard label="ثبت‌نامی این ماه" value={toPersianNum(monthPurchases.length)} icon={Users} color="teal" info="تعداد کل ثبت‌نام‌های انجام‌شده در ماه شمسی جاری." />
-        <StatCard label="افراد یونیک این ماه" value={toPersianNum(monthUniquePhones.size)} icon={Users} color="ochre" info="تعداد افراد متمایز (بر اساس شماره تلفن) که در ماه جاری ثبت‌نام کرده‌اند." />
-        <StatCard label="درآمد این ماه" value={formatCurrency(monthRevenue)} icon={Wallet} color="pink" info="مجموع درآمد حاصل از ثبت‌نام‌های کارگاه در ماه شمسی جاری (شامل دونیشین)." />
+        <StatCard label="کارگاه‌های این ماه" value={toPersianNum(monthWorkshops.length)} icon={GraduationCap} color="terracotta" />
+        <StatCard label="ثبت‌نامی این ماه" value={toPersianNum(monthPurchases.length)} icon={Users} color="teal" />
+        <StatCard label="افراد یونیک این ماه" value={toPersianNum(monthUniquePhones.size)} icon={Users} color="ochre" />
+        <StatCard label="درآمد این ماه" value={formatCurrency(monthRevenue)} icon={Wallet} color="pink" />
       </div>
 
       {showForm && (
@@ -295,7 +279,7 @@ export default function WorkshopsPage() {
                 </tr>
               </thead>
               <tbody>
-                {archivedPaged.map(w => {
+                {archivedWorkshops.map(w => {
                   const rev = computeWorkshopRevenue(w, purchases.filter(p => p.workshop_id === w.id));
                   const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
                   return (
@@ -315,13 +299,6 @@ export default function WorkshopsPage() {
               </tbody>
             </table>
           </div>
-          {archivedTotalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 p-3 border-t border-border">
-              <button onClick={() => setArchivedPage(p => Math.max(1, p - 1))} disabled={archivedPage === 1} className="px-3 py-1 rounded-lg border border-border text-xs disabled:opacity-40">قبلی</button>
-              <span className="text-xs text-muted-foreground">صفحه {toPersianNum(archivedPage)} از {toPersianNum(archivedTotalPages)}</span>
-              <button onClick={() => setArchivedPage(p => Math.min(archivedTotalPages, p + 1))} disabled={archivedPage === archivedTotalPages} className="px-3 py-1 rounded-lg border border-border text-xs disabled:opacity-40">بعدی</button>
-            </div>
-          )}
         </div>
       )}
     </div>
