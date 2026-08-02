@@ -81,6 +81,27 @@
     "registered_sessions": {
       "type": "number",
       "title": "\u062a\u0639\u062f\u0627\u062f \u062c\u0644\u0633\u0627\u062a \u062b\u0628\u062a\u200c\u0646\u0627\u0645\u06cc"
+    },
+    "description": {
+      "type": "string",
+      "title": "\u062a\u0648\u0636\u06cc\u062d\u0627\u062a"
+    },
+    "registration_type": {
+      "type": "string",
+      "enum": [
+        "full",
+        "single"
+      ],
+      "default": "full",
+      "title": "\u0646\u0648\u0639 \u062b\u0628\u062a\u200c\u0646\u0627\u0645"
+    },
+    "selected_sessions": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "default": [],
+      "title": "\u062c\u0644\u0633\u0627\u062a \u0627\u0646\u062a\u062e\u0627\u0628\u06cc"
     }
   },
   "required": [

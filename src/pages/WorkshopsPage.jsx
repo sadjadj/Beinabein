@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { GraduationCap, Users, Plus, Wallet, Search, Archive, Calendar, Clock, MapPin } from 'lucide-react';
+import { GraduationCap, Users, Plus, Wallet, Search, Archive, Calendar, Clock, MapPin, ChevronRight, ChevronLeft } from 'lucide-react';
 import FacilitatorMultiSearch from '@/components/FacilitatorMultiSearch';
 import { Link } from 'react-router-dom';
 import { computeWorkshopRevenue, toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
-import { todayGregorian, formatJalaliShort } from '@/lib/jalali';
+import { todayGregorian, formatJalaliShort, toJalaliStr } from '@/lib/jalali';
 import FloatingDateInput from '@/components/FloatingDateInput';
 import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
+import WorkshopCalendarPicker, { computeWorkshopFieldsFromDates } from '@/components/WorkshopCalendarPicker';
 
 export default function WorkshopsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [workshops, setWorkshops] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [facilitators, setFacilitators] = useState([]);
@@ -22,15 +24,28 @@ export default function WorkshopsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [search, setSearch] = useState('');
-  const [facilitatorFilter, setFacilitatorFilter] = useState('');
-  const [spaceFilter, setSpaceFilter] = useState('');
-  const [sortBy, setSortBy] = useState('date_desc');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [nameFilter, setNameFilter] = useState(searchParams.get('name') || '');
+  const [facilitatorFilter, setFacilitatorFilter] = useState(searchParams.get('facilitator') || '');
+  const [spaceFilter, setSpaceFilter] = useState(searchParams.get('space') || '');
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'date_desc');
+  const [archivedPage, setArchivedPage] = useState(1);
   const [form, setForm] = useState({
     title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '',
-    facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday',
-    start_date: todayGregorian(), end_date: '', facilitator_percentage: '', capacity: ''
+    facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: '',
+    start_date: '', end_date: '', facilitator_percentage: '', capacity: '', session_dates: []
   });
+
+  // Persist filters to URL
+  useEffect(() => {
+    const params = {};
+    if (search) params.search = search;
+    if (nameFilter) params.name = nameFilter;
+    if (facilitatorFilter) params.facilitator = facilitatorFilter;
+    if (spaceFilter) params.space = spaceFilter;
+    if (sortBy !== 'date_desc') params.sort = sortBy;
+    setSearchParams(params, { replace: true });
+  }, [search, nameFilter, facilitatorFilter, spaceFilter, sortBy]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -55,15 +70,29 @@ export default function WorkshopsPage() {
     if (!form.title) return;
     setSubmitting(true);
     try {
+      const computed = computeWorkshopFieldsFromDates(form.session_dates || []);
       const payload = {
         ...form,
+        ...computed,
         price: Number(form.price) || 0,
-        session_count: form.is_permanent ? null : (Number(form.session_count) || null),
+        session_count: form.is_permanent ? null : (Number(computed.session_count) || null),
         facilitator_percentage: Number(form.facilitator_percentage) || 0,
         capacity: Number(form.capacity) || null
       };
-      await base44.entities.Workshop.create(payload);
-      setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '', capacity: '' });
+      const created = await base44.entities.Workshop.create(payload);
+      // Create WorkshopSession records for each selected date
+      if (computed.session_dates.length > 0) {
+        await base44.entities.WorkshopSession.bulkCreate(
+          computed.session_dates.map((date, i) => ({
+            workshop_id: created.id,
+            workshop_title: form.title,
+            session_number: i + 1,
+            session_date: date,
+            present_phones: []
+          }))
+        );
+      }
+      setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: '', start_date: '', end_date: '', facilitator_percentage: '', capacity: '', session_dates: [] });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -80,6 +109,7 @@ export default function WorkshopsPage() {
   const filteredWorkshops = workshops.filter(w => {
     if (facilitatorFilter && !(w.facilitator_ids || []).includes(facilitatorFilter)) return false;
     if (spaceFilter && w.space !== spaceFilter) return false;
+    if (nameFilter && !(w.title || '').toLowerCase().includes(nameFilter.toLowerCase())) return false;
     if (!search) return true;
     const s = search.toLowerCase();
     const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join(' ');
@@ -96,7 +126,11 @@ export default function WorkshopsPage() {
   });
 
   const activeWorkshops = sortedWorkshops.filter(w => !w.is_ended);
-  const archivedWorkshops = sortedWorkshops.filter(w => w.is_ended);
+  const archivedWorkshops = sortedWorkshops.filter(w => w.is_ended).sort((a, b) => (b.updated_date || '').localeCompare(a.updated_date || ''));
+  const ARCHIVED_PAGE_SIZE = 10;
+  const archivedTotalPages = Math.max(1, Math.ceil(archivedWorkshops.length / ARCHIVED_PAGE_SIZE));
+  const currentPage = Math.min(archivedPage, archivedTotalPages);
+  const paginatedArchived = archivedWorkshops.slice((currentPage - 1) * ARCHIVED_PAGE_SIZE, currentPage * ARCHIVED_PAGE_SIZE);
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -110,17 +144,17 @@ export default function WorkshopsPage() {
             <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
             <input type="text" placeholder="جستجو..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-56" />
           </div>
-          <button onClick={() => { setShowForm(!showForm); setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: 'saturday', start_date: todayGregorian(), end_date: '', facilitator_percentage: '', capacity: '' }); }} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
+          <button onClick={() => { setShowForm(!showForm); setForm({ title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '', facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: '', start_date: '', end_date: '', facilitator_percentage: '', capacity: '', session_dates: [] }); }} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
             <Plus className="w-4 h-4" /> ثبت کارگاه
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="کارگاه‌های این ماه" value={toPersianNum(monthWorkshops.length)} icon={GraduationCap} color="terracotta" />
-        <StatCard label="ثبت‌نامی این ماه" value={toPersianNum(monthPurchases.length)} icon={Users} color="teal" />
-        <StatCard label="افراد یونیک این ماه" value={toPersianNum(monthUniquePhones.size)} icon={Users} color="ochre" />
-        <StatCard label="درآمد این ماه" value={formatCurrency(monthRevenue)} icon={Wallet} color="pink" />
+        <StatCard label="کارگاه‌های این ماه" value={toPersianNum(monthWorkshops.length)} icon={GraduationCap} color="terracotta" info="تعداد کارگاه‌هایی که در ماه جاری شمسی شروع شده‌اند (بر اساس تاریخ شروع کارگاه)" />
+        <StatCard label="ثبت‌نامی این ماه" value={toPersianNum(monthPurchases.length)} icon={Users} color="teal" info="تعداد کل ثبت‌نام‌های انجام شده در ماه جاری شمسی (بر اساس تاریخ ثبت‌نام)" />
+        <StatCard label="افراد یونیک این ماه" value={toPersianNum(monthUniquePhones.size)} icon={Users} color="ochre" info="تعداد افراد یکتایی که در ماه جاری شمسی در کارگاه‌ها ثبت‌نام کرده‌اند (بر اساس شماره تلفن)" />
+        <StatCard label="درآمد این ماه" value={formatCurrency(monthRevenue)} icon={Wallet} color="pink" info="مجموع درآمد حاصل از ثبت‌نام کارگاه‌ها در ماه جاری شمسی (شامل قیمت و دونیشین)" />
       </div>
 
       {showForm && (
@@ -134,10 +168,6 @@ export default function WorkshopsPage() {
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
                 <PriceInput value={form.price} onChange={v => setForm({ ...form, price: v })} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">تعداد جلسه</label>
-                <PersianNumberInput value={form.session_count} onChange={v => setForm({ ...form, session_count: v })} placeholder="تعداد جلسه" required={false} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-28 text-right disabled:opacity-50" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">درصد تسهیلگر</label>
@@ -162,27 +192,40 @@ export default function WorkshopsPage() {
                 <input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">روز کارگاه</label>
-                <select value={form.day_of_week} onChange={e => setForm({ ...form, day_of_week: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                  {Object.entries(dayLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
-              <div>
                 <label className="text-xs text-muted-foreground block mb-1">فضای برگزاری</label>
                 <select value={form.space} onChange={e => setForm({ ...form, space: e.target.value })} className="px-4 py-2 rounded-lg border border-input bg-background text-sm min-w-[160px]">
                   <option value="">انتخاب فضا...</option>
                   {spaces.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
               </div>
-              <div className="flex items-end gap-2">
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع</label>
-                  <FloatingDateInput value={form.start_date} onChange={v => setForm({ ...form, start_date: v })} showToday={false} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان</label>
-                  <FloatingDateInput value={form.end_date} onChange={v => setForm({ ...form, end_date: v })} showToday={false} placeholder="" />
-                </div>
+            </div>
+            {/* Workshop Calendar Picker */}
+            <div className="relative">
+              <WorkshopCalendarPicker
+                selectedDates={form.session_dates || []}
+                onChange={(dates) => {
+                  const computed = computeWorkshopFieldsFromDates(dates);
+                  setForm(prev => ({ ...prev, ...computed }));
+                }}
+              />
+            </div>
+            {/* Auto-filled read-only fields */}
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">تعداد جلسه (خودکار)</label>
+                <input type="text" value={form.session_count ? toPersianNum(form.session_count) : ''} readOnly placeholder="—" className="px-3 py-2 rounded-lg border border-input bg-muted/50 text-sm w-28 text-right" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع (خودکار)</label>
+                <input type="text" value={form.start_date ? toJalaliStr(form.start_date) : ''} readOnly placeholder="—" className="px-3 py-2 rounded-lg border border-input bg-muted/50 text-sm w-32 text-center" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">تاریخ پایان (خودکار)</label>
+                <input type="text" value={form.end_date ? toJalaliStr(form.end_date) : ''} readOnly placeholder="—" className="px-3 py-2 rounded-lg border border-input bg-muted/50 text-sm w-32 text-center" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">روز کارگاه (خودکار)</label>
+                <input type="text" value={form.day_of_week || ''} readOnly placeholder="—" className="px-3 py-2 rounded-lg border border-input bg-muted/50 text-sm min-w-[140px]" />
               </div>
             </div>
             <textarea placeholder="توضیحات کارگاه" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
@@ -206,6 +249,7 @@ export default function WorkshopsPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
+        <input type="text" placeholder="فیلتر نام کارگاه..." value={nameFilter} onChange={e => setNameFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm w-40" />
         <select value={facilitatorFilter} onChange={e => setFacilitatorFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
           <option value="">همه تسهیلگرها</option>
           {facilitators.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
@@ -244,7 +288,7 @@ export default function WorkshopsPage() {
                     {w.is_permanent && <span className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs flex-shrink-0">دائمی</span>}
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3 text-xs text-muted-foreground">
-                    {w.day_of_week && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {dayLabels[w.day_of_week]}</span>}
+                    {w.day_of_week && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {dayLabels[w.day_of_week] || w.day_of_week}</span>}
                     {(w.start_time || w.end_time) && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {w.start_time}{w.end_time ? ` - ${w.end_time}` : ''}</span>}
                     {w.space && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {w.space}</span>}
                   </div>
@@ -279,7 +323,7 @@ export default function WorkshopsPage() {
                 </tr>
               </thead>
               <tbody>
-                {archivedWorkshops.map(w => {
+                {paginatedArchived.map(w => {
                   const rev = computeWorkshopRevenue(w, purchases.filter(p => p.workshop_id === w.id));
                   const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
                   return (
@@ -289,7 +333,7 @@ export default function WorkshopsPage() {
                         {w.tags && <p className="text-xs text-muted-foreground mt-0.5">{w.tags}</p>}
                       </td>
                       <td className="p-3 text-muted-foreground text-xs">{facNames || '-'}</td>
-                      <td className="p-3 text-xs">{w.day_of_week ? dayLabels[w.day_of_week] : '-'}</td>
+                      <td className="p-3 text-xs">{w.day_of_week ? (dayLabels[w.day_of_week] || w.day_of_week) : '-'}</td>
                       <td className="p-3 text-xs whitespace-nowrap">{w.start_date ? formatJalaliShort(w.start_date) : '-'}</td>
                       <td className="p-3 text-xs">{w.space || '-'}</td>
                       <td className="p-3 text-center font-medium">{toPersianNum(rev.purchaseCount)}</td>
@@ -299,6 +343,17 @@ export default function WorkshopsPage() {
               </tbody>
             </table>
           </div>
+          {archivedTotalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 p-3 border-t border-border">
+              <button onClick={() => setArchivedPage(Math.max(1, currentPage - 1))} disabled={currentPage <= 1} className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <span className="text-sm text-muted-foreground">صفحه {toPersianNum(currentPage)} از {toPersianNum(archivedTotalPages)}</span>
+              <button onClick={() => setArchivedPage(Math.min(archivedTotalPages, currentPage + 1))} disabled={currentPage >= archivedTotalPages} className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

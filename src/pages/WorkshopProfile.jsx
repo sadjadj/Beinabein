@@ -31,6 +31,7 @@ export default function WorkshopProfile() {
   const [capacityWarning, setCapacityWarning] = useState('');
   const [plans, setPlans] = useState([]);
   const [planForm, setPlanForm] = useState({ name: '', price: '' });
+  const [regSessionTab, setRegSessionTab] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -51,6 +52,16 @@ export default function WorkshopProfile() {
       setSpaces(spcs);
       setPersons(ppl);
       setPlans(planList.filter(p => p.workshop_id === id));
+      // Set default reg session tab: latest session whose date has arrived
+      const wsSess = sess.filter(s => s.workshop_id === id).sort((a, b) => (a.session_number || 0) - (b.session_number || 0));
+      const today = todayGregorian();
+      const pastSessions = wsSess.filter(s => s.session_date && s.session_date <= today);
+      if (pastSessions.length > 0) {
+        const latest = pastSessions.sort((a, b) => (b.session_date || '').localeCompare(a.session_date || ''))[0];
+        setRegSessionTab(latest.id);
+      } else if (wsSess.length > 0) {
+        setRegSessionTab(wsSess[wsSess.length - 1].id);
+      }
     } finally { setLoading(false); }
   };
 
@@ -170,7 +181,7 @@ export default function WorkshopProfile() {
     setSubmitting(true);
     try {
       await findOrCreatePerson(regForm.person_phone, regForm.person_name);
-      await base44.entities.WorkshopPurchase.create({
+      const newPurchase = await base44.entities.WorkshopPurchase.create({
         workshop_id: id,
         workshop_title: workshop.title,
         person_name: regForm.person_name,
@@ -185,21 +196,21 @@ export default function WorkshopProfile() {
         donation: Number(regForm.donation) || 0,
         plan_name: plans.find(p => p.id === regForm.plan_id)?.name || ''
       });
+      setPurchases(prev => [newPurchase, ...prev]);
       setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '', donation: '', plan_id: '' });
       setCapacityWarning('');
       setShowAddReg(false);
-      fetchData();
     } finally { setSubmitting(false); }
   };
 
   const deleteRegistration = async (purchaseId) => {
+    setPurchases(prev => prev.filter(x => x.id !== purchaseId));
     await base44.entities.WorkshopPurchase.delete(purchaseId);
-    fetchData();
   };
 
   const toggleRegPaid = async (p) => {
+    setPurchases(prev => prev.map(x => x.id === p.id ? { ...x, is_paid: !p.is_paid } : x));
     await base44.entities.WorkshopPurchase.update(p.id, { is_paid: !p.is_paid });
-    fetchData();
   };
 
   const addPlan = async () => {
@@ -236,9 +247,25 @@ export default function WorkshopProfile() {
   const rev = computeWorkshopRevenue(workshop, purchases);
   const facNames = (workshop.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean);
 
+  const isNewWorkshop = workshop.session_dates && workshop.session_dates.length > 0;
+  const getSessionParticipants = (session) => {
+    if (isNewWorkshop) {
+      return purchases.filter(p => {
+        if (p.registration_type === 'full') return true;
+        if (p.registration_type === 'single' && p.selected_sessions) {
+          return p.selected_sessions.includes(session.session_number);
+        }
+        return true;
+      });
+    }
+    return purchases;
+  };
+  const activeRegSession = sessions.find(s => s.id === regSessionTab);
+  const activeRegParticipants = activeRegSession ? getSessionParticipants(activeRegSession) : purchases;
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/workshops'); }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowRight className="w-4 h-4" /> بازگشت
       </button>
 
@@ -419,6 +446,56 @@ export default function WorkshopProfile() {
               )}
               {purchases.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">هنوز ثبت‌نامی وجود ندارد</p>
+              ) : sessions.length > 0 ? (
+                <div>
+                  {/* Session tabs */}
+                  <div className="flex items-center gap-1.5 flex-wrap mb-3 border-b border-border pb-2">
+                    {sessions.map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => setRegSessionTab(s.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          regSessionTab === s.id
+                            ? 'bg-[#B74B40] text-white'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        جلسه {toPersianNum(s.session_number)}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Session info */}
+                  {activeRegSession && (
+                    <div className="mb-2 text-xs text-muted-foreground">
+                      {formatJalali(activeRegSession.session_date)} • {toPersianNum(activeRegParticipants.length)} نفر
+                    </div>
+                  )}
+                  {/* Participant list for active session */}
+                  {activeRegParticipants.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">در این جلسه ثبت‌نامی وجود ندارد</p>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {activeRegParticipants.map(p => (
+                        <div key={p.id} className="py-2.5 flex items-center justify-between text-sm">
+                          <div>
+                            {personByPhone[p.person_phone]
+                              ? <Link to={`/people/${personByPhone[p.person_phone].id}`} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
+                              : <span className="font-medium">{p.person_name || '-'}</span>}
+                            {p.plan_name && <span className="text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
+                            {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
+                            {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
+                            <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{paymentMethodLabels[p.payment_method] || p.payment_method}</span>
+                            <button onClick={() => toggleRegPaid(p)} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
+                            <button onClick={() => deleteRegistration(p.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="divide-y divide-border">
                   {purchases.map(p => (

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Plus, Check, X, Calendar as CalendarIcon, Users, Trash2, Pencil } from 'lucide-react';
+import { ArrowRight, Plus, Check, X, Calendar as CalendarIcon, Users } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
@@ -17,8 +17,7 @@ export default function WorkshopAttendancePage() {
   const [showAddSession, setShowAddSession] = useState(false);
   const [newSessionDate, setNewSessionDate] = useState(todayGregorian());
   const [submitting, setSubmitting] = useState(false);
-  const [editingSessionId, setEditingSessionId] = useState(null);
-  const [editSessionDate, setEditSessionDate] = useState('');
+  const [activeSessionId, setActiveSessionId] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -30,7 +29,18 @@ export default function WorkshopAttendancePage() {
       ]);
       setWorkshop(w);
       setPurchases(purchs.filter(p => p.workshop_id === workshopId));
-      setSessions(sess.filter(s => s.workshop_id === workshopId).sort((a, b) => (b.session_number || 0) - (a.session_number || 0)));
+      const sortedSessions = sess.filter(s => s.workshop_id === workshopId).sort((a, b) => (a.session_number || 0) - (b.session_number || 0));
+      setSessions(sortedSessions);
+
+      // Determine default tab: latest session whose date has arrived
+      const today = todayGregorian();
+      const pastSessions = sortedSessions.filter(s => s.session_date && s.session_date <= today);
+      if (pastSessions.length > 0) {
+        const latest = pastSessions.sort((a, b) => (b.session_date || '').localeCompare(a.session_date || ''))[0];
+        setActiveSessionId(latest.id);
+      } else if (sortedSessions.length > 0) {
+        setActiveSessionId(sortedSessions[sortedSessions.length - 1].id);
+      }
     } finally { setLoading(false); }
   };
 
@@ -40,47 +50,49 @@ export default function WorkshopAttendancePage() {
     setSubmitting(true);
     try {
       const nextNumber = (sessions.length > 0 ? Math.max(...sessions.map(s => s.session_number || 0)) : 0) + 1;
-      await base44.entities.WorkshopSession.create({
+      const created = await base44.entities.WorkshopSession.create({
         workshop_id: workshopId,
         workshop_title: workshop.title,
         session_number: nextNumber,
         session_date: newSessionDate,
         present_phones: []
       });
+      setSessions(prev => [...prev, created].sort((a, b) => (a.session_number || 0) - (b.session_number || 0)));
       setShowAddSession(false);
       setNewSessionDate(todayGregorian());
-      fetchData();
+      setActiveSessionId(created.id);
     } finally { setSubmitting(false); }
   };
 
   const toggleAttendance = async (session, phone) => {
     const present = session.present_phones || [];
     const updated = present.includes(phone) ? present.filter(p => p !== phone) : [...present, phone];
+    // Optimistic update - no full page refresh
+    setSessions(prev => prev.map(s => s.id === session.id ? { ...s, present_phones: updated } : s));
     await base44.entities.WorkshopSession.update(session.id, { present_phones: updated });
-    fetchData();
   };
 
-  const deleteSession = async (sessionId) => {
-    await base44.entities.WorkshopSession.delete(sessionId);
-    setEditingSessionId(null);
-    fetchData();
+  const isNewWorkshop = workshop?.session_dates && workshop.session_dates.length > 0;
+
+  const getSessionParticipants = (session) => {
+    if (isNewWorkshop) {
+      return purchases.filter(p => {
+        if (p.registration_type === 'full') return true;
+        if (p.registration_type === 'single' && p.selected_sessions) {
+          return p.selected_sessions.includes(session.session_number);
+        }
+        // Backward compatibility: no registration_type = show all
+        return true;
+      });
+    }
+    return purchases;
   };
 
-  const updateSessionDate = async (sessionId) => {
-    await base44.entities.WorkshopSession.update(sessionId, { session_date: editSessionDate });
-    setEditingSessionId(null);
-    fetchData();
-  };
-
-  const startEditSession = (session) => {
-    setEditingSessionId(session.id);
-    setEditSessionDate(session.session_date || todayGregorian());
-  };
+  const activeSession = sessions.find(s => s.id === activeSessionId);
+  const activeParticipants = activeSession ? getSessionParticipants(activeSession) : [];
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
   if (!workshop) return <div className="p-6 text-center text-muted-foreground">کارگاهی یافت نشد</div>;
-
-  const participants = purchases.map(p => ({ name: p.person_name, phone: p.person_phone }));
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -93,8 +105,9 @@ export default function WorkshopAttendancePage() {
           <div>
             <Link to={`/workshops/${workshop.id}`} className="text-xl font-bold hover:text-[#B74B40] transition-colors">{workshop.title}</Link>
             <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
-              {workshop.day_of_week && <span className="flex items-center gap-1"><CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[workshop.day_of_week]} {(workshop.start_time || workshop.end_time) && `• ${workshop.start_time || ''}${workshop.end_time ? ' تا ' + workshop.end_time : ''}`}</span>}
-              <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {toPersianNum(participants.length)} ثبت‌نامی</span>
+              {workshop.day_of_week && <span className="flex items-center gap-1"><CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[workshop.day_of_week] || workshop.day_of_week}</span>}
+              {(workshop.start_time || workshop.end_time) && <span>{workshop.start_time || ''}{workshop.end_time ? ` تا ${workshop.end_time}` : ''}</span>}
+              <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {toPersianNum(purchases.length)} ثبت‌نامی</span>
             </div>
           </div>
           <button onClick={() => setShowAddSession(!showAddSession)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
@@ -117,78 +130,81 @@ export default function WorkshopAttendancePage() {
         <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground">
           هنوز جلسه‌ای ثبت نشده است. روی «جلسه جدید» کلیک کنید.
         </div>
-      ) : (
-        <div className="space-y-4">
-          {sessions.map(session => {
-            const presentSet = new Set(session.present_phones || []);
-            const presentCount = (session.present_phones || []).length;
-            return (
-              <div key={session.id} className="bg-white rounded-xl border border-border overflow-hidden">
-                <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-[#B74B40] text-white flex items-center justify-center text-sm font-bold">
-                      {toPersianNum(session.session_number)}
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold">جلسه {toPersianNum(session.session_number)}</p>
-                      <p className="text-xs text-muted-foreground">{toJalaliStr(session.session_date)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">{toPersianNum(presentCount)} از {toPersianNum(participants.length)} نفر حاضر</span>
-                    {editingSessionId === session.id ? (
-                      <div className="flex items-center gap-2">
-                        <JalaliDateInput value={editSessionDate} onChange={setEditSessionDate} showToday={false} />
-                        <button onClick={() => updateSessionDate(session.id)} className="text-green-600 hover:text-green-700"><Check className="w-4 h-4" /></button>
-                        <button onClick={() => setEditingSessionId(null)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
-                      </div>
-                    ) : (
-                      <button onClick={() => startEditSession(session)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
-                    )}
-                    <button onClick={() => deleteSession(session.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+      : (
+        <div>
+          {/* Session tabs */}
+          <div className="flex items-center gap-2 flex-wrap border-b border-border pb-1">
+            {sessions.map(session => (
+              <button
+                key={session.id}
+                onClick={() => setActiveSessionId(session.id)}
+                className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+                  activeSessionId === session.id
+                    ? 'bg-[#B74B40] text-white'
+                    : 'bg-white border border-border text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                جلسه {toPersianNum(session.session_number)}
+              </button>
+            ))}
+          </div>
+
+          {/* Active session content */}
+          {activeSession && (
+            <div className="bg-white rounded-xl border border-border overflow-hidden">
+              <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-full bg-[#B74B40] text-white flex items-center justify-center text-sm font-bold">
+                    {toPersianNum(activeSession.session_number)}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">جلسه {toPersianNum(activeSession.session_number)}</p>
+                    <p className="text-xs text-muted-foreground">{toJalaliStr(activeSession.session_date)}</p>
                   </div>
                 </div>
-                {participants.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">هنوز کسی در این کارگاه ثبت‌نام نکرده است</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted/30">
-                        <tr>
-                          <th className="text-right p-3 font-medium">نام</th>
-                          <th className="text-right p-3 font-medium">شماره تلفن</th>
-                          <th className="text-center p-3 font-medium">حضور</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {participants.map(p => {
-                          const isPresent = presentSet.has(p.phone);
-                          return (
-                            <tr key={p.phone} className="border-t border-border hover:bg-muted/20">
-                              <td className="p-3 font-medium">{p.name || '-'}</td>
-                              <td className="p-3 text-muted-foreground">{p.phone}</td>
-                              <td className="p-3 text-center">
-                                <button
-                                  onClick={() => toggleAttendance(session, p.phone)}
-                                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                                    isPresent
-                                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                      : 'bg-red-50 text-red-600 hover:bg-red-100'
-                                  }`}
-                                >
-                                  {isPresent ? <><Check className="w-3.5 h-3.5" /> حاضر</> : <><X className="w-3.5 h-3.5" /> غایب</>}
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <span className="text-xs text-muted-foreground">{toPersianNum((activeSession.present_phones || []).length)} از {toPersianNum(activeParticipants.length)} نفر حاضر</span>
               </div>
-            );
-          })}
+              {activeParticipants.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">هنوز کسی در این جلسه ثبت‌نام نکرده است</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/30">
+                      <tr>
+                        <th className="text-right p-3 font-medium">نام</th>
+                        <th className="text-right p-3 font-medium">شماره تلفن</th>
+                        <th className="text-center p-3 font-medium">حضور</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeParticipants.map(p => {
+                        const presentSet = new Set(activeSession.present_phones || []);
+                        const isPresent = presentSet.has(p.person_phone);
+                        return (
+                          <tr key={p.id} className="border-t border-border hover:bg-muted/20">
+                            <td className="p-3 font-medium">{p.person_name || '-'}</td>
+                            <td className="p-3 text-muted-foreground" dir="ltr">{p.person_phone}</td>
+                            <td className="p-3 text-center">
+                              <button
+                                onClick={() => toggleAttendance(activeSession, p.person_phone)}
+                                className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                                  isPresent
+                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    : 'bg-red-50 text-red-600 hover:bg-red-100'
+                                }`}
+                              >
+                                {isPresent ? <><Check className="w-3.5 h-3.5" /> حاضر</> : <><X className="w-3.5 h-3.5" /> غایب</>}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
