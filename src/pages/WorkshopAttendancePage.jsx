@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ArrowRight, Plus, Check, X, Calendar as CalendarIcon, Users } from 'lucide-react';
@@ -130,7 +130,7 @@ export default function WorkshopAttendancePage() {
         <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground">
           هنوز جلسه‌ای ثبت نشده است. روی «جلسه جدید» کلیک کنید.
         </div>
-      : (
+      ) : (
         <div>
           {/* Session tabs */}
           <div className="flex items-center gap-2 flex-wrap border-b border-border pb-1">
