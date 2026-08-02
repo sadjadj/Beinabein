@@ -32,21 +32,17 @@ export default function WorkshopProfile() {
   const [plans, setPlans] = useState([]);
   const [planForm, setPlanForm] = useState({ name: '', price: '' });
 
-  const [sessionRegs, setSessionRegs] = useState([]);
-  const [activeSessionTab, setActiveSessionTab] = useState(0);
-
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [w, purchs, sess, facs, spcs, ppl, planList, sRegs] = await Promise.all([
+      const [w, purchs, sess, facs, spcs, ppl, planList] = await Promise.all([
         base44.entities.Workshop.get(id),
         base44.entities.WorkshopPurchase.list('-purchase_date', 500),
         base44.entities.WorkshopSession.list('-session_number', 500),
         base44.entities.Facilitator.list('-created_date', 500),
         base44.entities.Space.list('-created_date', 100),
         base44.entities.Person.list('-created_date', 500),
-        base44.entities.WorkshopPlan.list('-created_date', 500),
-        base44.entities.WorkshopSessionRegistration.list('-created_date', 1000)
+        base44.entities.WorkshopPlan.list('-created_date', 500)
       ]);
       setWorkshop(w);
       setPurchases(purchs.filter(p => p.workshop_id === id));
@@ -55,7 +51,6 @@ export default function WorkshopProfile() {
       setSpaces(spcs);
       setPersons(ppl);
       setPlans(planList.filter(p => p.workshop_id === id));
-      setSessionRegs(sRegs.filter(r => r.workshop_id === id));
     } finally { setLoading(false); }
   };
 
@@ -203,18 +198,8 @@ export default function WorkshopProfile() {
   };
 
   const toggleRegPaid = async (p) => {
-    const newPaid = !p.is_paid;
-    setPurchases(prev => prev.map(x => x.id === p.id ? { ...x, is_paid: newPaid } : x));
-    try {
-      await base44.entities.WorkshopPurchase.update(p.id, { is_paid: newPaid });
-    } catch (e) {
-      setPurchases(prev => prev.map(x => x.id === p.id ? { ...x, is_paid: !newPaid } : x));
-    }
-  };
-
-  const handleBack = () => {
-    if (window.history.length > 1) navigate(-1);
-    else navigate('/workshops');
+    await base44.entities.WorkshopPurchase.update(p.id, { is_paid: !p.is_paid });
+    fetchData();
   };
 
   const addPlan = async () => {
@@ -253,7 +238,7 @@ export default function WorkshopProfile() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
-      <button onClick={handleBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowRight className="w-4 h-4" /> بازگشت
       </button>
 
@@ -456,48 +441,6 @@ export default function WorkshopProfile() {
                   ))}
                 </div>
               )}
-
-              {!workshop.is_permanent && (Number(workshop.session_count) || 0) > 0 && (() => {
-                const sc = Number(workshop.session_count);
-                const nums = Array.from({ length: sc }, (_, i) => i + 1);
-                const activeNum = activeSessionTab || nums[nums.length - 1];
-                const activeDate = sessions.find(s => s.session_number === activeNum)?.session_date;
-                const activeRegs = sessionRegs.filter(r => r.session_number === activeNum);
-                return (
-                  <div className="mt-5 pt-4 border-t border-border">
-                    <h4 className="text-xs font-semibold text-muted-foreground mb-2">گزارش جلسات</h4>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {nums.map(num => (
-                        <button
-                          key={num}
-                          onClick={() => setActiveSessionTab(num)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeNum === num ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
-                        >
-                          جلسه {toPersianNum(num)}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="bg-muted/30 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium">جلسه {toPersianNum(activeNum)}</span>
-                        <span className="text-xs text-muted-foreground">{activeDate ? formatJalaliShort(activeDate) : 'تاریخ ثبت نشده'}</span>
-                      </div>
-                      {activeRegs.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center py-2">هنوز کسی در این جلسه ثبت‌نام نکرده است</p>
-                      ) : (
-                        <div className="space-y-1.5">
-                          {activeRegs.map((r, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-sm">
-                              <span className="font-medium">{r.person_name || '-'}</span>
-                              <span className="text-xs text-muted-foreground" dir="ltr">{r.person_phone}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
             <div className="bg-white rounded-xl border border-border p-5">
               <div className="flex items-center justify-between mb-3">
