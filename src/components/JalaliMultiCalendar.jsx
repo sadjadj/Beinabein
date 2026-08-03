@@ -5,12 +5,10 @@ import { getJalaliParts, jalaliDaysInMonth, jalaliFirstWeekday, jalaliToGregoria
 const jMonthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 const weekDayLabels = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
 
-export default function JalaliMultiCalendar({ selectedDates = [], onToggle, onConfirm, isAdmin = false }) {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayParts = getJalaliParts(todayStr);
+export default function JalaliMultiCalendar({ selectedDates = [], onToggle, onConfirm }) {
+  const todayParts = getJalaliParts(new Date().toISOString().split('T')[0]);
   const [viewYear, setViewYear] = useState(todayParts?.jy || 1404);
   const [viewMonth, setViewMonth] = useState(todayParts?.jm || 1);
-  const isPast = (greg) => greg < todayStr;
 
   const daysInMonth = jalaliDaysInMonth(viewYear, viewMonth);
   const firstWeekday = jalaliFirstWeekday(viewYear, viewMonth);
@@ -28,7 +26,6 @@ export default function JalaliMultiCalendar({ selectedDates = [], onToggle, onCo
   const toggleDay = (day) => {
     const greg = jalaliToGregorianStr(viewYear, viewMonth, day);
     if (!greg) return;
-    if (!isAdmin && isPast(greg)) return;
     if (selectedSet.has(greg)) {
       onToggle(selectedDates.filter(d => d !== greg));
     } else {
@@ -58,17 +55,13 @@ export default function JalaliMultiCalendar({ selectedDates = [], onToggle, onCo
           const greg = jalaliToGregorianStr(viewYear, viewMonth, day);
           const isSelected = selectedSet.has(greg);
           const isToday = todayParts?.jy === viewYear && todayParts?.jm === viewMonth && todayParts?.jd === day;
-          const isDisabled = !isAdmin && isPast(greg);
           return (
             <button
               key={i}
               type="button"
-              onClick={() => !isDisabled && toggleDay(day)}
-              disabled={isDisabled}
+              onClick={() => toggleDay(day)}
               className={`w-9 h-9 rounded-lg text-sm transition-colors flex items-center justify-center
-                ${isSelected ? 'bg-[#B74B40] text-white font-medium' : ''}
-                ${!isSelected && isDisabled ? 'opacity-30 cursor-not-allowed text-muted-foreground' : ''}
-                ${!isSelected && !isDisabled ? 'hover:bg-muted text-foreground' : ''}
+                ${isSelected ? 'bg-[#B74B40] text-white font-medium' : 'hover:bg-muted text-foreground'}
                 ${isToday && !isSelected ? 'ring-1 ring-[#B74B40] text-[#B74B40] font-medium' : ''}
               `}
             >
