@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Calendar as CalendarIcon, X, Trash2 } from 'lucide-react';
 import { toJalaliStr, getJalaliParts } from '@/lib/jalali';
 import { dayLabels, dayOrder } from '@/lib/labels';
+import { toPersianNum } from '@/lib/stats';
 import JalaliMultiCalendar from './JalaliMultiCalendar';
 
 const jsDayToKey = { 0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: 'saturday' };
 
-export default function WorkshopCalendarPicker({ selectedDates = [], onChange }) {
+export default function WorkshopCalendarPicker({ selectedDates = [], onChange, isAdmin = false, existingSessions = [], onAttendanceWarning }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const sorted = [...selectedDates].sort();
@@ -18,8 +19,33 @@ export default function WorkshopCalendarPicker({ selectedDates = [], onChange })
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  const toggleDate = (newDates) => { onChange(newDates); };
-  const removeDate = (date) => { onChange(selectedDates.filter(d => d !== date)); };
+  // Check if any removed date has attendance records
+  const checkBeforeChange = (newDates) => {
+    const removed = selectedDates.filter(d => !newDates.includes(d));
+    for (const date of removed) {
+      const session = existingSessions.find(s => s.session_date === date);
+      if (session && (session.present_phones || []).length > 0) {
+        if (onAttendanceWarning) {
+          onAttendanceWarning(date, session);
+        }
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const toggleDate = (newDates) => {
+    if (checkBeforeChange(newDates)) {
+      onChange(newDates);
+    }
+  };
+
+  const removeDate = (date) => {
+    const newDates = selectedDates.filter(d => d !== date);
+    if (checkBeforeChange(newDates)) {
+      onChange(newDates);
+    }
+  };
 
   // Compute unique day names from selected dates
   const dayNames = [];
@@ -45,25 +71,28 @@ export default function WorkshopCalendarPicker({ selectedDates = [], onChange })
 
   return (
     <div className="w-full" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] w-full justify-center"
-      >
-        <CalendarIcon className="w-4 h-4" /> تقویم کارگاه
-      </button>
-      {open && (
-        <div className="absolute z-50 top-full mt-1 right-0">
-          <JalaliMultiCalendar
-            selectedDates={selectedDates}
-            onToggle={toggleDate}
-            onConfirm={() => setOpen(false)}
-          />
-        </div>
-      )}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] w-full justify-center"
+        >
+          <CalendarIcon className="w-4 h-4" /> تقویم کارگاه
+        </button>
+        {open && (
+          <div className="absolute z-50 top-full mt-1 right-0">
+            <JalaliMultiCalendar
+              selectedDates={selectedDates}
+              onToggle={toggleDate}
+              onConfirm={() => setOpen(false)}
+              isAdmin={isAdmin}
+            />
+          </div>
+        )}
+      </div>
       {sorted.length > 0 && (
         <div className="mt-3">
-          <p className="text-xs text-muted-foreground mb-2">جلسات انتخاب شده ({sorted.length}):</p>
+          <p className="text-xs text-muted-foreground mb-2">جلسات انتخاب شده ({toPersianNum(sorted.length)}):</p>
           <div className="border border-border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted/30">
@@ -74,17 +103,23 @@ export default function WorkshopCalendarPicker({ selectedDates = [], onChange })
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((date, i) => (
-                  <tr key={date} className="border-t border-border">
-                    <td className="p-2 text-xs font-medium">جلسه {i + 1}</td>
-                    <td className="p-2 text-xs text-muted-foreground">{toJalaliStr(date)}</td>
-                    <td className="p-2 text-center">
-                      <button type="button" onClick={() => removeDate(date)} className="text-muted-foreground hover:text-red-600">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {sorted.map((date, i) => {
+                  const hasAttendance = (existingSessions.find(s => s.session_date === date)?.present_phones || []).length > 0;
+                  return (
+                    <tr key={date} className="border-t border-border">
+                      <td className="p-2 text-xs font-medium">جلسه {toPersianNum(i + 1)}</td>
+                      <td className="p-2 text-xs text-muted-foreground">
+                        {toJalaliStr(date)}
+                        {hasAttendance && <span className="text-[10px] text-[#B9834B] block">حضور و غیاب ثبت شده</span>}
+                      </td>
+                      <td className="p-2 text-center">
+                        <button type="button" onClick={() => removeDate(date)} className="text-muted-foreground hover:text-red-600">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
