@@ -45,24 +45,22 @@ export default function WorkshopCalendarPicker({ selectedDates = [], onChange })
 
   return (
     <div className="w-full" ref={ref}>
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] w-full justify-center"
-        >
-          <CalendarIcon className="w-4 h-4" /> تقویم کارگاه
-        </button>
-        {open && (
-          <div className="absolute z-50 top-full mt-1 right-0">
-            <JalaliMultiCalendar
-              selectedDates={selectedDates}
-              onToggle={toggleDate}
-              onConfirm={() => setOpen(false)}
-            />
-          </div>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] w-full justify-center"
+      >
+        <CalendarIcon className="w-4 h-4" /> تقویم کارگاه
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full mt-1 right-0">
+          <JalaliMultiCalendar
+            selectedDates={selectedDates}
+            onToggle={toggleDate}
+            onConfirm={() => setOpen(false)}
+          />
+        </div>
+      )}
       {sorted.length > 0 && (
         <div className="mt-3">
           <p className="text-xs text-muted-foreground mb-2">جلسات انتخاب شده ({sorted.length}):</p>
