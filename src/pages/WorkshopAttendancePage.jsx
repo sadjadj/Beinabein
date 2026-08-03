@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Plus, Check, X, Calendar as CalendarIcon, Users } from 'lucide-react';
+import { ArrowRight, Check, X, Calendar as CalendarIcon, Users } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
-import JalaliDateInput from '@/components/JalaliDateInput';
 
 export default function WorkshopAttendancePage() {
   const { workshopId } = useParams();
@@ -14,9 +13,6 @@ export default function WorkshopAttendancePage() {
   const [purchases, setPurchases] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddSession, setShowAddSession] = useState(false);
-  const [newSessionDate, setNewSessionDate] = useState(todayGregorian());
-  const [submitting, setSubmitting] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState(null);
 
   const fetchData = async () => {
@@ -32,7 +28,6 @@ export default function WorkshopAttendancePage() {
       const sortedSessions = sess.filter(s => s.workshop_id === workshopId).sort((a, b) => (a.session_number || 0) - (b.session_number || 0));
       setSessions(sortedSessions);
 
-      // Determine default tab: latest session whose date has arrived
       const today = todayGregorian();
       const pastSessions = sortedSessions.filter(s => s.session_date && s.session_date <= today);
       if (pastSessions.length > 0) {
@@ -46,34 +41,14 @@ export default function WorkshopAttendancePage() {
 
   useEffect(() => { fetchData(); }, [workshopId]);
 
-  const addSession = async () => {
-    setSubmitting(true);
-    try {
-      const nextNumber = (sessions.length > 0 ? Math.max(...sessions.map(s => s.session_number || 0)) : 0) + 1;
-      const created = await base44.entities.WorkshopSession.create({
-        workshop_id: workshopId,
-        workshop_title: workshop.title,
-        session_number: nextNumber,
-        session_date: newSessionDate,
-        present_phones: []
-      });
-      setSessions(prev => [...prev, created].sort((a, b) => (a.session_number || 0) - (b.session_number || 0)));
-      setShowAddSession(false);
-      setNewSessionDate(todayGregorian());
-      setActiveSessionId(created.id);
-    } finally { setSubmitting(false); }
-  };
-
   const toggleAttendance = async (session, phone) => {
     const present = session.present_phones || [];
     const updated = present.includes(phone) ? present.filter(p => p !== phone) : [...present, phone];
-    // Optimistic update - no full page refresh
     setSessions(prev => prev.map(s => s.id === session.id ? { ...s, present_phones: updated } : s));
     await base44.entities.WorkshopSession.update(session.id, { present_phones: updated });
   };
 
   const isNewWorkshop = workshop?.session_dates && workshop.session_dates.length > 0;
-
   const getSessionParticipants = (session) => {
     if (isNewWorkshop) {
       return purchases.filter(p => {
@@ -81,7 +56,6 @@ export default function WorkshopAttendancePage() {
         if (p.registration_type === 'single' && p.selected_sessions) {
           return p.selected_sessions.includes(session.session_number);
         }
-        // Backward compatibility: no registration_type = show all
         return true;
       });
     }
@@ -110,25 +84,12 @@ export default function WorkshopAttendancePage() {
               <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {toPersianNum(purchases.length)} ثبت‌نامی</span>
             </div>
           </div>
-          <button onClick={() => setShowAddSession(!showAddSession)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
-            <Plus className="w-4 h-4" /> جلسه جدید
-          </button>
         </div>
       </div>
 
-      {showAddSession && (
-        <div className="bg-white rounded-xl border border-border p-5 flex items-center gap-3">
-          <JalaliDateInput value={newSessionDate} onChange={setNewSessionDate} />
-          <button onClick={addSession} disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-            {submitting ? 'در حال افزودن...' : 'افزودن جلسه'}
-          </button>
-          <button onClick={() => setShowAddSession(false)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
-        </div>
-      )}
-
       {sessions.length === 0 ? (
         <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground">
-          هنوز جلسه‌ای ثبت نشده است. روی «جلسه جدید» کلیک کنید.
+          هنوز جلسه‌ای برای این کارگاه ثبت نشده است. برای افزودن جلسه، از بخش ویرایش کارگاه و تقویم آن استفاده کنید.
         </div>
       ) : (
         <div>
