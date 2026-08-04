@@ -19,7 +19,7 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 
-export default function WorkshopRegistrationsPage() {
+export default function WorkshopRegistrationsPage({ embedded = false }) {
   const navigate = useNavigate();
   const [workshops, setWorkshops] = useState([]);
   const [purchases, setPurchases] = useState([]);
@@ -201,12 +201,14 @@ export default function WorkshopRegistrationsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className={embedded ? "space-y-6" : "p-4 md:p-6 space-y-6 max-w-7xl mx-auto"}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {!embedded && (
         <div>
           <h1 className="text-2xl font-bold">ثبت نام افراد در کارگاه‌ها</h1>
           <p className="text-sm text-muted-foreground mt-1">ثبت و مدیریت ثبت‌نامی‌های همه کارگاه‌ها</p>
         </div>
+        )}
         <div className="flex items-center gap-2 flex-wrap">
           <ExportButton filename="ثبت‌نام‌های-کارگاه" columns={regExportColumns} rows={regExportRows} />
           <div className="relative flex-1 sm:flex-none min-w-[140px]">
