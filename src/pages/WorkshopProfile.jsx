@@ -250,6 +250,8 @@ export default function WorkshopProfile() {
   const personByPhone = {};
   persons.forEach(per => { if (per.phone) personByPhone[per.phone] = per; });
   const rev = computeWorkshopRevenue(workshop, purchases);
+  const totalAmount = purchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
+  const paidAmount = purchases.filter(p => p.is_paid).reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
   const facNames = (workshop.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean);
 
   const isNewWorkshop = workshop.session_dates && workshop.session_dates.length > 0;
@@ -270,8 +272,8 @@ export default function WorkshopProfile() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
-      <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/workshops'); }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowRight className="w-4 h-4" /> بازگشت
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowRight className="w-4 h-4" /> بازگشت به صفحه قبل
       </button>
 
       {editing ? (
@@ -303,7 +305,7 @@ export default function WorkshopProfile() {
                 </div>
                 <div className="flex flex-wrap gap-4 mt-2 text-sm">
                   <span className="flex items-center gap-1 text-muted-foreground"><Users className="w-4 h-4" /> {toPersianNum(rev.purchaseCount)} ثبت‌نام{workshop.capacity ? ` از ${toPersianNum(workshop.capacity)}` : ''}</span>
-                  <span className="font-medium text-[#B74B40]">{formatCurrency(workshop.price)}</span>
+                  <span className="font-medium text-[#B74B40]">{formatCurrency(paidAmount)} / {formatCurrency(totalAmount)}</span>
                   {workshop.is_permanent && <span className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs">دائمی</span>}
                   {workshop.is_ended && <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">پایان یافته</span>}
                 </div>

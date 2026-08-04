@@ -91,7 +91,7 @@ export default function WorkspacePage() {
   };
 
   const today = todayGregorian();
-  const todayRecords = sortedRecords.filter(r => r.purchase_date === today && matchSearch(r));
+  const todayRecords = sortedRecords.filter(r => r.usage_date === today && matchSearch(r));
 
   const historyRecords = sortedRecords.filter(r => {
     if (historyFrom && (!r.purchase_date || r.purchase_date < historyFrom)) return false;
@@ -299,9 +299,9 @@ export default function WorkspacePage() {
           <div className="bg-white rounded-xl border border-border overflow-hidden">
             <div className="p-4 border-b border-border space-y-3">
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold">فاکتورهای امروز</h3>
+                <h3 className="text-sm font-semibold">رزروهای امروز</h3>
                 <div className="flex items-center gap-2">
-                  <ExportButton filename="فاکتورهای-امروز-فضای-کار" columns={wsExportColumns} rows={buildExportRows(todayRecords)} />
+                  <ExportButton filename="رزروهای-امروز-فضای-کار" columns={wsExportColumns} rows={buildExportRows(todayRecords)} />
                   <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
                     <option value="date_desc">جدیدترین</option>
                     <option value="date_asc">قدیمی‌ترین</option>

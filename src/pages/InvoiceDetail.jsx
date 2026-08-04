@@ -164,8 +164,8 @@ export default function InvoiceDetail() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-3xl mx-auto">
-      <button onClick={() => navigate(fromPath)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowRight className="w-4 h-4" /> بازگشت به {fromLabel}
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowRight className="w-4 h-4" /> بازگشت به صفحه قبل
       </button>
 
       <div className="bg-white rounded-xl border border-border p-6">

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import StatCard from '@/components/StatCard';
-import { GraduationCap, Users, Plus, Wallet, Search, Archive, Calendar, Clock, MapPin, ChevronRight, ChevronLeft } from 'lucide-react';
+import { GraduationCap, Users, Plus, Wallet, Archive, Calendar, Clock, MapPin, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { computeWorkshopRevenue, toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
@@ -23,7 +23,6 @@ export default function WorkshopsPage({ embedded = false }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [nameFilter, setNameFilter] = useState(searchParams.get('name') || '');
   const [facilitatorFilter, setFacilitatorFilter] = useState(searchParams.get('facilitator') || '');
   const [spaceFilter, setSpaceFilter] = useState(searchParams.get('space') || '');
@@ -33,13 +32,12 @@ export default function WorkshopsPage({ embedded = false }) {
   // Persist filters to URL
   useEffect(() => {
     const params = {};
-    if (search) params.search = search;
     if (nameFilter) params.name = nameFilter;
     if (facilitatorFilter) params.facilitator = facilitatorFilter;
     if (spaceFilter) params.space = spaceFilter;
     if (sortBy !== 'date_desc') params.sort = sortBy;
     setSearchParams(params, { replace: true });
-  }, [search, nameFilter, facilitatorFilter, spaceFilter, sortBy]);
+  }, [nameFilter, facilitatorFilter, spaceFilter, sortBy]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -113,12 +111,7 @@ export default function WorkshopsPage({ embedded = false }) {
     if (facilitatorFilter && !(w.facilitator_ids || []).includes(facilitatorFilter)) return false;
     if (spaceFilter && w.space !== spaceFilter) return false;
     if (nameFilter && !(w.title || '').toLowerCase().includes(nameFilter.toLowerCase())) return false;
-    if (!search) return true;
-    const s = search.toLowerCase();
-    const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join(' ');
-    return (w.title || '').toLowerCase().includes(s) ||
-      (w.tags || '').toLowerCase().includes(s) ||
-      facNames.toLowerCase().includes(s);
+    return true;
   });
 
   const sortedWorkshops = [...filteredWorkshops].sort((a, b) => {
@@ -145,10 +138,6 @@ export default function WorkshopsPage({ embedded = false }) {
         </div>
         )}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 sm:flex-none">
-            <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="جستجو..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-56" />
-          </div>
           <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
             <Plus className="w-4 h-4" /> ثبت کارگاه
           </button>
@@ -195,11 +184,14 @@ export default function WorkshopsPage({ embedded = false }) {
         {loading ? (
           <TableSkeleton rows={4} cols={4} />
         ) : activeWorkshops.length === 0 ? (
-          <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground text-sm">{search || facilitatorFilter || spaceFilter ? 'نتیجه‌ای یافت نشد' : 'هنوز کارگاه فعالی ثبت نشده است'}</div>
+          <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground text-sm">{facilitatorFilter || spaceFilter ? 'نتیجه‌ای یافت نشد' : 'هنوز کارگاه فعالی ثبت نشده است'}</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeWorkshops.map(w => {
-              const rev = computeWorkshopRevenue(w, purchases.filter(p => p.workshop_id === w.id));
+              const wsPurchases = purchases.filter(p => p.workshop_id === w.id);
+              const rev = computeWorkshopRevenue(w, wsPurchases);
+              const totalAmount = wsPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
+              const paidAmount = wsPurchases.filter(p => p.is_paid).reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
               const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
               return (
                 <Link key={w.id} to={`/workshops/${w.id}`} className="bg-white rounded-xl border border-border p-5 hover:shadow-md hover:border-[#B74B40]/30 transition-all flex flex-col">
@@ -218,7 +210,7 @@ export default function WorkshopsPage({ embedded = false }) {
                   {facNames && <p className="text-xs text-muted-foreground mt-2 truncate">{facNames}</p>}
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
                     <span className="text-sm font-medium">{toPersianNum(rev.purchaseCount)} ثبت‌نام{w.capacity ? ` از ${toPersianNum(w.capacity)}` : ''}</span>
-                    <span className="text-sm font-bold text-[#B74B40]">{formatCurrency(w.price)}</span>
+                    <span className="text-sm font-bold text-[#B74B40]">{formatCurrency(paidAmount)} / {formatCurrency(totalAmount)}</span>
                   </div>
                 </Link>
               );
