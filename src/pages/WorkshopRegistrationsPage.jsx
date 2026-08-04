@@ -87,29 +87,16 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
   const sessions = Array.from({ length: sessionCount }, (_, i) => i + 1);
 
   const handleWorkshopChange = (wid) => {
-    const ws = workshopById[wid];
-    const sc = ws?.session_dates?.length || ws?.session_count || 0;
     setForm(prev => ({
-      ...form, workshop_id: wid, price: ws?.price || '', plan_id: '',
-      registration_type: 'full', selected_sessions: Array.from({ length: sc }, (_, i) => i + 1),
-      registered_sessions: sc
+      ...prev, workshop_id: wid, plan_id: '', price: '', selected_sessions: [], registered_sessions: 0
     }));
-  };
-
-  const handleRegTypeChange = (type) => {
-    if (type === 'full') {
-      setForm(prev => ({ ...prev, registration_type: 'full', selected_sessions: [...sessions], registered_sessions: sessionCount }));
-    } else {
-      setForm(prev => ({ ...prev, registration_type: 'single', selected_sessions: [], registered_sessions: 0 }));
-    }
   };
 
   const handleSessionToggle = (sessionNum) => {
     setForm(prev => {
-      if (prev.registration_type === 'single') {
-        return { ...prev, selected_sessions: [sessionNum], registered_sessions: 1 };
-      }
-      return prev;
+      const isSelected = prev.selected_sessions.includes(sessionNum);
+      const next = isSelected ? prev.selected_sessions.filter(s => s !== sessionNum) : [...prev.selected_sessions, sessionNum];
+      return { ...prev, selected_sessions: next, registered_sessions: next.length };
     });
   };
 
@@ -136,11 +123,10 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
 
   const validateForm = () => {
     if (!form.workshop_id) return 'انتخاب کارگاه الزامی است';
+    if (!form.plan_id) return 'انتخاب مدل ثبت‌نام الزامی است';
     if (!form.person_name) return 'نام مشتری الزامی است';
     if (!form.person_phone) return 'شماره تلفن الزامی است';
-    if (!form.is_paid && (!form.price && form.price !== 0)) return 'قیمت الزامی است';
-    if (sessionCount > 0 && (!form.selected_sessions || form.selected_sessions.length === 0)) return 'انتخاب جلسات الزامی است';
-    if (form.registration_type === 'single' && form.selected_sessions.length !== 1) return 'در ثبت‌نام تک جلسه، دقیقاً یک جلسه باید انتخاب شود';
+    if (sessionCount > 0 && (!form.selected_sessions || form.selected_sessions.length === 0)) return 'انتخاب حداقل یک جلسه الزامی است';
     return '';
   };
 
@@ -155,6 +141,8 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     try {
       const ws = workshopById[form.workshop_id];
       await findOrCreatePerson(form.person_phone, form.person_name);
+      const selected = form.selected_sessions || [];
+      const regType = (sessionCount > 0 && selected.length === sessionCount) ? 'full' : 'single';
       const newPurchase = await base44.entities.WorkshopPurchase.create({
         workshop_id: form.workshop_id,
         workshop_title: ws?.title || '',
@@ -166,12 +154,12 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
         payment_method: form.is_paid ? 'free' : form.payment_method,
         how_met: form.how_met || 'other',
         is_paid: form.is_paid,
-        registered_sessions: Number(form.registered_sessions) || null,
+        registered_sessions: selected.length || null,
         donation: Number(form.donation) || 0,
         plan_name: plans.find(p => p.id === form.plan_id)?.name || '',
         description: form.description || '',
-        registration_type: form.registration_type || 'full',
-        selected_sessions: form.selected_sessions || []
+        registration_type: regType,
+        selected_sessions: selected
       });
       setPurchases(prev => [newPurchase, ...prev]);
       setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', purchase_date: todayGregorian(), payment_method: 'card_to_card', how_met: 'other', is_paid: false, registered_sessions: '', donation: '', plan_id: '', description: '', registration_type: 'full', selected_sessions: [] });
@@ -218,23 +206,6 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="کل ثبت‌نامی‌ها" value={toPersianNum(totalReg)} icon={Users} color="terracotta" />
-        <StatCard label="افراد یونیک" value={toPersianNum(uniquePeople)} icon={GraduationCap} color="teal" />
-        <StatCard label="پرداخت‌شده" value={toPersianNum(paidCount)} icon={CheckCircle} color="green" sublabel={`از ${toPersianNum(totalReg)}`} />
-        <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">درآمد کل</p>
-              <p className="text-lg lg:text-xl font-bold mt-2 text-foreground break-words leading-tight">{formatCurrency(totalRevenue)}</p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-[#FBF0F1] flex items-center justify-center flex-shrink-0">
-              <Wallet className="w-5 h-5 text-[#D98B94]" />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Registration Form — always visible */}
       <div className="bg-white rounded-xl border border-border p-5">
         <h3 className="text-sm font-semibold mb-4">ثبت‌نام جدید</h3>
@@ -248,16 +219,16 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام</label>
-            <select value={form.plan_id} onChange={(e) => { const plan = plans.find(p => p.id === e.target.value); setForm({ ...form, plan_id: e.target.value, price: plan ? plan.price : (workshopById[form.workshop_id]?.price || '') }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" disabled={!form.workshop_id}>
-              <option value="">دستی (بدون پلن)</option>
+            <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام *</label>
+            <select value={form.plan_id} onChange={(e) => { const plan = plans.find(p => p.id === e.target.value); setForm({ ...form, plan_id: e.target.value, price: plan ? plan.price : '' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" disabled={!form.workshop_id} required>
+              <option value="">انتخاب مدل...</option>
               {plans.filter(p => p.workshop_id === form.workshop_id && p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
             </select>
           </div>
           <PersonSearch personName={form.person_name} personPhone={form.person_phone} onNameChange={v => setForm({ ...form, person_name: v })} onPhoneChange={v => setForm({ ...form, person_phone: v })} />
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان *</label>
-            <PriceInput value={form.price} onChange={v => setForm({ ...form, price: v })} required disabled={form.is_paid} />
+            <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
+            <PriceInput value={form.price} onChange={() => {}} disabled required />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">دونیشین (تومان)</label>
@@ -289,37 +260,23 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
         {form.workshop_id && sessionCount > 0 && (
           <div className="mt-4 p-3 bg-muted/30 rounded-lg">
             <label className="text-xs text-muted-foreground block mb-2">جلسات *</label>
-            <div className="flex items-center gap-3 mb-3">
-              <label className="flex items-center gap-1.5 text-sm">
-                <input type="radio" checked={form.registration_type === 'full'} onChange={() => handleRegTypeChange('full')} className="w-4 h-4" /> ثبت‌نام کامل
-              </label>
-              <label className="flex items-center gap-1.5 text-sm">
-                <input type="radio" checked={form.registration_type === 'single'} onChange={() => handleRegTypeChange('single')} className="w-4 h-4" /> ثبت‌نام تک جلسه
-              </label>
-            </div>
             <div className="flex flex-wrap gap-2">
               {sessions.map(s => {
                 const isSelected = form.selected_sessions.includes(s);
+                const dateLabel = selectedWorkshop?.session_dates?.[s - 1] ? formatJalaliShort(selectedWorkshop.session_dates[s - 1]) : `جلسه ${toPersianNum(s)}`;
                 return (
                   <button
                     key={s}
                     type="button"
-                    onClick={() => form.registration_type === 'single' ? handleSessionToggle(s) : null}
-                    disabled={form.registration_type === 'full'}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      isSelected
-                        ? 'bg-[#B74B40] text-white'
-                        : 'bg-white border border-border text-muted-foreground hover:bg-muted'
-                    } ${form.registration_type === 'full' ? 'cursor-default' : 'cursor-pointer'}`}
+                    onClick={() => handleSessionToggle(s)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isSelected ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}
                   >
-                    جلسه {toPersianNum(s)}
+                    {dateLabel}
                   </button>
                 );
               })}
             </div>
-            {form.registration_type === 'single' && (
-              <p className="text-xs text-muted-foreground mt-2">یک جلسه را انتخاب کنید</p>
-            )}
+            <p className="text-xs text-muted-foreground mt-2">تعداد جلسات انتخابی: {toPersianNum(form.selected_sessions.length)}</p>
           </div>
         )}
         {/* Description */}

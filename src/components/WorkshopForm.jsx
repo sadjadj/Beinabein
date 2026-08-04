@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trash2, Check, X } from 'lucide-react';
+import { Trash2, Check, X, Plus } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { toJalaliStr } from '@/lib/jalali';
 import PriceInput from '@/components/PriceInput';
@@ -9,6 +9,7 @@ import WorkshopCalendarPicker, { computeWorkshopFieldsFromDates } from '@/compon
 
 export default function WorkshopForm({
   initialForm,
+  initialPlans = [],
   facilitators = [],
   spaces = [],
   isAdmin = true,
@@ -21,15 +22,33 @@ export default function WorkshopForm({
   onDelete
 }) {
   const [form, setForm] = useState(initialForm);
+  const [plans, setPlans] = useState(
+    (initialPlans || []).map(p => ({ id: p.id || '', name: p.name || '', price: p.price ?? '' }))
+  );
+  const [error, setError] = useState('');
 
   const handleDatesChange = (dates) => {
     const computed = computeWorkshopFieldsFromDates(dates);
     setForm(prev => ({ ...prev, ...computed }));
   };
 
+  const addPlan = () => setPlans(prev => [...prev, { id: '', name: '', price: '' }]);
+  const updatePlan = (i, field, val) => setPlans(prev => prev.map((p, idx) => idx === i ? { ...p, [field]: val } : p));
+  const removePlan = (i) => setPlans(prev => prev.filter((_, idx) => idx !== i));
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const validPlans = plans.filter(p => p.name && p.price !== '' && p.price !== null);
+    if (validPlans.length === 0) { setError('افزودن حداقل یک مدل ثبت‌نام الزامی است'); return; }
+    const hasInvalid = plans.some(p => !p.name || p.price === '' || p.price === null);
+    if (hasInvalid) { setError('برای هر مدل ثبت‌نام، نام و قیمت الزامی است'); return; }
+    setError('');
+    onSubmit(form, plans);
+  };
+
   return (
     <div className="bg-white rounded-xl border border-border p-5">
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="text-xs text-muted-foreground block mb-1">اسم کارگاه</label>
@@ -102,10 +121,31 @@ export default function WorkshopForm({
           <label className="text-xs text-muted-foreground block mb-2">تسهیلگران:</label>
           <FacilitatorMultiSearch selectedIds={form.facilitator_ids || []} onChange={ids => setForm({ ...form, facilitator_ids: ids })} />
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={form.is_permanent || false} onChange={e => setForm({ ...form, is_permanent: e.target.checked })} className="w-4 h-4" />
-          کارگاه دائمی
-        </label>
+        {/* Plans section */}
+        <div>
+          <label className="text-xs text-muted-foreground block mb-2">مدل‌های ثبت‌نام (حداقل یک مدل الزامی است)</label>
+          <div className="space-y-2">
+            {plans.map((pl, i) => (
+              <div key={i} className="flex items-end gap-2">
+                <div>
+                  <label className="text-[11px] text-muted-foreground block mb-1">نام مدل</label>
+                  <input type="text" placeholder="مثلاً ثبت‌نام کامل" value={pl.name} onChange={e => updatePlan(i, 'name', e.target.value)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground block mb-1">قیمت (تومان)</label>
+                  <PriceInput value={pl.price} onChange={v => updatePlan(i, 'price', v)} required />
+                </div>
+                <button type="button" onClick={() => removePlan(i)} className="text-muted-foreground hover:text-red-600 pb-2"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={addPlan} className="flex items-center gap-1 mt-2 px-3 py-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground hover:bg-muted">
+            <Plus className="w-4 h-4" /> افزودن مدل ثبت‌نام
+          </button>
+        </div>
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">{error}</div>
+        )}
         <div className="flex justify-between gap-2">
           {showDelete && onDelete && (
             <button type="button" onClick={onDelete} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50">

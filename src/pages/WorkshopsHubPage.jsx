@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { GraduationCap, ClipboardCheck, ClipboardList } from 'lucide-react';
+import { GraduationCap, ClipboardCheck, ClipboardList, BarChart3 } from 'lucide-react';
 import WorkshopsPage from '@/pages/WorkshopsPage';
 import AttendancePage from '@/pages/AttendancePage';
 import WorkshopRegistrationsPage from '@/pages/WorkshopRegistrationsPage';
+import WorkshopsReportTab from '@/components/workshops/WorkshopsReportTab';
 
 const tabs = [
   { key: 'registrations', label: 'ثبت نام افراد در کارگاه‌ها', icon: ClipboardList, Component: WorkshopRegistrationsPage },
   { key: 'attendance', label: 'حضور غیاب', icon: ClipboardCheck, Component: AttendancePage },
   { key: 'manage', label: 'مدیریت کارگاه‌ها', icon: GraduationCap, Component: WorkshopsPage },
+  { key: 'report', label: 'گزارش', icon: BarChart3, Component: WorkshopsReportTab, isPlain: true },
 ];
 
 export default function WorkshopsHubPage() {
@@ -44,7 +46,13 @@ export default function WorkshopsHubPage() {
           </div>
         </div>
       </div>
-      <ActiveComponent embedded />
+      {active.isPlain ? (
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+          <ActiveComponent />
+        </div>
+      ) : (
+        <ActiveComponent embedded />
+      )}
     </div>
   );
 }

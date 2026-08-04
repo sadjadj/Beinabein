@@ -59,14 +59,14 @@ export default function WorkshopsPage({ embedded = false }) {
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleSubmit = async (form) => {
+  const handleSubmit = async (form, plans) => {
     if (!form.title) return;
     setSubmitting(true);
     try {
       const payload = {
         ...form,
         price: Number(form.price) || 0,
-        session_count: form.is_permanent ? null : (Number(form.session_count) || null),
+        session_count: Number(form.session_count) || null,
         facilitator_percentage: Number(form.facilitator_percentage) || 0,
         capacity: Number(form.capacity) || null
       };
@@ -81,6 +81,13 @@ export default function WorkshopsPage({ embedded = false }) {
             session_date: date,
             present_phones: []
           }))
+        );
+      }
+      // Create workshop plans
+      const validPlans = (plans || []).filter(p => p.name && p.price !== '' && p.price !== null);
+      if (validPlans.length > 0) {
+        await base44.entities.WorkshopPlan.bulkCreate(
+          validPlans.map(p => ({ workshop_id: created.id, name: p.name, price: Number(p.price) || 0, is_active: true }))
         );
       }
       setShowForm(false);
@@ -148,16 +155,10 @@ export default function WorkshopsPage({ embedded = false }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="کارگاه‌های این ماه" value={toPersianNum(monthWorkshops.length)} icon={GraduationCap} color="terracotta" info="تعداد کارگاه‌هایی که در ماه جاری شمسی شروع شده‌اند (بر اساس تاریخ شروع کارگاه)" />
-        <StatCard label="ثبت‌نامی این ماه" value={toPersianNum(monthPurchases.length)} icon={Users} color="teal" info="تعداد کل ثبت‌نام‌های انجام شده در ماه جاری شمسی (بر اساس تاریخ ثبت‌نام)" />
-        <StatCard label="افراد یونیک این ماه" value={toPersianNum(monthUniquePhones.size)} icon={Users} color="ochre" info="تعداد افراد یکتایی که در ماه جاری شمسی در کارگاه‌ها ثبت‌نام کرده‌اند (بر اساس شماره تلفن)" />
-        <StatCard label="درآمد این ماه" value={formatCurrency(monthRevenue)} icon={Wallet} color="pink" info="مجموع درآمد حاصل از ثبت‌نام کارگاه‌ها در ماه جاری شمسی (شامل قیمت و دونیشین)" />
-      </div>
-
       {showForm && (
         <WorkshopForm
           initialForm={blankForm}
+          initialPlans={[]}
           facilitators={facilitators}
           spaces={spaces}
           isAdmin={isAdmin}

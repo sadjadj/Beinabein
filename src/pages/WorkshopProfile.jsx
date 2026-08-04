@@ -31,7 +31,6 @@ export default function WorkshopProfile() {
   const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, registered_sessions: '', donation: '', plan_id: '' });
   const [capacityWarning, setCapacityWarning] = useState('');
   const [plans, setPlans] = useState([]);
-  const [planForm, setPlanForm] = useState({ name: '', price: '' });
   const [regSessionTab, setRegSessionTab] = useState(null);
 
   const fetchData = async () => {
@@ -103,7 +102,7 @@ export default function WorkshopProfile() {
     }
   });
 
-  const handleSaveEdit = async (form) => {
+  const handleSaveEdit = async (form, submittedPlans) => {
     setSubmitting(true);
     try {
       const payload = {
@@ -158,6 +157,15 @@ export default function WorkshopProfile() {
         await base44.entities.WorkshopPurchase.updateMany({ workshop_id: id }, { $set: { workshop_title: form.title } });
         await base44.entities.WorkshopSession.updateMany({ workshop_id: id }, { $set: { workshop_title: form.title } });
       }
+
+      // Sync plans
+      const keepIds = new Set((submittedPlans || []).filter(p => p.id).map(p => p.id));
+      const plansToDelete = plans.filter(p => !keepIds.has(p.id));
+      const plansToUpdate = (submittedPlans || []).filter(p => p.id);
+      const plansToAdd = (submittedPlans || []).filter(p => !p.id);
+      for (const p of plansToDelete) await base44.entities.WorkshopPlan.delete(p.id);
+      if (plansToUpdate.length) await base44.entities.WorkshopPlan.bulkUpdate(plansToUpdate.map(p => ({ id: p.id, name: p.name, price: Number(p.price) || 0 })));
+      if (plansToAdd.length) await base44.entities.WorkshopPlan.bulkCreate(plansToAdd.map(p => ({ workshop_id: id, name: p.name, price: Number(p.price) || 0, is_active: true })));
 
       setEditing(false);
       fetchData();
@@ -227,23 +235,6 @@ export default function WorkshopProfile() {
     await base44.entities.WorkshopPurchase.update(p.id, { is_paid: !p.is_paid });
   };
 
-  const addPlan = async () => {
-    if (!planForm.name || planForm.price === '' || planForm.price === null) return;
-    await base44.entities.WorkshopPlan.create({ workshop_id: id, name: planForm.name, price: Number(planForm.price) || 0, is_active: true });
-    setPlanForm({ name: '', price: '' });
-    fetchData();
-  };
-
-  const togglePlanActive = async (plan) => {
-    await base44.entities.WorkshopPlan.update(plan.id, { is_active: !plan.is_active });
-    fetchData();
-  };
-
-  const deletePlan = async (planId) => {
-    await base44.entities.WorkshopPlan.delete(planId);
-    fetchData();
-  };
-
   if (loading) return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
       <Skeleton className="h-4 w-20" />
@@ -286,6 +277,7 @@ export default function WorkshopProfile() {
       {editing ? (
         <WorkshopForm
           initialForm={buildInitialForm()}
+          initialPlans={plans}
           facilitators={facilitators}
           spaces={spaces}
           isAdmin={isAdmin}
@@ -492,34 +484,6 @@ export default function WorkshopProfile() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-border p-5">
-            <h3 className="text-sm font-semibold mb-3">مدل‌های ثبت‌نام ({toPersianNum(plans.length)})</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-              <input type="text" placeholder="نام مدل (مثلاً تک جلسه)" value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-              <PriceInput value={planForm.price} onChange={v => setPlanForm({ ...planForm, price: v })} />
-              <button onClick={addPlan} className="flex items-center justify-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
-                <Plus className="w-4 h-4" /> افزودن مدل
-              </button>
-            </div>
-            {plans.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-2">هنوز مدل ثبت‌نامی تعریف نشده است</p>
-            ) : (
-              <div className="divide-y divide-border">
-                {plans.map(pl => (
-                  <div key={pl.id} className="py-2.5 flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{pl.name}</span>
-                      <span className="text-muted-foreground">{formatCurrency(pl.price)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => togglePlanActive(pl)} className={`text-xs px-2 py-1 rounded-full ${pl.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{pl.is_active ? 'فعال' : 'غیرفعال'}</button>
-                      <button onClick={() => deletePlan(pl.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </>
       )}
     </div>
