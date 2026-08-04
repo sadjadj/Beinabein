@@ -110,7 +110,8 @@ export default function WorkshopProfile() {
         ...form,
         price: Number(form.price) || 0,
         facilitator_percentage: Number(form.facilitator_percentage) || 0,
-        capacity: Number(form.capacity) || null
+        capacity: Number(form.capacity) || null,
+        session_count: Number(form.session_count) || 0
       };
       await base44.entities.Workshop.update(id, payload);
 
