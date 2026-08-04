@@ -12,7 +12,7 @@ import Dashboard from '@/pages/Dashboard';
 import PeoplePage from '@/pages/PeoplePage';
 import WorkspacePage from '@/pages/WorkspacePage';
 import CafePage from '@/pages/CafePage';
-import WorkshopsHubPage from '@/pages/WorkshopsHubPage';
+import WorkshopsPage from '@/pages/WorkshopsPage';
 import WorkshopRegistrationsPage from '@/pages/WorkshopRegistrationsPage';
 import AttendancePage from '@/pages/AttendancePage';
 import WorkshopAttendancePage from '@/pages/WorkshopAttendancePage';
@@ -66,7 +66,7 @@ const AuthenticatedApp = () => {
       <Route path="/people" element={<PeoplePage />} />
       <Route path="/workspace" element={<WorkspacePage />} />
       <Route path="/cafe" element={<CafePage />} />
-      <Route path="/workshops" element={<WorkshopsHubPage />} />
+      <Route path="/workshops" element={<WorkshopsPage />} />
       <Route path="/workshop-registrations" element={<WorkshopRegistrationsPage />} />
       <Route path="/attendance" element={<AttendancePage />} />
       <Route path="/attendance/:workshopId" element={<WorkshopAttendancePage />} />
