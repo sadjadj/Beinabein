@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2, Check, X, Plus } from 'lucide-react';
-import { toPersianNum } from '@/lib/stats';
+import { toPersianNum, formatCurrency } from '@/lib/stats';
 import { toJalaliStr } from '@/lib/jalali';
 import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
@@ -23,8 +23,9 @@ export default function WorkshopForm({
 }) {
   const [form, setForm] = useState(initialForm);
   const [plans, setPlans] = useState(
-    (initialPlans || []).map(p => ({ id: p.id || '', name: p.name || '', price: p.price ?? '' }))
+    (initialPlans || []).map(p => ({ id: p.id || '', name: p.name || '', price: p.price ?? '', is_active: p.is_active !== false }))
   );
+  const [newPlan, setNewPlan] = useState({ name: '', price: '' });
   const [error, setError] = useState('');
 
   const handleDatesChange = (dates) => {
@@ -32,16 +33,21 @@ export default function WorkshopForm({
     setForm(prev => ({ ...prev, ...computed }));
   };
 
-  const addPlan = () => setPlans(prev => [...prev, { id: '', name: '', price: '' }]);
-  const updatePlan = (i, field, val) => setPlans(prev => prev.map((p, idx) => idx === i ? { ...p, [field]: val } : p));
+  const handleAddPlan = () => {
+    if (!newPlan.name || newPlan.price === '' || newPlan.price === null) {
+      setError('برای افزودن مدل ثبت‌نام، نام و قیمت الزامی است');
+      return;
+    }
+    setError('');
+    setPlans(prev => [...prev, { id: '', name: newPlan.name, price: newPlan.price, is_active: true }]);
+    setNewPlan({ name: '', price: '' });
+  };
+  const togglePlanActive = (i) => setPlans(prev => prev.map((p, idx) => idx === i ? { ...p, is_active: !p.is_active } : p));
   const removePlan = (i) => setPlans(prev => prev.filter((_, idx) => idx !== i));
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const validPlans = plans.filter(p => p.name && p.price !== '' && p.price !== null);
-    if (validPlans.length === 0) { setError('افزودن حداقل یک مدل ثبت‌نام الزامی است'); return; }
-    const hasInvalid = plans.some(p => !p.name || p.price === '' || p.price === null);
-    if (hasInvalid) { setError('برای هر مدل ثبت‌نام، نام و قیمت الزامی است'); return; }
+    if (plans.length === 0) { setError('افزودن حداقل یک مدل ثبت‌نام الزامی است'); return; }
     setError('');
     onSubmit(form, plans);
   };
@@ -53,10 +59,6 @@ export default function WorkshopForm({
           <div>
             <label className="text-xs text-muted-foreground block mb-1">اسم کارگاه</label>
             <input type="text" placeholder="اسم کارگاه" value={form.title || ''} onChange={e => setForm({ ...form, title: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" required />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
-            <PriceInput value={form.price} onChange={v => setForm({ ...form, price: v })} />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">درصد تسهیلگر</label>
@@ -124,24 +126,49 @@ export default function WorkshopForm({
         {/* Plans section */}
         <div>
           <label className="text-xs text-muted-foreground block mb-2">مدل‌های ثبت‌نام (حداقل یک مدل الزامی است)</label>
-          <div className="space-y-2">
-            {plans.map((pl, i) => (
-              <div key={i} className="flex items-end gap-2">
-                <div>
-                  <label className="text-[11px] text-muted-foreground block mb-1">نام مدل</label>
-                  <input type="text" placeholder="مثلاً ثبت‌نام کامل" value={pl.name} onChange={e => updatePlan(i, 'name', e.target.value)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" />
-                </div>
-                <div>
-                  <label className="text-[11px] text-muted-foreground block mb-1">قیمت (تومان)</label>
-                  <PriceInput value={pl.price} onChange={v => updatePlan(i, 'price', v)} required />
-                </div>
-                <button type="button" onClick={() => removePlan(i)} className="text-muted-foreground hover:text-red-600 pb-2"><Trash2 className="w-4 h-4" /></button>
-              </div>
-            ))}
+          {/* Add new plan form */}
+          <div className="flex items-end gap-2 mb-3 flex-wrap">
+            <div>
+              <label className="text-[11px] text-muted-foreground block mb-1">نام مدل</label>
+              <input type="text" placeholder="مثلاً ثبت‌نام کامل" value={newPlan.name} onChange={e => setNewPlan({ ...newPlan, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" />
+            </div>
+            <div>
+              <label className="text-[11px] text-muted-foreground block mb-1">قیمت (تومان)</label>
+              <PriceInput value={newPlan.price} onChange={v => setNewPlan({ ...newPlan, price: v })} />
+            </div>
+            <button type="button" onClick={handleAddPlan} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
+              <Plus className="w-4 h-4" /> افزودن مدل ثبت‌نام
+            </button>
           </div>
-          <button type="button" onClick={addPlan} className="flex items-center gap-1 mt-2 px-3 py-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground hover:bg-muted">
-            <Plus className="w-4 h-4" /> افزودن مدل ثبت‌نام
-          </button>
+          {/* Plans table */}
+          {plans.length > 0 && (
+            <div className="overflow-x-auto border border-border rounded-lg">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-right p-2.5 font-medium">نام مدل</th>
+                    <th className="text-right p-2.5 font-medium">قیمت</th>
+                    <th className="text-center p-2.5 font-medium">وضعیت</th>
+                    <th className="text-center p-2.5 font-medium">حذف</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plans.map((pl, i) => (
+                    <tr key={i} className="border-t border-border">
+                      <td className="p-2.5 font-medium">{pl.name || '-'}</td>
+                      <td className="p-2.5">{(pl.price !== '' && pl.price !== null) ? formatCurrency(Number(pl.price)) : '-'}</td>
+                      <td className="p-2.5 text-center">
+                        <button type="button" onClick={() => togglePlanActive(i)} className={`text-xs px-2 py-1 rounded-full ${pl.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{pl.is_active ? 'فعال' : 'غیرفعال'}</button>
+                      </td>
+                      <td className="p-2.5 text-center">
+                        <button type="button" onClick={() => removePlan(i)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">{error}</div>

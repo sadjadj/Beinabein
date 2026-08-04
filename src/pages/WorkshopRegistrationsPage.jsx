@@ -181,6 +181,11 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     setEditingId(null);
   };
 
+  const togglePaid = async (p) => {
+    setPurchases(prev => prev.map(x => x.id === p.id ? { ...x, is_paid: !p.is_paid } : x));
+    await base44.entities.WorkshopPurchase.update(p.id, { is_paid: !p.is_paid });
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     await base44.entities.WorkshopPurchase.delete(deleteTarget.id);
@@ -333,36 +338,30 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-right p-3 font-medium">کارگاه</th>
                   <th className="text-right p-3 font-medium">نام</th>
-                  <th className="text-right p-3 font-medium">تلفن</th>
-                  <th className="text-right p-3 font-medium">تاریخ</th>
-                  <th className="text-right p-3 font-medium">مبلغ</th>
-                  <th className="text-right p-3 font-medium">جلسات</th>
-                  <th className="text-right p-3 font-medium">پرداخت</th>
+                  <th className="text-right p-3 font-medium">کارگاه</th>
+                  <th className="text-center p-3 font-medium">تلفن</th>
+                  <th className="text-center p-3 font-medium">تاریخ</th>
+                  <th className="text-center p-3 font-medium">مبلغ</th>
+                  <th className="text-center p-3 font-medium">جلسات</th>
+                  <th className="text-center p-3 font-medium">پرداخت</th>
                   <th className="text-center p-3 font-medium">عملیات</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(p => (
-                  <tr key={p.id} className="border-t border-border hover:bg-muted/30">
+                  <tr key={p.id} className={`border-t border-border hover:bg-muted/30 ${editingId === p.id ? '' : 'cursor-pointer'}`} onClick={() => { if (editingId !== p.id) navigate(`/accounting/workshop/${p.id}`); }}>
                     <td className="p-3">
-                      <Link to={`/workshops/${p.workshop_id}`} className="font-medium hover:text-[#B74B40]">{p.workshop_title || '-'}</Link>
-                      {p.plan_name && <span className="text-xs text-[#8CB9C0] block mt-0.5">{p.plan_name}</span>}
-                    </td>
-                    <td className="p-3">
-                      {editingId === p.id ? (
-                        <span className="font-medium">{p.person_name || '-'}</span>
-                      ) : personByPhone[p.person_phone] ? (
-                        <Link to={`/accounting/workshop/${p.id}`} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
-                      ) : (
-                        <Link to={`/accounting/workshop/${p.id}`} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
-                      )}
+                      <span className="font-medium">{p.person_name || '-'}</span>
                       {p.description && <FileText className="w-3.5 h-3.5 text-[#B9834B] inline-block mr-1" />}
                     </td>
-                    <td className="p-3 text-xs text-muted-foreground whitespace-nowrap" dir="ltr">{p.person_phone || '-'}</td>
-                    <td className="p-3 text-xs whitespace-nowrap">{p.purchase_date ? formatJalaliShort(p.purchase_date) : '-'}</td>
-                    <td className="p-3 text-xs whitespace-nowrap">
+                    <td className="p-3">
+                      <Link to={`/workshops/${p.workshop_id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.workshop_title || '-'}</Link>
+                      {p.plan_name && <span className="text-xs text-[#8CB9C0] block mt-0.5">{p.plan_name}</span>}
+                    </td>
+                    <td className="p-3 text-xs text-muted-foreground whitespace-nowrap text-center" dir="ltr">{p.person_phone || '-'}</td>
+                    <td className="p-3 text-xs whitespace-nowrap text-center">{p.purchase_date ? formatJalaliShort(p.purchase_date) : '-'}</td>
+                    <td className="p-3 text-xs whitespace-nowrap text-center">
                       {editingId === p.id ? (
                         <PriceInput value={editForm.price} onChange={v => setEditForm({ ...editForm, price: v })} />
                       ) : (
@@ -372,41 +371,38 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
                         </>
                       )}
                     </td>
-                    <td className="p-3 text-xs">
+                    <td className="p-3 text-xs text-center">
                       {editingId === p.id ? (
                         <PersianNumberInput value={editForm.registered_sessions} onChange={v => setEditForm({ ...editForm, registered_sessions: v })} placeholder="تعداد جلسات" className="w-20 px-2 py-1 rounded-lg border border-input bg-background text-sm text-right" />
                       ) : (
                         p.registered_sessions ? `${toPersianNum(p.registered_sessions)} جلسه` : '-'
                       )}
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 text-center">
                       {editingId === p.id ? (
-                        <label className="flex items-center gap-1 text-xs">
+                        <label className="flex items-center gap-1 text-xs justify-center">
                           <input type="checkbox" checked={editForm.is_paid} onChange={e => setEditForm({ ...editForm, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شد
                         </label>
                       ) : (
-                        <span className={`inline-flex items-center gap-1 text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
+                        <button onClick={(e) => { e.stopPropagation(); togglePaid(p); }} className={`inline-flex items-center gap-1 text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
                           {p.is_paid ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
                           {p.is_paid ? 'پرداخت‌شده' : 'پرداخت‌نشده'}
-                        </span>
+                        </button>
                       )}
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         {editingId === p.id ? (
                           <>
-                            <button onClick={() => saveInlineEdit(p)} className="text-green-600 hover:text-green-700" title="ذخیره"><Check className="w-4 h-4" /></button>
-                            <button onClick={() => setEditingId(null)} className="text-muted-foreground hover:text-foreground" title="انصراف"><X className="w-4 h-4" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); saveInlineEdit(p); }} className="text-green-600 hover:text-green-700" title="ذخیره"><Check className="w-4 h-4" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} className="text-muted-foreground hover:text-foreground" title="انصراف"><X className="w-4 h-4" /></button>
                           </>
                         ) : (
                           <>
-                            <Link to={`/accounting/workshop/${p.id}`} className="text-muted-foreground hover:text-[#B74B40]" title="فاکتور">
-                              <FileText className="w-4 h-4" />
-                            </Link>
-                            <button onClick={() => startInlineEdit(p)} className="text-muted-foreground hover:text-[#B74B40]" title="ویرایش">
+                            <button onClick={(e) => { e.stopPropagation(); startInlineEdit(p); }} className="text-muted-foreground hover:text-[#B74B40]" title="ویرایش">
                               <Pencil className="w-4 h-4" />
                             </button>
-                            <button onClick={() => setDeleteTarget(p)} className="text-muted-foreground hover:text-red-600" title="حذف">
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }} className="text-muted-foreground hover:text-red-600" title="حذف">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Briefcase, Users, Repeat, Plus, ChevronLeft, Pencil, Trash2, Search, RotateCcw } from 'lucide-react';
+import { Briefcase, Users, Repeat, Plus, ChevronLeft, Search, RotateCcw } from 'lucide-react';
 import ExportButton from '@/components/ExportButton';
 import { computeWorkspaceStats, findOrCreatePerson, toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
@@ -10,7 +10,6 @@ import { toJalaliStr, todayGregorian, getJalaliParts } from '@/lib/jalali';
 import FloatingDateInput from '@/components/FloatingDateInput';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import PersonSearch from '@/components/PersonSearch';
-import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 
@@ -30,9 +29,6 @@ export default function WorkspacePage() {
   const [submitting, setSubmitting] = useState(false);
   const [tab, setTab] = useState('order');
   const [orderForm, setOrderForm] = useState({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_date: '', how_met: '' });
-  const [subForm, setSubForm] = useState({ name: '', price: '' });
-  const [editingSubId, setEditingSubId] = useState(null);
-  const [editSubForm, setEditSubForm] = useState({});
   const [sortBy, setSortBy] = useState('date_desc');
   const [orderSearch, setOrderSearch] = useState('');
   const monthRange = getDateRange('month', null, null);
@@ -70,34 +66,6 @@ export default function WorkspacePage() {
       setOrderForm({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_date: '', how_met: '' });
       fetchData();
     } finally { setSubmitting(false); }
-  };
-
-  const handleSubSubmit = async (e) => {
-    e.preventDefault();
-    const activeForm = editingSubId ? editSubForm : subForm;
-    if (!activeForm.name) return;
-    setSubmitting(true);
-    try {
-      if (editingSubId) {
-        await base44.entities.WorkspaceSubscription.update(editingSubId, { name: editSubForm.name, price: Number(editSubForm.price) || 0 });
-        setEditingSubId(null);
-        setEditSubForm({});
-      } else {
-        await base44.entities.WorkspaceSubscription.create({ ...subForm, price: Number(subForm.price) || 0 });
-        setSubForm({ name: '', price: '' });
-      }
-      fetchData();
-    } finally { setSubmitting(false); }
-  };
-
-  const startEditSub = (s) => {
-    setEditingSubId(s.id);
-    setEditSubForm({ name: s.name, price: s.price });
-  };
-
-  const deleteSub = async (id) => {
-    await base44.entities.WorkspaceSubscription.delete(id);
-    fetchData();
   };
 
   const togglePaid = async (r) => {
@@ -267,7 +235,10 @@ export default function WorkspacePage() {
       {tab === 'order' && (
         <>
           <div className="bg-white rounded-xl border border-border p-5">
-            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> ثبت سفارش جدید</h3>
+            <div className="flex items-center justify-between mb-4 gap-2">
+              <h3 className="text-sm font-semibold flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> ثبت سفارش جدید</h3>
+              <Link to="/workspace/subscriptions" className="text-xs text-[#B74B40] hover:underline">ویرایش اشتراک‌ها</Link>
+            </div>
             <form onSubmit={handleOrderSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="sm:col-span-2 lg:col-span-1">
                 <label className="text-xs text-muted-foreground block mb-1">نام مشتری</label>
@@ -323,57 +294,6 @@ export default function WorkspacePage() {
                 </button>
               </div>
             </form>
-          </div>
-
-          <div className="bg-white rounded-xl border border-border p-5">
-            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> {editingSubId ? 'ویرایش اشتراک' : 'افزودن اشتراک جدید'}</h3>
-            <form onSubmit={handleSubSubmit} className="flex flex-wrap items-end gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">نام اشتراک</label>
-                <input type="text" placeholder="مثلاً صندلی روزانه" value={editingSubId ? editSubForm.name : subForm.name} onChange={e => editingSubId ? setEditSubForm({ ...editSubForm, name: e.target.value }) : setSubForm({ ...subForm, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" required />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
-                <PriceInput value={editingSubId ? editSubForm.price : subForm.price} onChange={v => editingSubId ? setEditSubForm({ ...editSubForm, price: v }) : setSubForm({ ...subForm, price: v })} required />
-              </div>
-              <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-                {submitting ? 'در حال ثبت...' : editingSubId ? 'ذخیره' : 'افزودن'}
-              </button>
-              {editingSubId && <button type="button" onClick={() => setEditingSubId(null)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>}
-            </form>
-          </div>
-
-          <div className="bg-white rounded-xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">اشتراک‌های تعریف شده ({toPersianNum(subscriptions.length)})</h3></div>
-            {subscriptions.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">هنوز اشتراکی ثبت نشده است</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="text-right p-3 font-medium">نام اشتراک</th>
-                      <th className="text-right p-3 font-medium">قیمت</th>
-                      <th className="text-center p-3 font-medium">عملیات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {subscriptions.map(s => (
-                      <tr key={s.id} className="border-t border-border hover:bg-muted/30">
-                        <td className="p-3 font-medium">{s.name}</td>
-                        <td className="p-3">{formatCurrency(s.price)}</td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => startEditSub(s)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={() => deleteSub(s.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
 
           <div className="bg-white rounded-xl border border-border overflow-hidden">

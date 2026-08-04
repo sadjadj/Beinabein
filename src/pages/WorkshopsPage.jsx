@@ -87,7 +87,7 @@ export default function WorkshopsPage({ embedded = false }) {
       const validPlans = (plans || []).filter(p => p.name && p.price !== '' && p.price !== null);
       if (validPlans.length > 0) {
         await base44.entities.WorkshopPlan.bulkCreate(
-          validPlans.map(p => ({ workshop_id: created.id, name: p.name, price: Number(p.price) || 0, is_active: true }))
+          validPlans.map(p => ({ workshop_id: created.id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false }))
         );
       }
       setShowForm(false);

@@ -18,6 +18,7 @@ const entityMap = {
   workspace: { entity: 'WorkspaceOrder', label: 'فضای کار', amountField: 'price', labelField: 'subscription_name', hasHowMet: true, labelFieldLabel: 'نام اشتراک' },
   cafe: { entity: 'ItemPurchase', label: 'کافه', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم' },
   workshop: { entity: 'WorkshopPurchase', label: 'کارگاه', amountField: 'price', labelField: 'workshop_title', hasHowMet: true, labelFieldLabel: 'نام کارگاه' },
+  custom: { entity: 'CustomIncome', label: 'درآمد دلخواه', amountField: 'amount', labelField: 'title', hasHowMet: true, labelFieldLabel: 'شرح درآمد' },
 };
 
 export default function InvoiceDetail() {

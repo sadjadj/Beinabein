@@ -3,10 +3,14 @@ import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell, Search } from 'lucide-react';
-import { computeWorkshopRevenue, toPersianNum, formatCurrency, currentJalaliMonthKey, gregorianToJalaliMonthKey } from '@/lib/stats';
-import { paymentMethodLabels } from '@/lib/labels';
-import { toJalaliStr } from '@/lib/jalali';
+import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell, Search, Plus } from 'lucide-react';
+import { computeWorkshopRevenue, toPersianNum, formatCurrency, findOrCreatePerson, currentJalaliMonthKey, gregorianToJalaliMonthKey } from '@/lib/stats';
+import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
+import { toJalaliStr, todayGregorian } from '@/lib/jalali';
+import PersonSearch from '@/components/PersonSearch';
+import PriceInput from '@/components/PriceInput';
+import PersianNumberInput from '@/components/PersianNumberInput';
+import JalaliDateInput from '@/components/JalaliDateInput';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 
 export default function AccountingPage({ embedded = false }) {
@@ -17,24 +21,31 @@ export default function AccountingPage({ embedded = false }) {
   const [itemPurchases, setItemPurchases] = useState([]);
   const [workshopPurchases, setWorkshopPurchases] = useState([]);
   const [workshops, setWorkshops] = useState([]);
+  const [customIncomes, setCustomIncomes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customForm, setCustomForm] = useState({ title: '', person_name: '', person_phone: '', amount: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: 'other', is_paid: false, description: '' });
+  const [customError, setCustomError] = useState('');
+  const [customSubmitting, setCustomSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [ws, items, wp, wsList] = await Promise.all([
+        const [ws, items, wp, wsList, ci] = await Promise.all([
           base44.entities.WorkspaceOrder.list('-purchase_date', 1000),
           base44.entities.ItemPurchase.list('-purchase_date', 1000),
           base44.entities.WorkshopPurchase.list('-purchase_date', 1000),
-          base44.entities.Workshop.list('-start_date', 500)
+          base44.entities.Workshop.list('-start_date', 500),
+          base44.entities.CustomIncome.list('-purchase_date', 1000)
         ]);
         setWorkspaceOrders(ws);
         setItemPurchases(items);
         setWorkshopPurchases(wp);
         setWorkshops(wsList);
+        setCustomIncomes(ci);
       } finally { setLoading(false); }
     };
     fetchData();
@@ -45,6 +56,33 @@ export default function AccountingPage({ embedded = false }) {
     if (entity === 'WorkspaceOrder') setWorkspaceOrders(await base44.entities.WorkspaceOrder.list('-purchase_date', 1000));
     if (entity === 'ItemPurchase') setItemPurchases(await base44.entities.ItemPurchase.list('-purchase_date', 1000));
     if (entity === 'WorkshopPurchase') setWorkshopPurchases(await base44.entities.WorkshopPurchase.list('-purchase_date', 1000));
+    if (entity === 'CustomIncome') setCustomIncomes(await base44.entities.CustomIncome.list('-purchase_date', 1000));
+  };
+
+  const handleCustomSubmit = async () => {
+    if (!customForm.person_name) { setCustomError('نام مشتری الزامی است'); return; }
+    if (!customForm.person_phone) { setCustomError('شماره تماس الزامی است'); return; }
+    if (!customForm.purchase_date) { setCustomError('تاریخ پرداخت الزامی است'); return; }
+    setCustomError('');
+    setCustomSubmitting(true);
+    try {
+      await findOrCreatePerson(customForm.person_phone, customForm.person_name);
+      await base44.entities.CustomIncome.create({
+        title: customForm.title || 'درآمد دلخواه',
+        person_name: customForm.person_name,
+        person_phone: customForm.person_phone,
+        amount: Number(customForm.amount) || 0,
+        quantity: Number(customForm.quantity) || 1,
+        purchase_date: customForm.purchase_date,
+        payment_method: customForm.payment_method,
+        how_met: customForm.how_met || 'other',
+        is_paid: customForm.is_paid,
+        description: customForm.description || ''
+      });
+      setCustomIncomes(await base44.entities.CustomIncome.list('-purchase_date', 1000));
+      setCustomForm({ title: '', person_name: '', person_phone: '', amount: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: 'other', is_paid: false, description: '' });
+      setShowCustomForm(false);
+    } finally { setCustomSubmitting(false); }
   };
 
   const toggleFacilitatorPaid = async (w) => {
@@ -61,7 +99,9 @@ export default function AccountingPage({ embedded = false }) {
   const wsRevenue = monthWs.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
   const cafeRevenue = monthItems.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
   const workshopRevenue = monthWp.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
-  const totalIncome = wsRevenue + cafeRevenue + workshopRevenue;
+  const monthCi = customIncomes.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
+  const ciRevenue = monthCi.reduce((s, p) => s + (p.amount || 0) * (p.quantity || 1), 0);
+  const totalIncome = wsRevenue + cafeRevenue + workshopRevenue + ciRevenue;
 
   // Facilitator expenses (from all workshops this month)
   const monthWorkshops = workshops.filter(w => gregorianToJalaliMonthKey(w.start_date) === currentMonth);
@@ -76,8 +116,10 @@ export default function AccountingPage({ embedded = false }) {
   const unpaidWs = workspaceOrders.filter(o => !o.is_paid && o.payment_method !== 'free');
   const unpaidItems = itemPurchases.filter(p => !p.is_paid && p.payment_method !== 'free');
   const unpaidWp = workshopPurchases.filter(p => !p.is_paid && p.payment_method !== 'free');
-  const totalUnpaid = unpaidWs.length + unpaidItems.length + unpaidWp.length;
-  const totalUnpaidAmount = [...unpaidWs, ...unpaidItems, ...unpaidWp].reduce((s, r) => {
+  const unpaidCi = customIncomes.filter(p => !p.is_paid && p.payment_method !== 'free');
+  const totalUnpaid = unpaidWs.length + unpaidItems.length + unpaidWp.length + unpaidCi.length;
+  const totalUnpaidAmount = [...unpaidWs, ...unpaidItems, ...unpaidWp, ...unpaidCi].reduce((s, r) => {
+    if (r.amount) return s + r.amount * (r.quantity || 1);
     if (r.price) return s + r.price * (r.quantity || 1) + (r.donation || 0);
     if (r.item_price) return s + r.item_price * (r.quantity || 1) * (1 - (r.discount || 0) / 100);
     return s;
@@ -93,6 +135,7 @@ export default function AccountingPage({ embedded = false }) {
     ...workspaceOrders.map(o => ({ ...o, type: 'workspace', amount: (o.price || 0) * (o.quantity || 1), label: o.subscription_name || '-' })),
     ...itemPurchases.map(p => ({ ...p, type: 'cafe', amount: (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), label: p.item_name })),
     ...workshopPurchases.map(p => ({ ...p, type: 'workshop', amount: (p.price || 0) * (p.quantity || 1) + (p.donation || 0), label: p.workshop_title })),
+    ...customIncomes.map(p => ({ ...p, type: 'custom', amount: (p.amount || 0) * (p.quantity || 1), label: p.title || '-' })),
   ].sort((a, b) => (b.purchase_date || '').localeCompare(a.purchase_date || ''));
 
   const filtered = allTransactions.filter(t => {
@@ -107,7 +150,7 @@ export default function AccountingPage({ embedded = false }) {
       (t.person_phone || '').toLowerCase().includes(s);
   });
 
-  const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه' };
+  const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه', custom: 'درآمد دلخواه' };
 
   if (loading) return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto pt-14 md:pt-6">
@@ -179,6 +222,67 @@ export default function AccountingPage({ embedded = false }) {
         </div>
       )}
 
+      {/* Custom income form */}
+      <div className="bg-white rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h3 className="text-sm font-semibold">درآمدهای جانبی</h3>
+          <button onClick={() => setShowCustomForm(!showCustomForm)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
+            <Plus className="w-4 h-4" /> ثبت درآمد دلخواه
+          </button>
+        </div>
+        {showCustomForm && (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">شرح درآمد</label>
+              <input type="text" placeholder="مثلاً فروش محصول" value={customForm.title} onChange={e => setCustomForm({ ...customForm, title: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-1">
+              <label className="text-xs text-muted-foreground block mb-1">نام مشتری *</label>
+              <PersonSearch personName={customForm.person_name} personPhone={customForm.person_phone} onNameChange={v => setCustomForm({ ...customForm, person_name: v })} onPhoneChange={v => setCustomForm({ ...customForm, person_phone: v })} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">مبلغ (تومان)</label>
+              <PriceInput value={customForm.amount} onChange={v => setCustomForm({ ...customForm, amount: v })} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">تعداد</label>
+              <PersianNumberInput value={customForm.quantity} onChange={v => setCustomForm({ ...customForm, quantity: v })} placeholder="تعداد" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">تاریخ پرداخت *</label>
+              <JalaliDateInput value={customForm.purchase_date} onChange={v => setCustomForm({ ...customForm, purchase_date: v })} showToday={false} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>
+              <select value={customForm.payment_method} onChange={e => setCustomForm({ ...customForm, payment_method: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">نحوه آشنایی</label>
+              <select value={customForm.how_met} onChange={e => setCustomForm({ ...customForm, how_met: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                <option value="">انتخاب...</option>
+                {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-sm self-end pb-2">
+              <input type="checkbox" checked={customForm.is_paid} onChange={e => setCustomForm({ ...customForm, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
+            </label>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="text-xs text-muted-foreground block mb-1">توضیحات</label>
+              <textarea value={customForm.description} onChange={e => setCustomForm({ ...customForm, description: e.target.value })} rows={2} placeholder="توضیحات (اختیاری)..." className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            </div>
+            {customError && <div className="sm:col-span-2 lg:col-span-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">{customError}</div>}
+            <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
+              <button onClick={handleCustomSubmit} disabled={customSubmitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                {customSubmitting ? 'در حال ثبت...' : 'ثبت درآمد'}
+              </button>
+              <button onClick={() => { setShowCustomForm(false); setCustomError(''); }} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold">فاکتورها</h3>
@@ -226,7 +330,7 @@ export default function AccountingPage({ embedded = false }) {
                     <td className="p-3 text-xs whitespace-nowrap">{paymentMethodLabels[t.payment_method] || t.payment_method}</td>
                     <td className="p-3 font-medium whitespace-nowrap text-left" dir="ltr">{formatCurrency(t.amount)}</td>
                     <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => togglePaid(t.type === 'workspace' ? 'WorkspaceOrder' : t.type === 'cafe' ? 'ItemPurchase' : 'WorkshopPurchase', t.id, t.is_paid)} className="inline-flex items-center gap-1 text-xs whitespace-nowrap">
+                      <button onClick={() => togglePaid({ workspace: 'WorkspaceOrder', cafe: 'ItemPurchase', workshop: 'WorkshopPurchase', custom: 'CustomIncome' }[t.type], t.id, t.is_paid)} className="inline-flex items-center gap-1 text-xs whitespace-nowrap">
                         {t.is_paid ? (
                           <span className="inline-flex items-center gap-1 text-green-600"><CheckCircle className="w-3.5 h-3.5" /> پرداخت شده</span>
                         ) : (

@@ -115,7 +115,7 @@ export default function WorkshopAttendancePage() {
             <div className="bg-white rounded-xl border border-border overflow-hidden">
               <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-[#B74B40] text-white flex items-center justify-center text-sm font-bold">
+                  <span className="w-8 h-8 rounded-full border-2 border-[#B74B40] text-[#B74B40] flex items-center justify-center text-sm font-bold">
                     {toPersianNum(activeSession.session_number)}
                   </span>
                   <div>

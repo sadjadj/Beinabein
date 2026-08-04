@@ -164,8 +164,8 @@ export default function WorkshopProfile() {
       const plansToUpdate = (submittedPlans || []).filter(p => p.id);
       const plansToAdd = (submittedPlans || []).filter(p => !p.id);
       for (const p of plansToDelete) await base44.entities.WorkshopPlan.delete(p.id);
-      if (plansToUpdate.length) await base44.entities.WorkshopPlan.bulkUpdate(plansToUpdate.map(p => ({ id: p.id, name: p.name, price: Number(p.price) || 0 })));
-      if (plansToAdd.length) await base44.entities.WorkshopPlan.bulkCreate(plansToAdd.map(p => ({ workshop_id: id, name: p.name, price: Number(p.price) || 0, is_active: true })));
+      if (plansToUpdate.length) await base44.entities.WorkshopPlan.bulkUpdate(plansToUpdate.map(p => ({ id: p.id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false })));
+      if (plansToAdd.length) await base44.entities.WorkshopPlan.bulkCreate(plansToAdd.map(p => ({ workshop_id: id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false })));
 
       setEditing(false);
       fetchData();
@@ -470,7 +470,7 @@ export default function WorkshopProfile() {
                   {sessions.map(s => (
                     <div key={s.id} className="py-2.5 flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-[#B74B40] text-white flex items-center justify-center text-xs font-bold">{toPersianNum(s.session_number)}</span>
+                        <span className="w-6 h-6 rounded-full border-2 border-[#B74B40] text-[#B74B40] flex items-center justify-center text-xs font-bold">{toPersianNum(s.session_number)}</span>
                         <span className="text-muted-foreground">{formatJalaliShort(s.session_date)}</span>
                       </div>
                       <span className="text-xs text-muted-foreground">{toPersianNum((s.present_phones || []).length)} حاضر</span>
