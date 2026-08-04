@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -12,7 +12,9 @@ import Dashboard from '@/pages/Dashboard';
 import PeoplePage from '@/pages/PeoplePage';
 import WorkspacePage from '@/pages/WorkspacePage';
 import CafePage from '@/pages/CafePage';
-import WorkshopsMainPage from '@/pages/WorkshopsMainPage';
+import WorkshopsPage from '@/pages/WorkshopsPage';
+import WorkshopRegistrationsPage from '@/pages/WorkshopRegistrationsPage';
+import AttendancePage from '@/pages/AttendancePage';
 import WorkshopAttendancePage from '@/pages/WorkshopAttendancePage';
 import PersonProfile from '@/pages/PersonProfile';
 import FacilitatorsPage from '@/pages/FacilitatorsPage';
@@ -64,9 +66,9 @@ const AuthenticatedApp = () => {
       <Route path="/people" element={<PeoplePage />} />
       <Route path="/workspace" element={<WorkspacePage />} />
       <Route path="/cafe" element={<CafePage />} />
-      <Route path="/workshops" element={<WorkshopsMainPage />} />
-      <Route path="/workshop-registrations" element={<Navigate to="/workshops?tab=registrations" replace />} />
-      <Route path="/attendance" element={<Navigate to="/workshops?tab=attendance" replace />} />
+      <Route path="/workshops" element={<WorkshopsPage />} />
+      <Route path="/workshop-registrations" element={<WorkshopRegistrationsPage />} />
+      <Route path="/attendance" element={<AttendancePage />} />
       <Route path="/attendance/:workshopId" element={<WorkshopAttendancePage />} />
       <Route path="/people/:id" element={<PersonProfile />} />
       <Route path="/facilitators" element={<FacilitatorsPage />} />
