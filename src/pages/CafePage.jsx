@@ -189,10 +189,27 @@ export default function CafePage() {
         <p className="text-sm text-muted-foreground mt-1">مدیریت انبار آیتم‌ها و ثبت خریدها</p>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {mainTabs.map(t => (
-          <button key={t.key} onClick={() => setMainTab(t.key)} className={`px-4 py-2 rounded-lg text-sm font-medium ${mainTab === t.key ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>{t.label}</button>
-        ))}
+      <div className="bg-white border-b border-border -mx-4 md:-mx-6 mb-6">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {mainTabs.map(t => {
+              const isActive = t.key === mainTab;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setMainTab(t.key)}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    isActive
+                      ? 'border-[#B74B40] text-[#B74B40]'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {mainTab === 'order' && (
