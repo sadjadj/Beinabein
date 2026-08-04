@@ -9,7 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import Layout from '@/components/Layout';
 import Dashboard from '@/pages/Dashboard';
-import PeoplePage from '@/pages/PeoplePage';
+import PeopleHubPage from '@/pages/PeopleHubPage';
 import WorkspacePage from '@/pages/WorkspacePage';
 import CafePage from '@/pages/CafePage';
 import WorkshopsHubPage from '@/pages/WorkshopsHubPage';
@@ -63,7 +63,7 @@ const AuthenticatedApp = () => {
     {/* Add your page Route elements here */}
     <Route element={<Layout />}>
       <Route path="/" element={<Dashboard />} />
-      <Route path="/people" element={<PeoplePage />} />
+      <Route path="/people" element={<PeopleHubPage />} />
       <Route path="/workspace" element={<WorkspacePage />} />
       <Route path="/cafe" element={<CafePage />} />
       <Route path="/workshops" element={<WorkshopsHubPage />} />

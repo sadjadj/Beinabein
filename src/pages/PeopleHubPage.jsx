@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { GraduationCap, ClipboardCheck, ClipboardList } from 'lucide-react';
-import WorkshopsPage from '@/pages/WorkshopsPage';
-import AttendancePage from '@/pages/AttendancePage';
-import WorkshopRegistrationsPage from '@/pages/WorkshopRegistrationsPage';
+import { Users, UserCheck, Tag, Palette } from 'lucide-react';
+import PeoplePage from '@/pages/PeoplePage';
+import FacilitatorsPage from '@/pages/FacilitatorsPage';
+import BrandsPage from '@/pages/BrandsPage';
+import ArtistsPage from '@/pages/ArtistsPage';
 
 const tabs = [
-  { key: 'registrations', label: 'ثبت نام افراد در کارگاه‌ها', icon: ClipboardList, Component: WorkshopRegistrationsPage },
-  { key: 'attendance', label: 'حضور غیاب', icon: ClipboardCheck, Component: AttendancePage },
-  { key: 'manage', label: 'مدیریت کارگاه‌ها', icon: GraduationCap, Component: WorkshopsPage },
+  { key: 'customers', label: 'مشتری‌ها', icon: Users, Component: PeoplePage },
+  { key: 'facilitators', label: 'تسهیلگرها', icon: UserCheck, Component: FacilitatorsPage },
+  { key: 'brands', label: 'برندها', icon: Tag, Component: BrandsPage },
+  { key: 'artists', label: 'آرتیست‌ها', icon: Palette, Component: ArtistsPage },
 ];
 
-export default function WorkshopsHubPage() {
-  const [tab, setTab] = useState('registrations');
+export default function PeopleHubPage() {
+  const [tab, setTab] = useState('customers');
   const active = tabs.find(t => t.key === tab) || tabs[0];
   const ActiveComponent = active.Component;
 

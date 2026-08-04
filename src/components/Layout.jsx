@@ -1,25 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, RotateCcw, Receipt, MapPin, Menu, X, ChevronDown, BarChart3, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, RotateCcw, Receipt, MapPin, Menu, X, ChevronDown, BarChart3, FileText } from 'lucide-react';
 
 const standaloneItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
+  { path: '/people', label: 'افراد', icon: Users },
   { path: '/workspace', label: 'فضای کار', icon: Briefcase },
   { path: '/cafe', label: 'کافه', icon: Coffee },
   { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },
 ];
 
 const navGroups = [
-  {
-    label: 'افراد',
-    icon: Users,
-    children: [
-      { path: '/people', label: 'مشتری‌ها', icon: Users },
-      { path: '/facilitators', label: 'تسهیلگرها', icon: UserCheck },
-      { path: '/brands', label: 'برندها', icon: Tag },
-      { path: '/artists', label: 'آرتیست‌ها', icon: Palette },
-    ]
-  },
   {
     label: 'مالی',
     icon: Wallet,
