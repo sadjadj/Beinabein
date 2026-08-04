@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, ClipboardCheck, RotateCcw, Receipt, MapPin, Menu, X, ClipboardList, ChevronDown, BarChart3, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, UserCheck, Tag, Palette, Calendar, Wallet, RotateCcw, Receipt, MapPin, Menu, X, ChevronDown, BarChart3, FileText } from 'lucide-react';
 
 const standaloneItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
   { path: '/workspace', label: 'فضای کار', icon: Briefcase },
   { path: '/cafe', label: 'کافه', icon: Coffee },
+  { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },
 ];
 
 const navGroups = [
@@ -17,15 +18,6 @@ const navGroups = [
       { path: '/facilitators', label: 'تسهیلگرها', icon: UserCheck },
       { path: '/brands', label: 'برندها', icon: Tag },
       { path: '/artists', label: 'آرتیست‌ها', icon: Palette },
-    ]
-  },
-  {
-    label: 'کارگاه‌ها',
-    icon: GraduationCap,
-    children: [
-      { path: '/workshops', label: 'مدیریت کارگاه‌ها', icon: GraduationCap },
-      { path: '/attendance', label: 'حضور غیاب', icon: ClipboardCheck },
-      { path: '/workshop-registrations', label: 'ثبت‌نام افراد در کارگاه‌ها', icon: ClipboardList },
     ]
   },
   {
@@ -81,7 +73,7 @@ export default function Layout() {
   const renderNav = () => (
     <nav className="flex flex-col gap-1 p-3">
       {standaloneItems.map(item => {
-        const active = location.pathname === item.path;
+        const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
         return (
           <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[#FDF2F1] text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
             <item.icon className="w-5 h-5 flex-shrink-0" />
