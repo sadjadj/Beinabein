@@ -92,7 +92,7 @@ export default function WorkshopForm({
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">روز کارگاه (خودکار)</label>
-            <input type="text" value={form.day_of_week || ''} readOnly placeholder="—" size={Math.max((form.day_of_week || '').length + 2, 3)} className="px-3 py-2 rounded-lg border border-input bg-muted/50 text-sm text-center" />
+            <input type="text" value={form.day_of_week || ''} readOnly placeholder="—" className="px-3 py-2 rounded-lg border border-input bg-muted/50 text-sm min-w-[140px]" />
           </div>
         </div>
         <textarea placeholder="توضیحات کارگاه" value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />

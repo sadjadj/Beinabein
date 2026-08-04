@@ -11,7 +11,7 @@ import { todayGregorian, formatJalaliShort } from '@/lib/jalali';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 import WorkshopForm from '@/components/WorkshopForm';
 
-export default function WorkshopsPage({ embedded = false }) {
+export default function WorkshopsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -129,14 +129,12 @@ export default function WorkshopsPage({ embedded = false }) {
   const paginatedArchived = archivedWorkshops.slice((currentPage - 1) * ARCHIVED_PAGE_SIZE, currentPage * ARCHIVED_PAGE_SIZE);
 
   return (
-    <div className={embedded ? "space-y-6" : "p-4 md:p-6 space-y-6 max-w-7xl mx-auto"}>
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {!embedded && (
         <div>
           <h1 className="text-2xl font-bold">کارگاه‌ها</h1>
           <p className="text-sm text-muted-foreground mt-1">مدیریت کارگاه‌ها و ثبت‌نامی‌ها</p>
         </div>
-        )}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 sm:flex-none">
             <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
