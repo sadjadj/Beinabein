@@ -8,7 +8,7 @@ import JalaliDateInput from '@/components/JalaliDateInput';
 import PriceInput from '@/components/PriceInput';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 
-export default function ReturnsPage() {
+export default function ReturnsPage({ embedded = false }) {
   const [returns, setReturns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -55,10 +55,12 @@ export default function ReturnsPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+      {!embedded && (
       <div>
         <h1 className="text-2xl font-bold">مرجوعی</h1>
         <p className="text-sm text-muted-foreground mt-1">مدیریت مرجوعی‌ها و بازگشت وجه</p>
       </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
         <StatCard label="کل مرجوعی‌ها" value={toPersianNum(totalReturns)} icon={RotateCcw} color="terracotta" />

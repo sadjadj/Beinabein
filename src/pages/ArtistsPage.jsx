@@ -7,7 +7,7 @@ import { toPersianNum, countNewThisMonth } from '@/lib/stats';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 
-export default function ArtistsPage() {
+export default function ArtistsPage({ embedded = false }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -53,10 +53,12 @@ export default function ArtistsPage() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between gap-3 flex-wrap">
+        {!embedded && (
         <div>
           <h1 className="text-2xl font-bold">آرتیست‌ها</h1>
           <p className="text-sm text-muted-foreground mt-1">فهرست آرتیست‌های بینابین</p>
         </div>
+        )}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1">
             {[['', 'همه'], ['with', 'دارای برند'], ['without', 'بدون برند']].map(([val, lbl]) => (

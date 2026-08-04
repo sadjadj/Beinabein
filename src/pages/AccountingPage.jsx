@@ -9,7 +9,7 @@ import { paymentMethodLabels } from '@/lib/labels';
 import { toJalaliStr } from '@/lib/jalali';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 
-export default function AccountingPage() {
+export default function AccountingPage({ embedded = false }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const hideFinancials = user?.role === 'executive';
@@ -111,10 +111,12 @@ export default function AccountingPage() {
 
   if (loading) return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto pt-14 md:pt-6">
+      {!embedded && (
       <div>
         <Skeleton className="h-7 w-24" />
         <Skeleton className="h-4 w-48 mt-2" />
       </div>
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton />
       </div>
@@ -124,10 +126,12 @@ export default function AccountingPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+      {!embedded && (
       <div>
         <h1 className="text-2xl font-bold">حسابداری</h1>
         <p className="text-sm text-muted-foreground mt-1">مدیریت درآمد، هزینه‌ها و پرداخت‌ها</p>
       </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {!hideFinancials && <StatCard label="درآمد این ماه" value={formatCurrency(totalIncome)} icon={TrendingUp} color="terracotta" />}

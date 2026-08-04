@@ -32,7 +32,7 @@ const categoryColors = {
   kitchen_purchase: 'teal',
 };
 
-export default function ExpensesPage() {
+export default function ExpensesPage({ embedded = false }) {
   const [expenses, setExpenses] = useState([]);
   const [facilitators, setFacilitators] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,10 +88,12 @@ export default function ExpensesPage() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between gap-3 flex-wrap">
+        {!embedded && (
         <div>
           <h1 className="text-2xl font-bold">هزینه کرد</h1>
           <p className="text-sm text-muted-foreground mt-1">ثبت و مدیریت هزینه‌های بینابین</p>
         </div>
+        )}
         <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
           <Plus className="w-4 h-4" /> ثبت هزینه
         </button>

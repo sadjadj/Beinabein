@@ -19,6 +19,10 @@ export default function FinanceHubPage() {
 
   return (
     <div>
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-6 pb-4">
+        <h1 className="text-2xl font-bold">مالی</h1>
+        <p className="text-sm text-muted-foreground mt-1">مدیریت درآمدها، هزینه‌ها، مرجوعی و گزارش‌های مالی</p>
+      </div>
       <div className="bg-white border-b border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className="flex items-center gap-1 overflow-x-auto">
@@ -42,7 +46,7 @@ export default function FinanceHubPage() {
           </div>
         </div>
       </div>
-      <ActiveComponent />
+      <ActiveComponent embedded />
     </div>
   );
 }

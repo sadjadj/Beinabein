@@ -9,7 +9,7 @@ import PersianNumberInput from '@/components/PersianNumberInput';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 import { StatCardSkeleton, CardGridSkeleton } from '@/components/SkeletonPatterns';
 
-export default function FacilitatorsPage() {
+export default function FacilitatorsPage({ embedded = false }) {
   const [facilitators, setFacilitators] = useState([]);
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,10 +71,12 @@ export default function FacilitatorsPage() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between gap-3 flex-wrap">
+        {!embedded && (
         <div>
           <h1 className="text-2xl font-bold">تسهیلگرها</h1>
           <p className="text-sm text-muted-foreground mt-1">فهرست تسهیلگرهای بینابین</p>
         </div>
+        )}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1">
             {[['', 'همه'], ['active', 'فعال'], ['inactive', 'بدون کارگاه']].map(([val, lbl]) => (

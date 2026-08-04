@@ -19,7 +19,7 @@ const presets = [
   { key: 'all_time', label: 'کل دوره' },
 ];
 
-export default function FinancialReport() {
+export default function FinancialReport({ embedded = false }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], expenses: [], workshops: [], facilitators: [], people: [] });
   const [preset, setPreset] = useState('month');
@@ -134,10 +134,12 @@ export default function FinancialReport() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {!embedded && (
         <div>
           <h1 className="text-2xl font-bold">گزارش مالی</h1>
           <p className="text-sm text-muted-foreground mt-1">تحلیل جامع درآمد، هزینه و سود</p>
         </div>
+        )}
         <div className="relative">
           <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-border text-sm font-medium hover:bg-muted">
             {currentPreset?.label}<ChevronDown className="w-4 h-4" />

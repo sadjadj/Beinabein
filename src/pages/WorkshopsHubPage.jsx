@@ -17,6 +17,10 @@ export default function WorkshopsHubPage() {
 
   return (
     <div>
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-6 pb-4">
+        <h1 className="text-2xl font-bold">کارگاه‌ها</h1>
+        <p className="text-sm text-muted-foreground mt-1">مدیریت کارگاه‌ها، ثبت‌نامی‌ها و حضور غیاب</p>
+      </div>
       <div className="bg-white border-b border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className="flex items-center gap-1 overflow-x-auto">
@@ -40,7 +44,7 @@ export default function WorkshopsHubPage() {
           </div>
         </div>
       </div>
-      <ActiveComponent />
+      <ActiveComponent embedded />
     </div>
   );
 }

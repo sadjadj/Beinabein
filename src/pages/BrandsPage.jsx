@@ -8,7 +8,7 @@ import { sanitizePhone } from '@/lib/inputUtils';
 import TagInput from '@/components/TagInput';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 
-export default function BrandsPage() {
+export default function BrandsPage({ embedded = false }) {
   const [records, setRecords] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,10 +61,12 @@ export default function BrandsPage() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {!embedded && (
         <div>
           <h1 className="text-2xl font-bold">برندها</h1>
           <p className="text-sm text-muted-foreground mt-1">فهرست برندهای همکار بینابین</p>
         </div>
+        )}
         <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
           <Plus className="w-4 h-4" /> ثبت برند
         </button>
