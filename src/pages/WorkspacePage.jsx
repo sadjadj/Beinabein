@@ -2,16 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Briefcase, Users, Repeat, Plus, ChevronLeft, Pencil, Trash2, Search } from 'lucide-react';
+import { Briefcase, Users, Repeat, Plus, ChevronLeft, Pencil, Trash2, Search, RotateCcw } from 'lucide-react';
 import ExportButton from '@/components/ExportButton';
-import { computeWorkspaceStats, findOrCreatePerson, toPersianNum, formatCurrency } from '@/lib/stats';
+import { computeWorkspaceStats, findOrCreatePerson, toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
-import { toJalaliStr, todayGregorian } from '@/lib/jalali';
+import { toJalaliStr, todayGregorian, getJalaliParts } from '@/lib/jalali';
 import FloatingDateInput from '@/components/FloatingDateInput';
+import JalaliDateInput from '@/components/JalaliDateInput';
 import PersonSearch from '@/components/PersonSearch';
 import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
+
+const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+
+const tabs = [
+  { key: 'order', label: 'سفارش جدید' },
+  { key: 'history', label: 'تاریخچه سفارشات' },
+  { key: 'report', label: 'گزارش' },
+];
 
 export default function WorkspacePage() {
   const navigate = useNavigate();
@@ -19,19 +28,22 @@ export default function WorkspacePage() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [tab, setTab] = useState('orders');
+  const [tab, setTab] = useState('order');
   const [orderForm, setOrderForm] = useState({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_date: '', how_met: '' });
   const [subForm, setSubForm] = useState({ name: '', price: '' });
   const [editingSubId, setEditingSubId] = useState(null);
   const [editSubForm, setEditSubForm] = useState({});
   const [sortBy, setSortBy] = useState('date_desc');
   const [orderSearch, setOrderSearch] = useState('');
+  const monthRange = getDateRange('month', null, null);
+  const [historyFrom, setHistoryFrom] = useState(monthRange?.start || '');
+  const [historyTo, setHistoryTo] = useState(todayGregorian());
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [orders, subs] = await Promise.all([
-        base44.entities.WorkspaceOrder.list('-purchase_date', 200),
+        base44.entities.WorkspaceOrder.list('-purchase_date', 500),
         base44.entities.WorkspaceSubscription.list('-created_date', 100)
       ]);
       setRecords(orders);
@@ -102,13 +114,26 @@ export default function WorkspacePage() {
     return (b.purchase_date || '').localeCompare(a.purchase_date || '');
   });
 
-  const filteredRecords = sortedRecords.filter(r => {
+  const matchSearch = (r) => {
     if (!orderSearch) return true;
     const s = orderSearch.toLowerCase();
     return (r.person_name || '').toLowerCase().includes(s) ||
       (r.person_phone || '').includes(orderSearch) ||
       (r.subscription_name || '').toLowerCase().includes(s);
+  };
+
+  const today = todayGregorian();
+  const todayRecords = sortedRecords.filter(r => r.purchase_date === today && matchSearch(r));
+
+  const historyRecords = sortedRecords.filter(r => {
+    if (historyFrom && (!r.purchase_date || r.purchase_date < historyFrom)) return false;
+    if (historyTo && (!r.purchase_date || r.purchase_date > historyTo)) return false;
+    return matchSearch(r);
   });
+
+  const currentMonthName = (() => {
+    try { return jMonths[getJalaliParts(today).jm - 1]; } catch { return ''; }
+  })();
 
   const wsExportColumns = [
     { key: 'date', label: 'تاریخ خرید' },
@@ -120,7 +145,7 @@ export default function WorkspacePage() {
     { key: 'status', label: 'وضعیت' },
     { key: 'amount', label: 'مبلغ' },
   ];
-  const wsExportRows = filteredRecords.map(r => ({
+  const buildExportRows = (list) => list.map(r => ({
     date: r.purchase_date ? toJalaliStr(r.purchase_date) : '',
     subscription: r.subscription_name || '',
     name: r.person_name || '',
@@ -131,6 +156,50 @@ export default function WorkspacePage() {
     amount: (r.price || 0) * (r.quantity || 1),
   }));
 
+  const renderOrdersTable = (list) => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/50">
+          <tr>
+            <th className="text-right p-3 font-medium">تاریخ خرید</th>
+            <th className="text-right p-3 font-medium">اشتراک</th>
+            <th className="text-right p-3 font-medium">نام</th>
+            <th className="text-right p-3 font-medium">شماره</th>
+            <th className="text-right p-3 font-medium">ورود</th>
+            <th className="text-right p-3 font-medium">مدل پرداخت</th>
+            <th className="text-center p-3 font-medium">وضعیت</th>
+            <th className="text-center p-3 font-medium"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.length === 0 ? (
+            <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">{orderSearch ? 'نتیجه‌ای یافت نشد' : 'موردی وجود ندارد'}</td></tr>
+          ) : list.map(r => (
+            <tr key={r.id} className="border-t border-border hover:bg-[#FDF2F1]/30 cursor-pointer" onClick={() => navigate(`/workspace/${r.id}`)}>
+              <td className="p-3">{r.purchase_date ? toJalaliStr(r.purchase_date) : '-'}</td>
+              <td className="p-3">{r.subscription_name || '-'}</td>
+              <td className="p-3">{r.person_name || '-'}</td>
+              <td className="p-3 text-muted-foreground">{r.person_phone}</td>
+              <td className="p-3">{r.entry_time || '-'}</td>
+              <td className="p-3 text-xs">{paymentMethodLabels[r.payment_method] || r.payment_method}</td>
+              <td className="p-3 text-center">
+                <button
+                  onClick={(e) => { e.stopPropagation(); togglePaid(r); }}
+                  className={`text-xs font-medium px-2 py-1 rounded ${r.is_paid ? 'text-green-600 bg-green-50' : 'text-[#B9834B] bg-[#FBF3EC]'}`}
+                >
+                  {r.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}
+                </button>
+              </td>
+              <td className="p-3 text-center">
+                <ChevronLeft className="w-4 h-4 text-muted-foreground inline-block" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -138,12 +207,7 @@ export default function WorkspacePage() {
           <Skeleton className="h-7 w-28" />
           <Skeleton className="h-4 w-48 mt-2" />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <StatCardSkeleton />
-          <StatCardSkeleton />
-          <StatCardSkeleton />
-          <StatCardSkeleton />
-        </div>
+        <Skeleton className="h-12 rounded-lg" />
         <Skeleton className="h-64 rounded-xl" />
       </div>
     );
@@ -153,87 +217,54 @@ export default function WorkspacePage() {
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">فضای کار</h1>
-        <p className="text-sm text-muted-foreground mt-1">ثبت سفارش و مدیریت اشتراک‌ها</p>
+        <p className="text-sm text-muted-foreground mt-1">ثبت سفارش، مدیریت اشتراک‌ها و مشاهده فاکتورها</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="مجموع سفارش‌ها" value={toPersianNum(stats.totalOrders)} icon={Briefcase} color="terracotta" />
-        <StatCard label="افراد یونیک" value={toPersianNum(stats.uniqueCount)} icon={Users} color="teal" />
-        <StatCard label="افراد تکراری" value={toPersianNum(stats.repeatCount)} icon={Repeat} color="ochre" />
-        <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">درآمد کل</p>
-              <p className="text-xl lg:text-2xl font-bold mt-2 text-foreground break-words leading-tight">{formatCurrency(stats.totalRevenue)}</p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-[#FBF0F1] flex items-center justify-center flex-shrink-0">
-              <Briefcase className="w-5 h-5 text-[#D98B94]" />
-            </div>
+      <div className="bg-white border-b border-border -mx-4 md:-mx-6">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {tabs.map(t => {
+              const isActive = t.key === tab;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    isActive
+                      ? 'border-[#B74B40] text-[#B74B40]'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <button onClick={() => setTab('orders')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === 'orders' ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>سفارش‌ها</button>
-        <button onClick={() => setTab('subscriptions')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === 'subscriptions' ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>اشتراک‌های فضا کار</button>
-      </div>
-
-      {tab === 'subscriptions' && (
-        <>
-          <div className="bg-white rounded-xl border border-border p-5">
-            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> {editingSubId ? 'ویرایش اشتراک' : 'افزودن اشتراک جدید'}</h3>
-            <form onSubmit={handleSubSubmit} className="flex flex-wrap items-end gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">نام اشتراک</label>
-                <input type="text" placeholder="مثلاً صندلی روزانه" value={editingSubId ? editSubForm.name : subForm.name} onChange={e => editingSubId ? setEditSubForm({ ...editSubForm, name: e.target.value }) : setSubForm({ ...subForm, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" required />
+      {/* تب گزارش */}
+      {tab === 'report' && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <StatCard label="مجموع سفارش‌ها" value={toPersianNum(stats.totalOrders)} icon={Briefcase} color="terracotta" />
+          <StatCard label="افراد یونیک" value={toPersianNum(stats.uniqueCount)} icon={Users} color="teal" />
+          <StatCard label="افراد تکراری" value={toPersianNum(stats.repeatCount)} icon={Repeat} color="ochre" />
+          <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">درآمد کل</p>
+                <p className="text-xl lg:text-2xl font-bold mt-2 text-foreground break-words leading-tight">{formatCurrency(stats.totalRevenue)}</p>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
-                <PriceInput value={editingSubId ? editSubForm.price : subForm.price} onChange={v => editingSubId ? setEditSubForm({ ...editSubForm, price: v }) : setSubForm({ ...subForm, price: v })} required />
+              <div className="w-10 h-10 rounded-lg bg-[#FBF0F1] flex items-center justify-center flex-shrink-0">
+                <Briefcase className="w-5 h-5 text-[#D98B94]" />
               </div>
-              <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-                {submitting ? 'در حال ثبت...' : editingSubId ? 'ذخیره' : 'افزودن'}
-              </button>
-              {editingSubId && <button type="button" onClick={() => setEditingSubId(null)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>}
-            </form>
+            </div>
           </div>
-
-          <div className="bg-white rounded-xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">اشتراک‌های تعریف شده ({toPersianNum(subscriptions.length)})</h3></div>
-            {subscriptions.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">هنوز اشتراکی ثبت نشده است</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="text-right p-3 font-medium">نام اشتراک</th>
-                      <th className="text-right p-3 font-medium">قیمت</th>
-                      <th className="text-center p-3 font-medium">عملیات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {subscriptions.map(s => (
-                      <tr key={s.id} className="border-t border-border hover:bg-muted/30">
-                        <td className="p-3 font-medium">{s.name}</td>
-                        <td className="p-3">{formatCurrency(s.price)}</td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => startEditSub(s)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={() => deleteSub(s.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
+        </div>
       )}
 
-      {tab === 'orders' && (
+      {/* تب سفارش جدید */}
+      {tab === 'order' && (
         <>
           <div className="bg-white rounded-xl border border-border p-5">
             <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> ثبت سفارش جدید</h3>
@@ -294,12 +325,63 @@ export default function WorkspacePage() {
             </form>
           </div>
 
+          <div className="bg-white rounded-xl border border-border p-5">
+            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> {editingSubId ? 'ویرایش اشتراک' : 'افزودن اشتراک جدید'}</h3>
+            <form onSubmit={handleSubSubmit} className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">نام اشتراک</label>
+                <input type="text" placeholder="مثلاً صندلی روزانه" value={editingSubId ? editSubForm.name : subForm.name} onChange={e => editingSubId ? setEditSubForm({ ...editSubForm, name: e.target.value }) : setSubForm({ ...subForm, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" required />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
+                <PriceInput value={editingSubId ? editSubForm.price : subForm.price} onChange={v => editingSubId ? setEditSubForm({ ...editSubForm, price: v }) : setSubForm({ ...subForm, price: v })} required />
+              </div>
+              <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                {submitting ? 'در حال ثبت...' : editingSubId ? 'ذخیره' : 'افزودن'}
+              </button>
+              {editingSubId && <button type="button" onClick={() => setEditingSubId(null)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>}
+            </form>
+          </div>
+
+          <div className="bg-white rounded-xl border border-border overflow-hidden">
+            <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">اشتراک‌های تعریف شده ({toPersianNum(subscriptions.length)})</h3></div>
+            {subscriptions.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">هنوز اشتراکی ثبت نشده است</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-right p-3 font-medium">نام اشتراک</th>
+                      <th className="text-right p-3 font-medium">قیمت</th>
+                      <th className="text-center p-3 font-medium">عملیات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subscriptions.map(s => (
+                      <tr key={s.id} className="border-t border-border hover:bg-muted/30">
+                        <td className="p-3 font-medium">{s.name}</td>
+                        <td className="p-3">{formatCurrency(s.price)}</td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => startEditSub(s)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
+                            <button onClick={() => deleteSub(s.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           <div className="bg-white rounded-xl border border-border overflow-hidden">
             <div className="p-4 border-b border-border space-y-3">
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold">سفارش‌های اخیر</h3>
+                <h3 className="text-sm font-semibold">فاکتورهای امروز</h3>
                 <div className="flex items-center gap-2">
-                  <ExportButton filename="سفارش‌های-فضای-کار" columns={wsExportColumns} rows={wsExportRows} />
+                  <ExportButton filename="فاکتورهای-امروز-فضای-کار" columns={wsExportColumns} rows={buildExportRows(todayRecords)} />
                   <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
                     <option value="date_desc">جدیدترین</option>
                     <option value="date_asc">قدیمی‌ترین</option>
@@ -313,51 +395,50 @@ export default function WorkspacePage() {
                 <input type="text" placeholder="جستجوی نام، شماره، اشتراک..." value={orderSearch} onChange={e => setOrderSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-full sm:w-72" />
               </div>
             </div>
-            {loading ? (
-              <div className="p-8 text-center text-muted-foreground">در حال بارگذاری...</div>
-            ) : filteredRecords.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">{orderSearch ? 'نتیجه‌ای یافت نشد' : 'هنوز سفارشی ثبت نشده است'}</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="text-right p-3 font-medium">تاریخ خرید</th>
-                      <th className="text-right p-3 font-medium">اشتراک</th>
-                      <th className="text-right p-3 font-medium">نام</th>
-                      <th className="text-right p-3 font-medium">شماره</th>
-                      <th className="text-right p-3 font-medium">ورود</th>
-                      <th className="text-right p-3 font-medium">مدل پرداخت</th>
-                      <th className="text-center p-3 font-medium">وضعیت</th>
-                      <th className="text-center p-3 font-medium"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRecords.map(r => (
-                      <tr key={r.id} className="border-t border-border hover:bg-[#FDF2F1]/30 cursor-pointer" onClick={() => navigate(`/workspace/${r.id}`)}>
-                        <td className="p-3">{r.purchase_date ? toJalaliStr(r.purchase_date) : '-'}</td>
-                        <td className="p-3">{r.subscription_name || '-'}</td>
-                        <td className="p-3">{r.person_name || '-'}</td>
-                        <td className="p-3 text-muted-foreground">{r.person_phone}</td>
-                        <td className="p-3">{r.entry_time || '-'}</td>
-                        <td className="p-3 text-xs">{paymentMethodLabels[r.payment_method] || r.payment_method}</td>
-                        <td className="p-3 text-center">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); togglePaid(r); }}
-                            className={`text-xs font-medium px-2 py-1 rounded ${r.is_paid ? 'text-green-600 bg-green-50' : 'text-[#B9834B] bg-[#FBF3EC]'}`}
-                          >
-                            {r.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}
-                          </button>
-                        </td>
-                        <td className="p-3 text-center">
-                          <ChevronLeft className="w-4 h-4 text-muted-foreground inline-block" />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {renderOrdersTable(todayRecords)}
+          </div>
+        </>
+      )}
+
+      {/* تب تاریخچه سفارشات */}
+      {tab === 'history' && (
+        <>
+          <div className="bg-white rounded-xl border border-border p-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm text-muted-foreground">از تاریخ:</span>
+              <JalaliDateInput value={historyFrom} onChange={setHistoryFrom} />
+              <span className="text-sm text-muted-foreground">تا تاریخ:</span>
+              <JalaliDateInput value={historyTo} onChange={setHistoryTo} />
+              <button
+                onClick={() => { setHistoryFrom(monthRange?.start || ''); setHistoryTo(todayGregorian()); }}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> بازگشت به پیش‌فرض
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">پیش‌فرض: از ابتدای ماه {currentMonthName} تا امروز</p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-border overflow-hidden">
+            <div className="p-4 border-b border-border space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <h3 className="text-sm font-semibold">فاکتورها ({toPersianNum(historyRecords.length)})</h3>
+                <div className="flex items-center gap-2">
+                  <ExportButton filename="تاریخچه-سفارش‌های-فضای-کار" columns={wsExportColumns} rows={buildExportRows(historyRecords)} />
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+                    <option value="date_desc">جدیدترین</option>
+                    <option value="date_asc">قدیمی‌ترین</option>
+                    <option value="name_asc">نام (A-Z)</option>
+                    <option value="name_desc">نام (Z-A)</option>
+                  </select>
+                </div>
               </div>
-            )}
+              <div className="relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+                <input type="text" placeholder="جستجوی نام، شماره، اشتراک..." value={orderSearch} onChange={e => setOrderSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-full sm:w-72" />
+              </div>
+            </div>
+            {renderOrdersTable(historyRecords)}
           </div>
         </>
       )}
