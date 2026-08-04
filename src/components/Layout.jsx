@@ -11,10 +11,10 @@ const standaloneItems = [
 
 const navGroups = [
   {
-    label: 'همه مشتریان',
+    label: 'افراد',
     icon: Users,
     children: [
-      { path: '/people', label: 'افراد', icon: Users },
+      { path: '/people', label: 'مشتری‌ها', icon: Users },
       { path: '/facilitators', label: 'تسهیلگرها', icon: UserCheck },
       { path: '/brands', label: 'برندها', icon: Tag },
       { path: '/artists', label: 'آرتیست‌ها', icon: Palette },
