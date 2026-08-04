@@ -4,10 +4,10 @@ import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wal
 
 const standaloneItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
+  { path: '/people', label: 'افراد', icon: Users },
+  { path: '/workspace', label: 'فضای کار', icon: Briefcase },
   { path: '/cafe', label: 'کافه', icon: Coffee },
   { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },
-  { path: '/workspace', label: 'فضای کار', icon: Briefcase },
-  { path: '/people', label: 'افراد', icon: Users },
   { path: '/finance', label: 'مالی', icon: Wallet },
 ];
 

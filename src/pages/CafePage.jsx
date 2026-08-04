@@ -4,7 +4,6 @@ import { findOrCreatePerson } from '@/lib/stats';
 import { todayGregorian, getJalaliParts, jalaliToGregorianStr, jalaliMonthNames } from '@/lib/jalali';
 import { Skeleton } from '@/components/SkeletonPatterns';
 import { ArrowRight } from 'lucide-react';
-import PillTabs from '@/components/PillTabs';
 import CafeOrderTab from '@/components/cafe/CafeOrderTab';
 import CafeInventoryTab from '@/components/cafe/CafeInventoryTab';
 import CafeCategoryTab from '@/components/cafe/CafeCategoryTab';
@@ -178,10 +177,25 @@ export default function CafePage() {
   }
 
   const mainTabs = [
-    {
-      key: 'order',
-      label: 'سفارش جدید',
-      content: (
+    { key: 'order', label: 'سفارش جدید' },
+    { key: 'history', label: 'تاریخچه سفارشات' },
+    { key: 'report', label: 'گزارش' },
+  ];
+
+  return (
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold">کافه</h1>
+        <p className="text-sm text-muted-foreground mt-1">مدیریت انبار آیتم‌ها و ثبت خریدها</p>
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        {mainTabs.map(t => (
+          <button key={t.key} onClick={() => setMainTab(t.key)} className={`px-4 py-2 rounded-lg text-sm font-medium ${mainTab === t.key ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>{t.label}</button>
+        ))}
+      </div>
+
+      {mainTab === 'order' && (
         <>
           {orderView !== 'order' && (
             <button onClick={() => setOrderView('order')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -218,12 +232,9 @@ export default function CafePage() {
             />
           )}
         </>
-      ),
-    },
-    {
-      key: 'history',
-      label: 'تاریخچه سفارشات',
-      content: (
+      )}
+
+      {mainTab === 'history' && (
         <CafeHistoryTab
           invoiceGroups={invoiceGroups}
           people={people}
@@ -234,18 +245,11 @@ export default function CafePage() {
           onSaveEdit={saveEditInvoice}
           onDelete={deleteInvoice}
         />
-      ),
-    },
-    { key: 'report', label: 'گزارش', content: <CafeReportTab purchases={purchases} /> },
-  ];
+      )}
 
-  return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold">کافه</h1>
-        <p className="text-sm text-muted-foreground mt-1">مدیریت انبار آیتم‌ها و ثبت خریدها</p>
-      </div>
-      <PillTabs tabs={mainTabs} value={mainTab} onValueChange={setMainTab} bar={false} contentClassName="mt-6" />
+      {mainTab === 'report' && (
+        <CafeReportTab purchases={purchases} />
+      )}
     </div>
   );
 }
