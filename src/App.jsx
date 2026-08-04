@@ -10,6 +10,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
 import Dashboard from '@/pages/Dashboard';
 import PeopleHubPage from '@/pages/PeopleHubPage';
+import FinanceHubPage from '@/pages/FinanceHubPage';
 import WorkspacePage from '@/pages/WorkspacePage';
 import CafePage from '@/pages/CafePage';
 import WorkshopsHubPage from '@/pages/WorkshopsHubPage';
@@ -64,6 +65,7 @@ const AuthenticatedApp = () => {
     <Route element={<Layout />}>
       <Route path="/" element={<Dashboard />} />
       <Route path="/people" element={<PeopleHubPage />} />
+      <Route path="/finance" element={<FinanceHubPage />} />
       <Route path="/workspace" element={<WorkspacePage />} />
       <Route path="/cafe" element={<CafePage />} />
       <Route path="/workshops" element={<WorkshopsHubPage />} />

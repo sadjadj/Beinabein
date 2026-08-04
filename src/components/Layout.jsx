@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, RotateCcw, Receipt, MapPin, Menu, X, ChevronDown, BarChart3, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText } from 'lucide-react';
 
 const standaloneItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
@@ -8,20 +8,10 @@ const standaloneItems = [
   { path: '/workspace', label: 'فضای کار', icon: Briefcase },
   { path: '/cafe', label: 'کافه', icon: Coffee },
   { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },
+  { path: '/finance', label: 'مالی', icon: Wallet },
 ];
 
-const navGroups = [
-  {
-    label: 'مالی',
-    icon: Wallet,
-    children: [
-      { path: '/accounting', label: 'حسابداری', icon: Wallet },
-      { path: '/financial-report', label: 'گزارش مالی', icon: BarChart3 },
-      { path: '/returns', label: 'مرجوعی', icon: RotateCcw },
-      { path: '/expenses', label: 'هزینه کرد', icon: Receipt },
-    ]
-  },
-];
+const navGroups = [];
 
 const bottomItems = [
   { path: '/spaces', label: 'فضاها', icon: MapPin },
