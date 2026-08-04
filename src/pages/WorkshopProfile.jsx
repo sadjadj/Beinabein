@@ -305,7 +305,7 @@ export default function WorkshopProfile() {
                 </div>
                 <div className="flex flex-wrap gap-4 mt-2 text-sm">
                   <span className="flex items-center gap-1 text-muted-foreground"><Users className="w-4 h-4" /> {toPersianNum(rev.purchaseCount)} ثبت‌نام{workshop.capacity ? ` از ${toPersianNum(workshop.capacity)}` : ''}</span>
-                  <span className="font-medium text-[#B74B40]">{formatCurrency(paidAmount)} / {formatCurrency(totalAmount)}</span>
+                  <span className="font-medium text-[#B74B40]">{formatCurrency(paidAmount)} از {formatCurrency(totalAmount)}</span>
                   {workshop.is_permanent && <span className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs">دائمی</span>}
                   {workshop.is_ended && <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">پایان یافته</span>}
                 </div>
@@ -429,7 +429,7 @@ export default function WorkshopProfile() {
                             <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">{paymentMethodLabels[p.payment_method] || p.payment_method}</span>
+                            <span className="text-xs text-muted-foreground">{p.payment_method === 'free' ? '—' : (paymentMethodLabels[p.payment_method] || p.payment_method)}</span>
                             <button onClick={() => toggleRegPaid(p)} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
                             <button onClick={() => deleteRegistration(p.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
@@ -452,7 +452,7 @@ export default function WorkshopProfile() {
                         <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{paymentMethodLabels[p.payment_method] || p.payment_method}</span>
+                        <span className="text-xs text-muted-foreground">{p.payment_method === 'free' ? '—' : (paymentMethodLabels[p.payment_method] || p.payment_method)}</span>
                         <button onClick={() => toggleRegPaid(p)} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
                         <button onClick={() => deleteRegistration(p.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>

@@ -87,6 +87,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
   const sessions = Array.from({ length: sessionCount }, (_, i) => i + 1);
 
   const handleWorkshopChange = (wid) => {
+    setFormError('');
     setForm(prev => ({
       ...prev, workshop_id: wid, plan_id: '', price: '', selected_sessions: [], registered_sessions: 0
     }));
@@ -168,12 +169,11 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
 
   const startInlineEdit = (p) => {
     setEditingId(p.id);
-    setEditForm({ price: p.price || '', registered_sessions: p.registered_sessions || '', is_paid: p.is_paid });
+    setEditForm({ registered_sessions: p.registered_sessions || '', is_paid: p.is_paid });
   };
 
   const saveInlineEdit = async (p) => {
     const updated = await base44.entities.WorkshopPurchase.update(p.id, {
-      price: Number(editForm.price) || 0,
       registered_sessions: editForm.registered_sessions ? Number(editForm.registered_sessions) : null,
       is_paid: editForm.is_paid
     });
@@ -225,16 +225,12 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام *</label>
-            <select value={form.plan_id} onChange={(e) => { const plan = plans.find(p => p.id === e.target.value); setForm({ ...form, plan_id: e.target.value, price: plan ? plan.price : '' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" disabled={!form.workshop_id} required>
+            <select value={form.plan_id} onClick={() => { if (!form.workshop_id) setFormError('انتخاب کارگاه الزامی است'); }} onChange={(e) => { if (!form.workshop_id) { setFormError('انتخاب کارگاه الزامی است'); return; } setFormError(''); const plan = plans.find(p => p.id === e.target.value); const isFree = plan && (Number(plan.price) === 0 || plan.name === 'رایگان'); setForm({ ...form, plan_id: e.target.value, price: plan ? plan.price : '', is_paid: !!isFree, payment_method: isFree ? 'free' : 'card_to_card' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required>
               <option value="">انتخاب مدل...</option>
-              {plans.filter(p => p.workshop_id === form.workshop_id && p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
+              {plans.filter(p => p.workshop_id === form.workshop_id).map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
             </select>
           </div>
           <PersonSearch personName={form.person_name} personPhone={form.person_phone} onNameChange={v => setForm({ ...form, person_name: v })} onPhoneChange={v => setForm({ ...form, person_phone: v })} />
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
-            <PriceInput value={form.price} onChange={() => {}} disabled required />
-          </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">دونیشین (تومان)</label>
             <PriceInput value={form.donation} onChange={v => setForm({ ...form, donation: v })} placeholder="اختیاری" />
@@ -257,9 +253,6 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
               {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
-          <label className="flex items-center gap-2 text-sm self-end pb-2">
-            <input type="checkbox" checked={form.is_paid} onChange={e => setForm({ ...form, is_paid: e.target.checked })} className="w-4 h-4" /> رایگان
-          </label>
         </div>
         {/* Session selection */}
         {form.workshop_id && sessionCount > 0 && (
@@ -362,14 +355,8 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
                     <td className="p-3 text-xs text-muted-foreground whitespace-nowrap text-center" dir="ltr">{p.person_phone || '-'}</td>
                     <td className="p-3 text-xs whitespace-nowrap text-center">{p.purchase_date ? formatJalaliShort(p.purchase_date) : '-'}</td>
                     <td className="p-3 text-xs whitespace-nowrap text-center">
-                      {editingId === p.id ? (
-                        <PriceInput value={editForm.price} onChange={v => setEditForm({ ...editForm, price: v })} />
-                      ) : (
-                        <>
-                          {formatCurrency((Number(p.price) || 0) * (Number(p.quantity) || 1) + (Number(p.donation) || 0))}
-                          {Number(p.donation) > 0 && <span className="block text-[10px] text-[#8CB9C0]">شامل {formatCurrency(Number(p.donation))} دونیشین</span>}
-                        </>
-                      )}
+                      {formatCurrency((Number(p.price) || 0) * (Number(p.quantity) || 1) + (Number(p.donation) || 0))}
+                      {Number(p.donation) > 0 && <span className="block text-[10px] text-[#8CB9C0]">شامل {formatCurrency(Number(p.donation))} دونیشین</span>}
                     </td>
                     <td className="p-3 text-xs text-center">
                       {editingId === p.id ? (

@@ -88,6 +88,8 @@ export default function WorkshopsPage({ embedded = false }) {
           validPlans.map(p => ({ workshop_id: created.id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false }))
         );
       }
+      // Auto-create a default "رایگان" (free) plan, inactive
+      await base44.entities.WorkshopPlan.create({ workshop_id: created.id, name: 'رایگان', price: 0, is_active: false });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -210,7 +212,7 @@ export default function WorkshopsPage({ embedded = false }) {
                   {facNames && <p className="text-xs text-muted-foreground mt-2 truncate">{facNames}</p>}
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
                     <span className="text-sm font-medium">{toPersianNum(rev.purchaseCount)} ثبت‌نام{w.capacity ? ` از ${toPersianNum(w.capacity)}` : ''}</span>
-                    <span className="text-sm font-bold text-[#B74B40]">{formatCurrency(paidAmount)} / {formatCurrency(totalAmount)}</span>
+                    <span className="text-sm font-bold text-[#B74B40]">{formatCurrency(paidAmount)} از {formatCurrency(totalAmount)}</span>
                   </div>
                 </Link>
               );
