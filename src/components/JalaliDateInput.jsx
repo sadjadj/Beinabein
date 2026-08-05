@@ -3,7 +3,7 @@ import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import JalaliCalendar from './JalaliCalendar';
 
-export default function JalaliDateInput({ value, onChange, required, placeholder = 'انتخاب تاریخ', showToday = true, maxDate }) {
+export default function JalaliDateInput({ value, onChange, required, placeholder = 'انتخاب تاریخ', showToday = true }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const hasValue = !!value;
@@ -51,7 +51,7 @@ export default function JalaliDateInput({ value, onChange, required, placeholder
       </div>
       {open && (
         <div className="absolute z-50 top-full mt-1 right-0">
-          <JalaliCalendar value={value} onChange={onChange} onClose={() => setOpen(false)} maxDate={maxDate} />
+          <JalaliCalendar value={value} onChange={onChange} onClose={() => setOpen(false)} />
         </div>
       )}
     </div>
