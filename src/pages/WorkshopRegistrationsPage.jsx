@@ -70,7 +70,9 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
   const totalRevenue = purchases.reduce((s, p) => s + (Number(p.price) || 0) * (Number(p.quantity) || 1) + (Number(p.donation) || 0), 0);
   const uniquePeople = new Set(purchases.map(p => p.person_phone)).size;
 
+  const today = todayGregorian();
   const filtered = purchases.filter(p => {
+    if (embedded && p.purchase_date !== today) return false;
     if (workshopFilter && p.workshop_id !== workshopFilter) return false;
     if (paidFilter === 'paid' && !p.is_paid) return false;
     if (paidFilter === 'unpaid' && p.is_paid) return false;
@@ -202,6 +204,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
           <p className="text-sm text-muted-foreground mt-1">ثبت و مدیریت ثبت‌نامی‌های همه کارگاه‌ها</p>
         </div>
         )}
+        {!embedded && (
         <div className="flex items-center gap-2 flex-wrap">
           <ExportButton filename="ثبت‌نام‌های-کارگاه" columns={regExportColumns} rows={regExportRows} />
           <div className="relative flex-1 sm:flex-none min-w-[140px]">
@@ -209,6 +212,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
             <input type="text" placeholder="جستجوی نام / تلفن / کارگاه..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-64" />
           </div>
         </div>
+        )}
       </div>
 
       {/* Registration Form — always visible */}
@@ -308,7 +312,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border space-y-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h3 className="text-sm font-semibold">ثبت‌نامی‌ها ({toPersianNum(filtered.length)})</h3>
+            <h3 className="text-sm font-semibold">{embedded ? `ثبت‌نام‌های امروز (${toPersianNum(filtered.length)})` : `ثبت‌نامی‌ها (${toPersianNum(filtered.length)})`}</h3>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <select value={workshopFilter} onChange={e => setWorkshopFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">

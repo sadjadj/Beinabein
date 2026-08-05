@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { GraduationCap, ClipboardCheck, ClipboardList, BarChart3 } from 'lucide-react';
+import { GraduationCap, ClipboardCheck, ClipboardList, BarChart3, History } from 'lucide-react';
 import WorkshopsPage from '@/pages/WorkshopsPage';
 import AttendancePage from '@/pages/AttendancePage';
 import WorkshopRegistrationsPage from '@/pages/WorkshopRegistrationsPage';
 import WorkshopsReportTab from '@/components/workshops/WorkshopsReportTab';
+import WorkshopHistoryTab from '@/components/workshops/WorkshopHistoryTab';
 
 const tabs = [
   { key: 'registrations', label: 'ثبت نام افراد در کارگاه‌ها', icon: ClipboardList, Component: WorkshopRegistrationsPage },
   { key: 'attendance', label: 'حضور غیاب', icon: ClipboardCheck, Component: AttendancePage },
   { key: 'manage', label: 'مدیریت کارگاه‌ها', icon: GraduationCap, Component: WorkshopsPage },
+  { key: 'history', label: 'تاریخچه ثبت نام‌ها', icon: History, Component: WorkshopHistoryTab, isPlain: true },
   { key: 'report', label: 'گزارش', icon: BarChart3, Component: WorkshopsReportTab, isPlain: true },
 ];
 
