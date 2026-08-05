@@ -114,10 +114,10 @@ export default function CafeReportTab({ purchases }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="تعداد خرید" value={toPersianNum(totalPurchases)} icon={ShoppingBag} color="terracotta" />
-        <StatCard label="خریداران یونیک" value={toPersianNum(uniqueBuyers)} icon={Users} color="pink" />
-        <StatCard label="درآمد کل" value={formatCurrency(totalRevenue)} icon={TrendingUp} color="ochre" />
-        <StatCard label="فروش امروز" value={formatCurrency(todayRevenue)} icon={Wallet} color="teal" />
+        <StatCard label="تعداد خرید" value={toPersianNum(totalPurchases)} icon={ShoppingBag} color="terracotta" info="تعداد کل خریدهای ثبت‌شده در کافه در بازه انتخاب‌شده" />
+        <StatCard label="خریداران یونیک" value={toPersianNum(uniqueBuyers)} icon={Users} color="pink" info="تعداد افراد یکتا بر اساس شماره تلفن که در بازه انتخاب‌شده از کافه خرید کرده‌اند" />
+        <StatCard label="درآمد کل" value={formatCurrency(totalRevenue)} icon={TrendingUp} color="ochre" info="مجموع درآمد کافه در بازه انتخاب‌شده (با احتساب تخفیف)" />
+        <StatCard label="فروش امروز" value={formatCurrency(todayRevenue)} icon={Wallet} color="teal" info="مجموع درآمد کافه فقط در امروز" />
       </div>
 
       <div className="bg-white rounded-xl border border-border p-4">

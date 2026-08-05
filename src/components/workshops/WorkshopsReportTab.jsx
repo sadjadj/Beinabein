@@ -41,20 +41,10 @@ export default function WorkshopsReportTab() {
       <div>
         <h3 className="text-sm font-semibold mb-3">گزارش افراد کارگاه</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <StatCard label="کل ثبت‌نامی‌ها" value={toPersianNum(totalReg)} icon={Users} color="terracotta" />
-          <StatCard label="افراد یونیک" value={toPersianNum(uniquePeople)} icon={GraduationCap} color="teal" />
-          <StatCard label="پرداخت‌شده" value={toPersianNum(paidCount)} icon={CheckCircle} color="green" sublabel={`از ${toPersianNum(totalReg)}`} />
-          <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm text-muted-foreground">درآمد کل</p>
-                <p className="text-lg lg:text-xl font-bold mt-2 text-foreground break-words leading-tight">{formatCurrency(totalRevenue)}</p>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#FBF0F1] flex items-center justify-center flex-shrink-0">
-                <Wallet className="w-5 h-5 text-[#D98B94]" />
-              </div>
-            </div>
-          </div>
+          <StatCard label="کل ثبت‌نامی‌ها" value={toPersianNum(totalReg)} icon={Users} color="terracotta" info="تعداد کل ثبت‌نام‌های انجام‌شده در همه کارگاه‌ها" />
+          <StatCard label="افراد یونیک" value={toPersianNum(uniquePeople)} icon={GraduationCap} color="teal" info="تعداد افراد یکتا بر اساس شماره تلفن که در کارگاه‌ها ثبت‌نام کرده‌اند" />
+          <StatCard label="پرداخت‌شده" value={toPersianNum(paidCount)} icon={CheckCircle} color="green" sublabel={`از ${toPersianNum(totalReg)}`} info="تعداد ثبت‌نام‌هایی که پرداخت آن‌ها کامل شده است" />
+          <StatCard label="درآمد کل" value={formatCurrency(totalRevenue)} icon={Wallet} color="pink" info="مجموع درآمد همه کارگاه‌ها (شامل قیمت و دونیشین)" />
         </div>
       </div>
 

@@ -239,20 +239,10 @@ export default function WorkspacePage() {
       {/* تب گزارش */}
       {tab === 'report' && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <StatCard label="مجموع سفارش‌ها" value={toPersianNum(stats.totalOrders)} icon={Briefcase} color="terracotta" />
-          <StatCard label="افراد یونیک" value={toPersianNum(stats.uniqueCount)} icon={Users} color="teal" />
-          <StatCard label="افراد تکراری" value={toPersianNum(stats.repeatCount)} icon={Repeat} color="ochre" />
-          <div className="bg-white rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm text-muted-foreground">درآمد کل</p>
-                <p className="text-xl lg:text-2xl font-bold mt-2 text-foreground break-words leading-tight">{formatCurrency(stats.totalRevenue)}</p>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#FBF0F1] flex items-center justify-center flex-shrink-0">
-                <Briefcase className="w-5 h-5 text-[#D98B94]" />
-              </div>
-            </div>
-          </div>
+          <StatCard label="مجموع سفارش‌ها" value={toPersianNum(stats.totalOrders)} icon={Briefcase} color="terracotta" info="تعداد کل سفارش‌های فضای کار ثبت‌شده" />
+          <StatCard label="افراد یونیک" value={toPersianNum(stats.uniqueCount)} icon={Users} color="teal" info="تعداد افراد یکتا بر اساس شماره تلفن که از فضای کار استفاده کرده‌اند" />
+          <StatCard label="افراد تکراری" value={toPersianNum(stats.repeatCount)} icon={Repeat} color="ochre" info="تعداد افرادی که بیش از یک بار از فضای کار استفاده کرده‌اند" />
+          <StatCard label="درآمد کل" value={formatCurrency(stats.totalRevenue)} icon={Briefcase} color="pink" info="مجموع درآمد فضای کار از همه سفارش‌ها" />
         </div>
       )}
 
