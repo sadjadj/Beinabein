@@ -6,6 +6,11 @@ import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import FacilitatorMultiSearch from '@/components/FacilitatorMultiSearch';
 import WorkshopCalendarPicker, { computeWorkshopFieldsFromDates } from '@/components/WorkshopCalendarPicker';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 
 export default function WorkshopForm({
   initialForm,
@@ -27,6 +32,7 @@ export default function WorkshopForm({
   );
   const [newPlan, setNewPlan] = useState({ name: '', price: '' });
   const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDatesChange = (dates) => {
     const computed = computeWorkshopFieldsFromDates(dates);
@@ -175,7 +181,7 @@ export default function WorkshopForm({
         )}
         <div className="flex justify-between gap-2">
           {showDelete && onDelete && (
-            <button type="button" onClick={onDelete} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50">
+            <button type="button" onClick={() => setShowDeleteConfirm(true)} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50">
               <Trash2 className="w-4 h-4" /> حذف کارگاه
             </button>
           )}
@@ -189,6 +195,26 @@ export default function WorkshopForm({
           </div>
         </div>
       </form>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="text-center">
+          <AlertDialogHeader className="text-center">
+            <AlertDialogTitle className="text-center">حذف کارگاه</AlertDialogTitle>
+            <AlertDialogDescription className="text-center block">
+              آیا از حذف این کارگاه و تمام ثبت‌نام‌ها و جلسات وابسته به آن اطمینان دارید؟ این عملیات قابل بازگشت نیست.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex items-center justify-center gap-3 sm:justify-center">
+            <AlertDialogCancel className="mx-2">انصراف</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { setShowDeleteConfirm(false); onDelete(); }}
+              className="bg-red-600 hover:bg-red-700 text-white mx-2"
+            >
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

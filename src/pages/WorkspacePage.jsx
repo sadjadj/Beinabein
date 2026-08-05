@@ -34,6 +34,31 @@ export default function WorkspacePage() {
   const monthRange = getDateRange('month', null, null);
   const [historyFrom, setHistoryFrom] = useState(monthRange?.start || '');
   const [historyTo, setHistoryTo] = useState(todayGregorian());
+  const [historyError, setHistoryError] = useState('');
+
+  const onHistoryFromChange = (v) => {
+    setHistoryFrom(v);
+    if (v && historyTo && v >= historyTo) {
+      setHistoryError('"از تاریخ" باید از "تا تاریخ" کوچکتر باشد');
+    } else {
+      setHistoryError('');
+    }
+  };
+
+  const onHistoryToChange = (v) => {
+    setHistoryTo(v);
+    if (v && historyFrom && v <= historyFrom) {
+      setHistoryError('"تا تاریخ" باید بزرگتر از "از تاریخ" باشد');
+    } else {
+      setHistoryError('');
+    }
+  };
+
+  const resetHistoryRange = () => {
+    setHistoryFrom(monthRange?.start || '');
+    setHistoryTo(todayGregorian());
+    setHistoryError('');
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -262,7 +287,7 @@ export default function WorkspacePage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">تاریخ خرید</label>
-                <FloatingDateInput value={orderForm.purchase_date} onChange={v => setOrderForm({ ...orderForm, purchase_date: v })} required />
+                <FloatingDateInput value={orderForm.purchase_date} onChange={v => setOrderForm({ ...orderForm, purchase_date: v })} required max={todayGregorian()} />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">تاریخ استفاده</label>
@@ -326,17 +351,20 @@ export default function WorkspacePage() {
           <div className="bg-white rounded-xl border border-border p-4">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-sm text-muted-foreground">از تاریخ:</span>
-              <JalaliDateInput value={historyFrom} onChange={setHistoryFrom} />
+              <JalaliDateInput value={historyFrom} onChange={onHistoryFromChange} max={todayGregorian()} />
               <span className="text-sm text-muted-foreground">تا تاریخ:</span>
-              <JalaliDateInput value={historyTo} onChange={setHistoryTo} />
+              <JalaliDateInput value={historyTo} onChange={onHistoryToChange} max={todayGregorian()} />
               <button
-                onClick={() => { setHistoryFrom(monthRange?.start || ''); setHistoryTo(todayGregorian()); }}
+                onClick={resetHistoryRange}
                 className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted"
               >
                 <RotateCcw className="w-3.5 h-3.5" /> بازگشت به پیش‌فرض
               </button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">پیش‌فرض: از ابتدای ماه {currentMonthName} تا امروز</p>
+            {historyError && (
+              <p className="text-xs text-red-600 mt-2">{historyError}</p>
+            )}
           </div>
 
           <div className="bg-white rounded-xl border border-border overflow-hidden">

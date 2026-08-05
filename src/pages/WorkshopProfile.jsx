@@ -173,6 +173,10 @@ export default function WorkshopProfile() {
   };
 
   const handleDelete = async () => {
+    // Cascade delete related records to avoid orphan data
+    await base44.entities.WorkshopPurchase.deleteMany({ workshop_id: id });
+    await base44.entities.WorkshopSession.deleteMany({ workshop_id: id });
+    await base44.entities.WorkshopPlan.deleteMany({ workshop_id: id });
     await base44.entities.Workshop.delete(id);
     navigate('/workshops');
   };

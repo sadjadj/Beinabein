@@ -3,7 +3,7 @@ import { ChevronRight, ChevronLeft } from 'lucide-react';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import InvoiceList from '@/components/cafe/InvoiceList';
 import ExportButton from '@/components/ExportButton';
-import { toJalaliStr, toPersianDigits } from '@/lib/jalali';
+import { toJalaliStr, toPersianDigits, todayGregorian } from '@/lib/jalali';
 import { paymentMethodLabels } from '@/lib/labels';
 import { toPersianNum } from '@/lib/stats';
 
@@ -24,6 +24,30 @@ const PAGE_SIZE = 30;
 export default function CafeHistoryTab({ invoiceGroups, people, historyRange, setHistoryRange, monthName, onTogglePaid, onSaveEdit, onDelete }) {
   const [filters, setFilters] = useState({ paidStatus: 'all', customerName: '', paymentMethod: 'all' });
   const [currentPage, setCurrentPage] = useState(1);
+  const [dateError, setDateError] = useState('');
+
+  const updateRange = (patch) => {
+    setHistoryRange({ ...historyRange, ...patch });
+    resetPage();
+  };
+
+  const onStartChange = (v) => {
+    updateRange({ start: v });
+    if (v && historyRange.end && v >= historyRange.end) {
+      setDateError('"از تاریخ" باید از "تا تاریخ" کوچکتر باشد');
+    } else {
+      setDateError('');
+    }
+  };
+
+  const onEndChange = (v) => {
+    updateRange({ end: v });
+    if (v && historyRange.start && v <= historyRange.start) {
+      setDateError('"تا تاریخ" باید بزرگتر از "از تاریخ" باشد');
+    } else {
+      setDateError('');
+    }
+  };
 
   const filteredGroups = useMemo(() => {
     return invoiceGroups.filter(g => {
@@ -62,13 +86,16 @@ export default function CafeHistoryTab({ invoiceGroups, people, historyRange, se
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-muted-foreground block mb-1">از تاریخ</label>
-            <JalaliDateInput value={historyRange.start} onChange={v => { setHistoryRange({ ...historyRange, start: v }); resetPage(); }} showToday={false} />
+            <JalaliDateInput value={historyRange.start} onChange={onStartChange} showToday={false} max={todayGregorian()} />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">تا تاریخ</label>
-            <JalaliDateInput value={historyRange.end} onChange={v => { setHistoryRange({ ...historyRange, end: v }); resetPage(); }} />
+            <JalaliDateInput value={historyRange.end} onChange={onEndChange} max={todayGregorian()} />
           </div>
         </div>
+        {dateError && (
+          <p className="text-xs text-red-600 mt-2">{dateError}</p>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-border p-4">
