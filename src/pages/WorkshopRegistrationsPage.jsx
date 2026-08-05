@@ -237,7 +237,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">تاریخ ثبت</label>
-            <JalaliDateInput value={form.purchase_date} onChange={v => setForm({ ...form, purchase_date: v })} showToday={false} />
+            <JalaliDateInput value={form.purchase_date} onChange={v => setForm({ ...form, purchase_date: v })} showToday={false} maxDate={todayGregorian()} />
           </div>
           {!form.is_paid && (
             <div>

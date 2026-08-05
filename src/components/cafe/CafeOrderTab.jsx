@@ -170,7 +170,7 @@ export default function CafeOrderTab({ items, people, invoiceGroups, onCheckout,
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">تاریخ خرید</label>
-                  <JalaliDateInput value={checkout.purchase_date} onChange={v => setCheckout({ ...checkout, purchase_date: v })} required />
+                  <JalaliDateInput value={checkout.purchase_date} onChange={v => setCheckout({ ...checkout, purchase_date: v })} required maxDate={todayGregorian()} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>

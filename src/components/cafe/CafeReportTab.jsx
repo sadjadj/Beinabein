@@ -32,7 +32,10 @@ function buildDateRange(start, end) {
   let cursor = new Date(start + 'T00:00:00');
   const endD = new Date(end + 'T00:00:00');
   while (cursor <= endD) {
-    dates.push(cursor.toISOString().split('T')[0]);
+    const y = cursor.getFullYear();
+    const m = String(cursor.getMonth() + 1).padStart(2, '0');
+    const d = String(cursor.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${d}`);
     cursor.setDate(cursor.getDate() + 1);
   }
   return dates;

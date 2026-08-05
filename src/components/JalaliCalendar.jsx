@@ -5,8 +5,9 @@ import { getJalaliParts, jalaliDaysInMonth, jalaliFirstWeekday, jalaliToGregoria
 const jMonthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 const weekDayLabels = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
 
-export default function JalaliCalendar({ value, onChange, onClose }) {
+export default function JalaliCalendar({ value, onChange, onClose, maxDate }) {
   const todayParts = getJalaliParts(todayGregorian());
+  const maxParts = maxDate ? getJalaliParts(maxDate) : null;
   const selectedParts = value ? getJalaliParts(value) : null;
   const [viewYear, setViewYear] = useState(selectedParts?.jy || todayParts?.jy || 1404);
   const [viewMonth, setViewMonth] = useState(selectedParts?.jm || todayParts?.jm || 1);
@@ -19,11 +20,13 @@ export default function JalaliCalendar({ value, onChange, onClose }) {
     else setViewMonth(m => m - 1);
   };
   const nextMonth = () => {
+    if (maxParts && (viewYear > maxParts.jy || (viewYear === maxParts.jy && viewMonth >= maxParts.jm))) return;
     if (viewMonth === 12) { setViewMonth(1); setViewYear(y => y + 1); }
     else setViewMonth(m => m + 1);
   };
 
   const selectDay = (day) => {
+    if (maxParts && (viewYear > maxParts.jy || (viewYear === maxParts.jy && viewMonth > maxParts.jm) || (viewYear === maxParts.jy && viewMonth === maxParts.jm && day > maxParts.jd))) return;
     const greg = jalaliToGregorianStr(viewYear, viewMonth, day);
     if (greg) onChange(greg);
     onClose();
@@ -50,14 +53,17 @@ export default function JalaliCalendar({ value, onChange, onClose }) {
           if (day === null) return <div key={i} />;
           const isSelected = selectedParts?.jy === viewYear && selectedParts?.jm === viewMonth && selectedParts?.jd === day;
           const isToday = todayParts?.jy === viewYear && todayParts?.jm === viewMonth && todayParts?.jd === day;
+          const isDisabled = maxParts && (viewYear > maxParts.jy || (viewYear === maxParts.jy && viewMonth > maxParts.jm) || (viewYear === maxParts.jy && viewMonth === maxParts.jm && day > maxParts.jd));
           return (
             <button
               key={i}
               type="button"
               onClick={() => selectDay(day)}
+              disabled={isDisabled}
               className={`w-9 h-9 rounded-lg text-sm transition-colors
                 ${isSelected ? 'bg-[#B74B40] text-white font-medium' : 'hover:bg-muted text-foreground'}
                 ${isToday && !isSelected ? 'ring-1 ring-[#B74B40] text-[#B74B40] font-medium' : ''}
+                ${isDisabled ? 'opacity-30 cursor-not-allowed hover:bg-transparent' : ''}
               `}
             >
               {toPersianDigits(day)}

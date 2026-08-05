@@ -11,6 +11,11 @@ import PriceInput from '@/components/PriceInput';
 import PersonSearch from '@/components/PersonSearch';
 import { Skeleton } from '@/components/SkeletonPatterns';
 import WorkshopForm from '@/components/WorkshopForm';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 
 export default function WorkshopProfile() {
   const { id } = useParams();
@@ -32,6 +37,7 @@ export default function WorkshopProfile() {
   const [capacityWarning, setCapacityWarning] = useState('');
   const [plans, setPlans] = useState([]);
   const [regSessionTab, setRegSessionTab] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -172,7 +178,8 @@ export default function WorkshopProfile() {
     } finally { setSubmitting(false); }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => setDeleteConfirm(true);
+  const confirmDelete = async () => {
     await base44.entities.Workshop.delete(id);
     navigate('/workshops');
   };
@@ -488,6 +495,23 @@ export default function WorkshopProfile() {
 
         </>
       )}
+
+      <AlertDialog open={deleteConfirm} onOpenChange={(open) => { if (!open) setDeleteConfirm(false); }}>
+        <AlertDialogContent className="text-center">
+          <AlertDialogHeader className="text-center">
+            <AlertDialogTitle className="text-center">حذف کارگاه</AlertDialogTitle>
+            <AlertDialogDescription className="text-center block">
+              آیا از حذف کارگاه «{workshop?.title}» اطمینان دارید؟ این عملیات قابل بازگشت نیست.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex items-center justify-center gap-3 sm:justify-center">
+            <AlertDialogCancel className="mx-2">انصراف</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white mx-2">
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

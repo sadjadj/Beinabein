@@ -34,6 +34,18 @@ export default function WorkspacePage() {
   const monthRange = getDateRange('month', null, null);
   const [historyFrom, setHistoryFrom] = useState(monthRange?.start || '');
   const [historyTo, setHistoryTo] = useState(todayGregorian());
+  const [historyError, setHistoryError] = useState('');
+
+  const handleHistoryFromChange = (v) => {
+    setHistoryFrom(v);
+    if (v && historyTo && v >= historyTo) setHistoryError('"از تاریخ" باید از "تا تاریخ" کوچکتر باشد');
+    else setHistoryError('');
+  };
+  const handleHistoryToChange = (v) => {
+    setHistoryTo(v);
+    if (v && historyFrom && historyFrom >= v) setHistoryError('"از تاریخ" باید از "تا تاریخ" کوچکتر باشد');
+    else setHistoryError('');
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -326,17 +338,20 @@ export default function WorkspacePage() {
           <div className="bg-white rounded-xl border border-border p-4">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-sm text-muted-foreground">از تاریخ:</span>
-              <JalaliDateInput value={historyFrom} onChange={setHistoryFrom} />
+              <JalaliDateInput value={historyFrom} onChange={handleHistoryFromChange} maxDate={todayGregorian()} />
               <span className="text-sm text-muted-foreground">تا تاریخ:</span>
-              <JalaliDateInput value={historyTo} onChange={setHistoryTo} />
+              <JalaliDateInput value={historyTo} onChange={handleHistoryToChange} maxDate={todayGregorian()} />
               <button
-                onClick={() => { setHistoryFrom(monthRange?.start || ''); setHistoryTo(todayGregorian()); }}
+                onClick={() => { setHistoryFrom(monthRange?.start || ''); setHistoryTo(todayGregorian()); setHistoryError(''); }}
                 className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted"
               >
                 <RotateCcw className="w-3.5 h-3.5" /> بازگشت به پیش‌فرض
               </button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">پیش‌فرض: از ابتدای ماه {currentMonthName} تا امروز</p>
+            {historyError && (
+              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">{historyError}</div>
+            )}
           </div>
 
           <div className="bg-white rounded-xl border border-border overflow-hidden">
