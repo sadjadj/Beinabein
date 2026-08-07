@@ -8,6 +8,7 @@ import { toJalaliStr, todayGregorian, formatJalaliFull } from '@/lib/jalali';
 import { computeGroupSessions, getCurrentWeekRange } from '@/lib/groupSessions';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 import EventForm from '@/components/EventForm';
+import EventManagementTab from '@/components/events/EventManagementTab';
 
 export default function CalendarPage() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [showEventForm, setShowEventForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [tab, setTab] = useState('calendar');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -133,119 +135,163 @@ export default function CalendarPage() {
     event: { label: 'رخداد', icon: Sparkles, color: 'text-[#B9834B] bg-[#FBF3EC]' },
   };
 
+  // Split days: upcoming (>= today) first, then past (< today)
+  const upcomingDates = weekDates.filter(d => d >= today);
+  const pastDates = weekDates.filter(d => d < today);
+
+  const renderDay = (date) => {
+    const dayEntries = byDate[date] || [];
+    const isPast = date < today;
+    const dayKey = jsDayKey(date);
+    return (
+      <div key={date} className={`bg-white rounded-xl border border-border overflow-hidden ${isPast ? 'opacity-50' : ''}`}>
+        <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
+          <h3 className="text-sm font-semibold">{dayKey ? dayLabels[dayKey] : ''} — {formatJalaliFull(date)}</h3>
+          <span className="text-xs text-muted-foreground">{toPersianNum(dayEntries.length)} برنامه{isPast ? ' (گذشته)' : ''}</span>
+        </div>
+        {dayEntries.length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">برنامه‌ای در این روز نیست</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-muted/30">
+              <tr>
+                <th className="text-right p-3 font-medium w-28">ساعت</th>
+                <th className="text-right p-3 font-medium">عنوان</th>
+                <th className="text-right p-3 font-medium">نوع</th>
+                <th className="text-right p-3 font-medium">محل برگزاری</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dayEntries.map((e, i) => {
+                const meta = typeMeta[e.type];
+                const Icon = meta.icon;
+                const content = (
+                  <>
+                    <td className="p-3 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{e.start_time || '-'}</span>
+                        {e.end_time && <span className="text-xs text-muted-foreground">تا {e.end_time}</span>}
+                      </div>
+                    </td>
+                    <td className="p-3 font-medium">{e.title}</td>
+                    <td className="p-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${meta.color}`}>
+                        <Icon className="w-3 h-3" /> {meta.label}
+                      </span>
+                    </td>
+                    <td className="p-3 text-muted-foreground text-xs">
+                      {e.space ? <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> {e.space}</span> : '-'}
+                    </td>
+                  </>
+                );
+                return e.link ? (
+                  <tr key={`${e.id}-${i}`} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => navigate(e.link)}>
+                    {content}
+                  </tr>
+                ) : (
+                  <tr key={`${e.id}-${i}`} className="border-t border-border">{content}</tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold">برنامه‌های این هفته</h1>
-          <p className="text-sm text-muted-foreground mt-1">کارگاه‌ها، گروه‌ها و رخدادهای هفته جاری</p>
-        </div>
-        <button onClick={() => setShowEventForm(!showEventForm)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
-          {showEventForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}{showEventForm ? 'بستن' : 'افزودن رخداد'}
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold">تقویم</h1>
+        <p className="text-sm text-muted-foreground mt-1">کارگاه‌ها، گروه‌ها و رخدادهای هفته جاری</p>
       </div>
 
-      {showEventForm && (
-        <EventForm
-          initialForm={blankEventForm}
-          initialPlans={[]}
-          spaces={spaces}
-          onSubmit={handleCreateEvent}
-          onCancel={() => setShowEventForm(false)}
-          submitting={submitting}
-          submitLabel="ثبت رخداد"
-        />
-      )}
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground"><GraduationCap className="w-4 h-4" /> جلسات کارگاه‌ها</div>
-          <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'workshop').length)}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Layers className="w-4 h-4" /> جلسات گروه‌ها</div>
-          <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'group').length)}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="w-4 h-4" /> رخدادها</div>
-          <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'event').length)}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="w-4 h-4" /> کل این هفته</div>
-          <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.length)}</p>
+      <div className="bg-white border-b border-border">
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {[
+            { key: 'calendar', label: 'برنامه‌های این هفته' },
+            { key: 'manage', label: 'مدیریت رخدادها' },
+          ].map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                tab === t.key
+                  ? 'border-[#B74B40] text-[#B74B40]'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {loading ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3"><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></div>
-          {weekDates.map(d => <Skeleton key={d} className="h-32 rounded-xl" />)}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {weekDates.map(date => {
-            const dayEntries = byDate[date] || [];
-            const isPast = date < today;
-            const dayKey = jsDayKey(date);
-            return (
-              <div key={date} className={`bg-white rounded-xl border border-border overflow-hidden ${isPast ? 'opacity-50' : ''}`}>
-                <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">{dayKey ? dayLabels[dayKey] : ''} — {formatJalaliFull(date)}</h3>
-                  <span className="text-xs text-muted-foreground">{toPersianNum(dayEntries.length)} برنامه{isPast ? ' (گذشته)' : ''}</span>
-                </div>
-                {dayEntries.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">برنامه‌ای در این روز نیست</div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/30">
-                      <tr>
-                        <th className="text-right p-3 font-medium w-28">ساعت</th>
-                        <th className="text-right p-3 font-medium">عنوان</th>
-                        <th className="text-right p-3 font-medium">نوع</th>
-                        <th className="text-right p-3 font-medium">محل برگزاری</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dayEntries.map((e, i) => {
-                        const meta = typeMeta[e.type];
-                        const Icon = meta.icon;
-                        const content = (
-                          <>
-                            <td className="p-3 whitespace-nowrap">
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium">{e.start_time || '-'}</span>
-                                {e.end_time && <span className="text-xs text-muted-foreground">تا {e.end_time}</span>}
-                              </div>
-                            </td>
-                            <td className="p-3 font-medium">{e.title}</td>
-                            <td className="p-3">
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${meta.color}`}>
-                                <Icon className="w-3 h-3" /> {meta.label}
-                              </span>
-                            </td>
-                            <td className="p-3 text-muted-foreground text-xs">
-                              {e.space ? <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> {e.space}</span> : '-'}
-                            </td>
-                          </>
-                        );
-                        return e.link ? (
-                          <tr key={`${e.id}-${i}`} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => navigate(e.link)}>
-                            {content}
-                          </tr>
-                        ) : (
-                          <tr key={`${e.id}-${i}`} className="border-t border-border">{content}</tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            );
-          })}
-          {weekEntries.length === 0 && (
-            <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground">هیچ برنامه‌ای برای این هفته ثبت نشده است</div>
+      {tab === 'calendar' ? (
+        <>
+          <div className="flex items-center justify-end gap-3 flex-wrap">
+            <button onClick={() => setShowEventForm(!showEventForm)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
+              {showEventForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}{showEventForm ? 'بستن' : 'افزودن رخداد'}
+            </button>
+          </div>
+
+          {showEventForm && (
+            <EventForm
+              initialForm={blankEventForm}
+              initialPlans={[]}
+              spaces={spaces}
+              onSubmit={handleCreateEvent}
+              onCancel={() => setShowEventForm(false)}
+              submitting={submitting}
+              submitLabel="ثبت رخداد"
+            />
           )}
-        </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-white rounded-xl border border-border p-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><GraduationCap className="w-4 h-4" /> جلسات کارگاه‌ها</div>
+              <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'workshop').length)}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-border p-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Layers className="w-4 h-4" /> جلسات گروه‌ها</div>
+              <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'group').length)}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-border p-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="w-4 h-4" /> رخدادها</div>
+              <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'event').length)}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-border p-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="w-4 h-4" /> کل این هفته</div>
+              <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.length)}</p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3"><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></div>
+              {weekDates.map(d => <Skeleton key={d} className="h-32 rounded-xl" />)}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {upcomingDates.length > 0 && (
+                <div className="space-y-4">
+                  {upcomingDates.map(renderDay)}
+                </div>
+              )}
+              {pastDates.length > 0 && (
+                <div className="space-y-4">
+                  <p className="text-xs text-muted-foreground font-medium pt-2">روزهای گذشته</p>
+                  {pastDates.map(renderDay)}
+                </div>
+              )}
+              {weekEntries.length === 0 && (
+                <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground">هیچ برنامه‌ای برای این هفته ثبت نشده است</div>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <EventManagementTab spaces={spaces} />
       )}
     </div>
   );

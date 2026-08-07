@@ -82,7 +82,7 @@ export default function WorkspaceReportTab({ orders = [] }) {
         )}
       </ChartCard>
 
-      <ChartCard title="تعداد صندلی‌های رزرو شده" info="مجموع مقدار فیلد تعداد در تمام فاکتورهایی که حداقل یکی از روزهای رزرو آن‌ها برابر با آن روز است" todayLabel="صندلی‌های امروز" todayValue={toPersianNum(todaySeats)}>
+      <ChartCard title="تعداد صندلی‌های رزرو شده" info="مجموع تعداد صندلی‌های رزرو شده در هر روز" todayLabel="صندلی‌های امروز" todayValue={toPersianNum(todaySeats)}>
         {chartData.length === 0 ? (
           <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
         ) : (
@@ -98,7 +98,7 @@ export default function WorkspaceReportTab({ orders = [] }) {
         )}
       </ChartCard>
 
-      <ChartCard title="تعداد رزروها" info="تعداد فاکتورهای فضای کار که حداقل یکی از روزهای رزرو آن‌ها برابر با آن روز است" todayLabel="رزروهای امروز" todayValue={toPersianNum(todayReservations)}>
+      <ChartCard title="تعداد رزروها" info="مجموع تعداد رزروهای هر روز بدون در نظر گرفتن تعداد صندلی‌ها" todayLabel="رزروهای امروز" todayValue={toPersianNum(todayReservations)}>
         {chartData.length === 0 ? (
           <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
         ) : (

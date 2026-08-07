@@ -7,7 +7,7 @@ import WorkshopsReportTab from '@/components/workshops/WorkshopsReportTab';
 import WorkshopHistoryTab from '@/components/workshops/WorkshopHistoryTab';
 
 const tabs = [
-  { key: 'registrations', label: 'ثبت نام افراد در کارگاه‌ها', icon: ClipboardList, Component: WorkshopRegistrationsPage },
+  { key: 'registrations', label: 'ثبت نام کارگاه‌ها', icon: ClipboardList, Component: WorkshopRegistrationsPage },
   { key: 'attendance', label: 'حضور غیاب', icon: ClipboardCheck, Component: AttendancePage },
   { key: 'manage', label: 'مدیریت کارگاه‌ها', icon: GraduationCap, Component: WorkshopsPage },
   { key: 'history', label: 'تاریخچه ثبت نام‌ها', icon: History, Component: WorkshopHistoryTab, isPlain: true },

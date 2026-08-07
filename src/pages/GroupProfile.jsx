@@ -277,9 +277,9 @@ export default function GroupProfile() {
                   <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm({ ...regForm, person_name: v })} onPhoneChange={v => setRegForm({ ...regForm, person_phone: v })} />
                   <div>
                     <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام</label>
-                    <select value={regForm.plan_id} onChange={e => { const plan = plans.find(p => p.id === e.target.value); setRegForm({ ...regForm, plan_id: e.target.value, price: plan ? plan.price : '' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                    <select value={regForm.plan_id} onChange={e => { const plan = plans.find(p => p.id === e.target.value); const isFree = plan && (Number(plan.price) === 0 || plan.name === 'رایگان'); setRegForm({ ...regForm, plan_id: e.target.value, price: plan ? plan.price : '', is_paid: !!isFree, payment_method: isFree ? 'free' : 'cash' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
                       <option value="">دستی (بدون پلن)</option>
-                      {plans.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
+                      {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
                     </select>
                   </div>
                   <PriceInput value={regForm.price} onChange={v => setRegForm({ ...regForm, price: v })} />
@@ -319,7 +319,7 @@ export default function GroupProfile() {
                         <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{paymentMethodLabels[p.payment_method] || p.payment_method}</span>
+                        <span className="text-xs text-muted-foreground">{p.payment_method === 'free' ? '—' : (paymentMethodLabels[p.payment_method] || p.payment_method)}</span>
                         <button onClick={() => toggleRegPaid(p)} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
                         <button onClick={() => deleteRegistration(p.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>

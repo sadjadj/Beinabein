@@ -234,7 +234,10 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
               {plans.filter(p => p.workshop_id === form.workshop_id).map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
             </select>
           </div>
-          <PersonSearch personName={form.person_name} personPhone={form.person_phone} onNameChange={v => setForm({ ...form, person_name: v })} onPhoneChange={v => setForm({ ...form, person_phone: v })} />
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">نام و شماره تلفن مشتری *</label>
+            <PersonSearch personName={form.person_name} personPhone={form.person_phone} onNameChange={v => setForm({ ...form, person_name: v })} onPhoneChange={v => setForm({ ...form, person_phone: v })} />
+          </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">دونیشین (تومان)</label>
             <PriceInput value={form.donation} onChange={v => setForm({ ...form, donation: v })} placeholder="اختیاری" />

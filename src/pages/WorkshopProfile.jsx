@@ -346,9 +346,9 @@ export default function WorkshopProfile() {
                   <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm({ ...regForm, person_name: v })} onPhoneChange={v => setRegForm({ ...regForm, person_phone: v })} />
                   <div>
                     <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام</label>
-                    <select value={regForm.plan_id} onChange={(e) => { const plan = plans.find(p => p.id === e.target.value); setRegForm({ ...regForm, plan_id: e.target.value, price: plan ? plan.price : (workshop.price || '') }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                    <select value={regForm.plan_id} onChange={(e) => { const plan = plans.find(p => p.id === e.target.value); const isFree = plan && (Number(plan.price) === 0 || plan.name === 'رایگان'); setRegForm({ ...regForm, plan_id: e.target.value, price: plan ? plan.price : (workshop.price || ''), is_paid: !!isFree, payment_method: isFree ? 'free' : 'cash' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
                       <option value="">دستی (بدون پلن)</option>
-                      {plans.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
+                      {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
                     </select>
                   </div>
                   <PriceInput value={regForm.price} onChange={v => setRegForm({ ...regForm, price: v })} />

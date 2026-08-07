@@ -7,7 +7,7 @@ import GroupHistoryTab from '@/components/groups/GroupHistoryTab';
 import GroupsReportTab from '@/components/groups/GroupsReportTab';
 
 const tabs = [
-  { key: 'registrations', label: 'ثبت نام افراد در گروه‌ها', icon: ClipboardList, Component: GroupRegistrationsPage },
+  { key: 'registrations', label: 'ثبت نام گروه‌ها', icon: ClipboardList, Component: GroupRegistrationsPage },
   { key: 'attendance', label: 'حضور غیاب', icon: ClipboardCheck, Component: GroupAttendanceListPage },
   { key: 'manage', label: 'مدیریت گروه‌ها', icon: Layers, Component: GroupsPage },
   { key: 'history', label: 'تاریخچه ثبت نام‌ها', icon: History, Component: GroupHistoryTab, isPlain: true },

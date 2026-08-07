@@ -64,8 +64,12 @@ export default function GroupsReportTab() {
   const todayStr = todayGregorian();
   const todayPurchases = purchases.filter(p => p.purchase_date === todayStr);
   const todayRevenue = todayPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
-  const todayParticipants = todayPurchases.reduce((s, p) => s + (p.quantity || 1), 0);
-  const todayGroupCount = groupSessionDateSets.filter(set => set.has(todayStr)).length;
+  const todayHeldGroupIdxs = groupSessionDateSets.map((set, i) => set.has(todayStr) ? i : -1).filter(i => i >= 0);
+  const todayParticipants = todayHeldGroupIdxs.reduce((s, i) => {
+    const g = groups[i];
+    return s + purchases.filter(p => p.group_id === g.id).reduce((ss, p) => ss + (p.quantity || 1), 0);
+  }, 0);
+  const todayGroupCount = todayHeldGroupIdxs.length;
 
   // Charts
   const chartData = useMemo(() => {
@@ -73,11 +77,15 @@ export default function GroupsReportTab() {
     return dates.map(date => {
       const dayPurchases = purchases.filter(p => p.purchase_date === date);
       const revenue = dayPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
-      const participants = dayPurchases.reduce((s, p) => s + (p.quantity || 1), 0);
-      const groupCount = groupSessionDateSets.filter(set => set.has(date)).length;
+      const heldGroupIdxs = groupSessionDateSets.map((set, i) => set.has(date) ? i : -1).filter(i => i >= 0);
+      const participants = heldGroupIdxs.reduce((s, i) => {
+        const g = groups[i];
+        return s + purchases.filter(p => p.group_id === g.id).reduce((ss, p) => ss + (p.quantity || 1), 0);
+      }, 0);
+      const groupCount = heldGroupIdxs.length;
       return { date, revenue, participants, groupCount };
     });
-  }, [purchases, groupSessionDateSets, startDate, endDate]);
+  }, [purchases, groups, groupSessionDateSets, startDate, endDate]);
 
   const tickFormatter = makeTickFormatter(chartData);
 

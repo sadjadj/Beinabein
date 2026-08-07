@@ -54,12 +54,15 @@ export default function WorkshopsReportTab() {
     return dates.some(d => gregorianToJalaliMonthKey(d) === currentMonthKey);
   }).length;
 
-  // Today's metrics (by purchase_date)
+  // Today's metrics
   const todayStr = todayGregorian();
   const todayPurchases = purchases.filter(p => p.purchase_date === todayStr);
   const todayRevenue = todayPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
-  const todayParticipants = todayPurchases.reduce((s, p) => s + (p.quantity || 1), 0);
-  const todayWorkshopCount = workshops.filter(w => (w.session_dates || []).includes(todayStr)).length;
+  const todayHeldWorkshops = workshops.filter(w => (w.session_dates || []).includes(todayStr));
+  const todayParticipants = todayHeldWorkshops.reduce((s, w) => {
+    return s + purchases.filter(p => p.workshop_id === w.id).reduce((ss, p) => ss + (p.quantity || 1), 0);
+  }, 0);
+  const todayWorkshopCount = todayHeldWorkshops.length;
 
   // Charts
   const chartData = useMemo(() => {
@@ -67,8 +70,11 @@ export default function WorkshopsReportTab() {
     return dates.map(date => {
       const dayPurchases = purchases.filter(p => p.purchase_date === date);
       const revenue = dayPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
-      const participants = dayPurchases.reduce((s, p) => s + (p.quantity || 1), 0);
-      const workshopCount = workshops.filter(w => (w.session_dates || []).includes(date)).length;
+      const heldWorkshops = workshops.filter(w => (w.session_dates || []).includes(date));
+      const participants = heldWorkshops.reduce((s, w) => {
+        return s + purchases.filter(p => p.workshop_id === w.id).reduce((ss, p) => ss + (p.quantity || 1), 0);
+      }, 0);
+      const workshopCount = heldWorkshops.length;
       return { date, revenue, participants, workshopCount };
     });
   }, [purchases, workshops, startDate, endDate]);
@@ -110,7 +116,7 @@ export default function WorkshopsReportTab() {
         )}
       </ChartCard>
 
-      <ChartCard title="تعداد شرکت‌کنندگان" info="مجموع تعداد شرکت‌کنندگان کارگاه‌هایی که در آن روز ثبت‌نام کرده‌اند (بر اساس تاریخ ثبت‌نام)" todayLabel="شرکت‌کنندگان امروز" todayValue={toPersianNum(todayParticipants)}>
+      <ChartCard title="تعداد شرکت‌کنندگان" info="مجموع تعداد شرکت‌کنندگان کارگاه‌هایی که در آن روز برگزار می‌شوند" todayLabel="شرکت‌کنندگان امروز" todayValue={toPersianNum(todayParticipants)}>
         {chartData.length === 0 ? (
           <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
         ) : (

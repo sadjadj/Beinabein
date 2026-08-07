@@ -97,7 +97,7 @@ export default function CafeReportTab({ purchases }) {
         )}
       </ChartCard>
 
-      <ChartCard title="تعداد آیتم‌ها" info="مجموع تعداد آیتم‌های فروش‌شده در کافه در هر روز" todayLabel="آیتم‌های امروز" todayValue={toPersianNum(todayItemCount)}>
+      <ChartCard title="تعداد آیتم‌ها" info="مجموع تعداد آیتم‌های فروخته شده در کافه در هر روز" todayLabel="آیتم‌های امروز" todayValue={toPersianNum(todayItemCount)}>
         {chartData.length === 0 ? (
           <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
         ) : (
