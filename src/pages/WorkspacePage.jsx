@@ -32,6 +32,7 @@ export default function WorkspacePage() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [spaces, setSpaces] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [tab, setTab] = useState('order');
   const [orderForm, setOrderForm] = useState({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_start_date: '', how_met: '' });
@@ -69,15 +70,24 @@ export default function WorkspacePage() {
 
   const fetchData = async () => {
     setLoading(true);
+    setError('');
     try {
-      const [orders, subs, sps] = await Promise.all([
+      const results = await Promise.allSettled([
         base44.entities.WorkspaceOrder.list('-purchase_date', 500),
         base44.entities.WorkspaceSubscription.list('-created_date', 100),
         base44.entities.Space.list('-created_date', 100)
       ]);
-      setRecords(orders);
-      setSubscriptions(subs);
-      setSpaces(sps);
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length === results.length) {
+        setError('خطا در دریافت اطلاعات. لطفاً دوباره تلاش کنید.');
+      } else {
+        if (results[0].status === 'fulfilled') setRecords(results[0].value);
+        if (results[1].status === 'fulfilled') setSubscriptions(results[1].value);
+        if (results[2].status === 'fulfilled') setSpaces(results[2].value);
+        if (failed.length > 0) setError('برخی اطلاعات بارگذاری نشد. ممکن است بخش‌هایی ناقص باشند.');
+      }
+    } catch (e) {
+      setError('خطا در دریافت اطلاعات. لطفاً دوباره تلاش کنید.');
     } finally { setLoading(false); }
   };
 
@@ -239,12 +249,32 @@ export default function WorkspacePage() {
     );
   }
 
+  if (error && records.length === 0 && subscriptions.length === 0) {
+    return (
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+        <div className="bg-white rounded-xl border border-border p-10 text-center">
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <button onClick={fetchData} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
+            تلاش مجدد
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">فضای کار</h1>
         <p className="text-sm text-muted-foreground mt-1">ثبت سفارش، مدیریت اشتراک‌ها و مشاهده فاکتورها</p>
       </div>
+
+      {error && (records.length > 0 || subscriptions.length > 0) && (
+        <div className="flex items-center justify-between gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-xs text-amber-700">{error}</p>
+          <button onClick={fetchData} className="text-xs text-amber-700 font-medium hover:underline">تلاش مجدد</button>
+        </div>
+      )}
 
       <div className="bg-white border-b border-border -mx-4 md:-mx-6">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
