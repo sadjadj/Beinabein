@@ -53,6 +53,7 @@ export default function WorkshopForm({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!form.start_time || !form.end_time) { setError('ساعت شروع و پایان الزامی است'); return; }
     if (plans.length === 0) { setError('افزودن حداقل یک مدل ثبت‌نام الزامی است'); return; }
     setError('');
     onSubmit(form, plans);
@@ -81,12 +82,12 @@ export default function WorkshopForm({
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">ساعت شروع</label>
-            <input type="time" value={form.start_time || ''} onChange={e => setForm({ ...form, start_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            <label className="text-xs text-muted-foreground block mb-1">ساعت شروع *</label>
+            <input type="time" value={form.start_time || ''} onChange={e => setForm({ ...form, start_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">ساعت پایان</label>
-            <input type="time" value={form.end_time || ''} onChange={e => setForm({ ...form, end_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            <label className="text-xs text-muted-foreground block mb-1">ساعت پایان *</label>
+            <input type="time" value={form.end_time || ''} onChange={e => setForm({ ...form, end_time: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">فضای برگزاری</label>

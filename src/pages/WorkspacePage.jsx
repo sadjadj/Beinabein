@@ -12,6 +12,10 @@ import JalaliDateInput from '@/components/JalaliDateInput';
 import PersonSearch from '@/components/PersonSearch';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
+import {
+  getMainHallCapacity, buildCapacityMap, computeUsageDates,
+  checkCapacityForDates, getOrderUsageDates, formatInsufficientDates
+} from '@/lib/workspaceCapacity';
 
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 
@@ -25,10 +29,12 @@ export default function WorkspacePage() {
   const navigate = useNavigate();
   const [records, setRecords] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
+  const [spaces, setSpaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [tab, setTab] = useState('order');
-  const [orderForm, setOrderForm] = useState({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_date: '', how_met: '' });
+  const [orderForm, setOrderForm] = useState({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_start_date: '', how_met: '' });
+  const [capacityError, setCapacityError] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
   const [orderSearch, setOrderSearch] = useState('');
   const monthRange = getDateRange('month', null, null);
@@ -63,32 +69,55 @@ export default function WorkspacePage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [orders, subs] = await Promise.all([
+      const [orders, subs, sps] = await Promise.all([
         base44.entities.WorkspaceOrder.list('-purchase_date', 500),
-        base44.entities.WorkspaceSubscription.list('-created_date', 100)
+        base44.entities.WorkspaceSubscription.list('-created_date', 100),
+        base44.entities.Space.list('-created_date', 100)
       ]);
       setRecords(orders);
       setSubscriptions(subs);
+      setSpaces(sps);
     } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, []);
 
+  const totalCapacity = getMainHallCapacity(spaces);
+
+  const selectedSub = subscriptions.find(s => s.id === orderForm.subscription_id);
+  const subDays = Number(selectedSub?.subscription_days) || 1;
+  const usageDates = orderForm.usage_start_date ? computeUsageDates(orderForm.usage_start_date, subDays) : [];
+
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
     if (!orderForm.person_phone || !orderForm.purchase_date) return;
+    setCapacityError('');
+    if (orderForm.usage_start_date && usageDates.length) {
+      const qty = Number(orderForm.quantity) || 1;
+      const capMap = buildCapacityMap(records);
+      const { ok, insufficientDates } = checkCapacityForDates(usageDates, qty, capMap, totalCapacity);
+      if (!ok) {
+        setCapacityError(`ظرفیت کافی برای روزهای زیر وجود ندارد: ${formatInsufficientDates(insufficientDates)}`);
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       await findOrCreatePerson(orderForm.person_phone, orderForm.person_name);
       const sub = subscriptions.find(s => s.id === orderForm.subscription_id);
+      const days = Number(sub?.subscription_days) || 1;
+      const dates = orderForm.usage_start_date ? computeUsageDates(orderForm.usage_start_date, days) : [];
       await base44.entities.WorkspaceOrder.create({
         ...orderForm,
         subscription_name: sub?.name || '',
         price: sub?.price || 0,
         quantity: Number(orderForm.quantity) || 1,
-        how_met: orderForm.how_met || 'other'
+        how_met: orderForm.how_met || 'other',
+        usage_start_date: orderForm.usage_start_date || '',
+        usage_date: orderForm.usage_start_date || '',
+        usage_dates: dates
       });
-      setOrderForm({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_date: '', how_met: '' });
+      setOrderForm({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_start_date: '', how_met: '' });
       fetchData();
     } finally { setSubmitting(false); }
   };
@@ -116,7 +145,10 @@ export default function WorkspacePage() {
   };
 
   const today = todayGregorian();
-  const todayRecords = sortedRecords.filter(r => r.usage_date === today && matchSearch(r));
+  const todayRecords = sortedRecords.filter(r => {
+    const dates = getOrderUsageDates(r);
+    return dates.includes(today) && matchSearch(r);
+  });
 
   const historyRecords = sortedRecords.filter(r => {
     if (historyFrom && (!r.purchase_date || r.purchase_date < historyFrom)) return false;
@@ -280,8 +312,33 @@ export default function WorkspacePage() {
                 <FloatingDateInput value={orderForm.purchase_date} onChange={v => setOrderForm({ ...orderForm, purchase_date: v })} required max={todayGregorian()} />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">تاریخ استفاده</label>
-                <FloatingDateInput value={orderForm.usage_date} onChange={v => setOrderForm({ ...orderForm, usage_date: v })} />
+                <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع استفاده</label>
+                <JalaliDateInput value={orderForm.usage_start_date} onChange={v => setOrderForm({ ...orderForm, usage_start_date: v })} />
+              </div>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="text-xs text-muted-foreground block mb-1">روزهای رزرو شده (تاریخ استفاده)</label>
+                {usageDates.length > 0 ? (
+                  <div className="overflow-x-auto border border-border rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-right p-2.5 font-medium">ردیف</th>
+                          <th className="text-right p-2.5 font-medium">تاریخ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {usageDates.map((d, i) => (
+                          <tr key={d} className="border-t border-border">
+                            <td className="p-2.5 text-muted-foreground">{toPersianNum(i + 1)}</td>
+                            <td className="p-2.5">{toJalaliStr(d)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">با انتخاب نوع اشتراک و تاریخ شروع استفاده، روزهای رزرو نمایش داده می‌شوند.</p>
+                )}
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">زمان ورود (ساعت)</label>
@@ -303,6 +360,9 @@ export default function WorkspacePage() {
                   {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
+              {capacityError && (
+                <div className="sm:col-span-2 lg:col-span-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">{capacityError}</div>
+              )}
               <div className="sm:col-span-2 lg:col-span-3">
                 <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
                   {submitting ? 'در حال ثبت...' : 'ثبت سفارش'}

@@ -6,43 +6,75 @@ import { findOrCreatePerson, toPersianNum, formatCurrency } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { toJalaliStr } from '@/lib/jalali';
 import FloatingDateInput from '@/components/FloatingDateInput';
+import JalaliDateInput from '@/components/JalaliDateInput';
 import PersonSearch from '@/components/PersonSearch';
+import {
+  getMainHallCapacity, buildCapacityMap, computeUsageDates,
+  checkCapacityForDates, getOrderUsageDates, formatInsufficientDates
+} from '@/lib/workspaceCapacity';
 
 export default function WorkspaceOrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [subscriptions, setSubscriptions] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
+  const [spaces, setSpaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
+  const [capacityError, setCapacityError] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [o, subs] = await Promise.all([
+      const [o, subs, orders, sps] = await Promise.all([
         base44.entities.WorkspaceOrder.get(id),
-        base44.entities.WorkspaceSubscription.list('-created_date', 100)
+        base44.entities.WorkspaceSubscription.list('-created_date', 100),
+        base44.entities.WorkspaceOrder.list('-purchase_date', 500),
+        base44.entities.Space.list('-created_date', 100)
       ]);
       setOrder(o);
       setSubscriptions(subs);
+      setAllOrders(orders);
+      setSpaces(sps);
       setForm({ ...o, how_met: o.how_met || '' });
     } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, [id]);
 
+  const totalCapacity = getMainHallCapacity(spaces);
+  const selectedSub = subscriptions.find(s => s.id === form.subscription_id);
+  const subDays = Number(selectedSub?.subscription_days) || 1;
+  const usageDates = form.usage_start_date ? computeUsageDates(form.usage_start_date, subDays) : [];
+
   const handleSave = async () => {
+    setCapacityError('');
+    if (form.usage_start_date && usageDates.length) {
+      const qty = Number(form.quantity) || 1;
+      const capMap = buildCapacityMap(allOrders, id);
+      const { ok, insufficientDates } = checkCapacityForDates(usageDates, qty, capMap, totalCapacity);
+      if (!ok) {
+        setCapacityError(`ظرفیت کافی برای روزهای زیر وجود ندارد: ${formatInsufficientDates(insufficientDates)}`);
+        return;
+      }
+    }
     setSaving(true);
     try {
       await findOrCreatePerson(form.person_phone, form.person_name);
       const sub = subscriptions.find(s => s.id === form.subscription_id);
+      const days = Number(sub?.subscription_days) || 1;
+      const dates = form.usage_start_date ? computeUsageDates(form.usage_start_date, days) : [];
       await base44.entities.WorkspaceOrder.update(id, {
         ...form,
         subscription_name: sub?.name || form.subscription_name,
         price: sub?.price || form.price,
         quantity: Number(form.quantity) || 1,
-        how_met: form.how_met || 'other'
+        how_met: form.how_met || 'other',
+        usage_start_date: form.usage_start_date || '',
+        usage_date: form.usage_start_date || '',
+        usage_dates: dates
       });
       navigate('/workspace');
     } finally { setSaving(false); }
@@ -92,8 +124,33 @@ export default function WorkspaceOrderDetail() {
             <FloatingDateInput value={form.purchase_date || ''} onChange={v => setForm({ ...form, purchase_date: v })} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">تاریخ استفاده</label>
-            <FloatingDateInput value={form.usage_date || ''} onChange={v => setForm({ ...form, usage_date: v })} />
+            <label className="text-xs text-muted-foreground block mb-1">تاریخ شروع استفاده</label>
+            <JalaliDateInput value={form.usage_start_date || ''} onChange={v => setForm({ ...form, usage_start_date: v })} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-xs text-muted-foreground block mb-1">روزهای رزرو شده (تاریخ استفاده)</label>
+            {usageDates.length > 0 ? (
+              <div className="overflow-x-auto border border-border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-right p-2.5 font-medium">ردیف</th>
+                      <th className="text-right p-2.5 font-medium">تاریخ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usageDates.map((d, i) => (
+                      <tr key={d} className="border-t border-border">
+                        <td className="p-2.5 text-muted-foreground">{toPersianNum(i + 1)}</td>
+                        <td className="p-2.5">{toJalaliStr(d)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">با انتخاب نوع اشتراک و تاریخ شروع استفاده، روزهای رزرو نمایش داده می‌شوند.</p>
+            )}
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">زمان ورود</label>
@@ -123,6 +180,10 @@ export default function WorkspaceOrderDetail() {
             </button>
           </div>
         </div>
+
+        {capacityError && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">{capacityError}</div>
+        )}
 
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
           <button onClick={handleDelete} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50">
