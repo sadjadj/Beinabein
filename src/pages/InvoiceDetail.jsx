@@ -18,6 +18,7 @@ const entityMap = {
   workspace: { entity: 'WorkspaceOrder', label: 'فضای کار', amountField: 'price', labelField: 'subscription_name', hasHowMet: true, labelFieldLabel: 'نام اشتراک' },
   cafe: { entity: 'ItemPurchase', label: 'کافه', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم' },
   workshop: { entity: 'WorkshopPurchase', label: 'کارگاه', amountField: 'price', labelField: 'workshop_title', hasHowMet: true, labelFieldLabel: 'نام کارگاه' },
+  group: { entity: 'GroupPurchase', label: 'گروه', amountField: 'price', labelField: 'group_title', hasHowMet: true, labelFieldLabel: 'نام گروه' },
   custom: { entity: 'CustomIncome', label: 'درآمد دلخواه', amountField: 'amount', labelField: 'title', hasHowMet: true, labelFieldLabel: 'شرح درآمد' },
 };
 
@@ -37,7 +38,7 @@ export default function InvoiceDetail() {
   const cfg = entityMap[type];
 
   const fromPath = location.state?.from || '/accounting';
-  const fromLabels = { '/cafe': 'کافه', '/accounting': 'حسابداری', '/workspace': 'فضای کار' };
+  const fromLabels = { '/cafe': 'کافه', '/accounting': 'حسابداری', '/workspace': 'فضای کار', '/groups': 'گروه‌ها', '/workshops': 'کارگاه‌ها', '/finance': 'مالی' };
   const fromLabel = fromLabels[fromPath] || 'حسابداری';
 
   const fetchData = async () => {

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText, Layers } from 'lucide-react';
 
 const standaloneItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
   { path: '/cafe', label: 'کافه', icon: Coffee },
   { path: '/workspace', label: 'فضای کار', icon: Briefcase },
   { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },
+  { path: '/groups', label: 'گروه‌ها', icon: Layers },
   { path: '/people', label: 'افراد', icon: Users },
   { path: '/finance', label: 'مالی', icon: Wallet },
 ];
