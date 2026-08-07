@@ -158,10 +158,10 @@ export default function FinancialReport({ embedded = false }) {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="درآمد کل" value={formatCurrency(totalRev)} icon={TrendingUp} color="terracotta" />
-        <StatCard label="هزینه‌ها" value={formatCurrency(totalExp)} icon={TrendingDown} color="pink" />
-        <StatCard label="سود خالص" value={formatCurrency(netProfit)} icon={Wallet} color={netProfit >= 0 ? 'teal' : 'pink'} />
-        <StatCard label="مشتریان یونیک" value={toPersianNum(uniquePhones.size)} icon={Users} color="ochre" />
+        <StatCard label="درآمد کل" value={formatCurrency(totalRev)} icon={TrendingUp} color="terracotta" info="مجموع درآمد فضای کار، کافه و کارگاه‌ها در بازه انتخاب‌شده (بدون درآمد دلخواه)" />
+        <StatCard label="هزینه‌ها" value={formatCurrency(totalExp)} icon={TrendingDown} color="pink" info="مجموع کل هزینه‌های ثبت‌شده در بازه انتخاب‌شده" />
+        <StatCard label="سود خالص" value={formatCurrency(netProfit)} icon={Wallet} color={netProfit >= 0 ? 'teal' : 'pink'} info="تفاضل درآمد کل و هزینه‌ها در بازه انتخاب‌شده" />
+        <StatCard label="مشتریان یونیک" value={toPersianNum(uniquePhones.size)} icon={Users} color="ochre" info="تعداد افراد یکتا بر اساس شماره تلفن که در بازه انتخاب‌شده از خدمات استفاده کرده‌اند" />
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">

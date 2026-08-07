@@ -12,6 +12,7 @@ import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
+import ExportButton from '@/components/ExportButton';
 
 export default function AccountingPage({ embedded = false }) {
   const navigate = useNavigate();
@@ -25,6 +26,10 @@ export default function AccountingPage({ embedded = false }) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [methodFilter, setMethodFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customForm, setCustomForm] = useState({ title: '', person_name: '', person_phone: '', amount: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: 'other', is_paid: false, description: '' });
   const [customError, setCustomError] = useState('');
@@ -143,6 +148,12 @@ export default function AccountingPage({ embedded = false }) {
     if (filter === 'unpaid') return !t.is_paid && t.payment_method !== 'free';
     return true;
   }).filter(t => {
+    if (typeFilter && t.type !== typeFilter) return false;
+    if (methodFilter && t.payment_method !== methodFilter) return false;
+    if (dateFrom && (!t.purchase_date || t.purchase_date < dateFrom)) return false;
+    if (dateTo && (!t.purchase_date || t.purchase_date > dateTo)) return false;
+    return true;
+  }).filter(t => {
     if (!search) return true;
     const s = search.trim().toLowerCase();
     return (t.person_name || '').toLowerCase().includes(s) ||
@@ -151,6 +162,29 @@ export default function AccountingPage({ embedded = false }) {
   });
 
   const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه', custom: 'درآمد دلخواه' };
+
+  const fromPath = embedded ? '/finance' : '/accounting';
+
+  const exportColumns = [
+    { key: 'date', label: 'تاریخ' },
+    { key: 'type', label: 'نوع' },
+    { key: 'label', label: 'شرح' },
+    { key: 'name', label: 'نام' },
+    { key: 'phone', label: 'شماره' },
+    { key: 'method', label: 'مدل پرداخت' },
+    { key: 'amount', label: 'مبلغ' },
+    { key: 'status', label: 'وضعیت' },
+  ];
+  const exportRows = filtered.slice(0, 200).map(t => ({
+    date: t.purchase_date ? toJalaliStr(t.purchase_date) : '',
+    type: typeLabels[t.type] || t.type,
+    label: t.label || '-',
+    name: t.person_name || '-',
+    phone: t.person_phone || '',
+    method: paymentMethodLabels[t.payment_method] || t.payment_method || '',
+    amount: t.amount || 0,
+    status: t.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده',
+  }));
 
   if (loading) return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto pt-14 md:pt-6">
@@ -177,10 +211,10 @@ export default function AccountingPage({ embedded = false }) {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        {!hideFinancials && <StatCard label="درآمد این ماه" value={formatCurrency(totalIncome)} icon={TrendingUp} color="terracotta" />}
-        {!hideFinancials && <StatCard label="پرداخت تسهیلگران" value={formatCurrency(facilitatorExpenses)} icon={TrendingDown} color="pink" />}
-        {!hideFinancials && <StatCard label="سود/زیان این ماه" value={formatCurrency(profit)} sublabel={profit >= 0 ? 'سود' : 'زیان'} icon={Wallet} color={profit >= 0 ? 'teal' : 'pink'} />}
-        <StatCard label="پرداخت‌نشده" value={toPersianNum(totalUnpaid)} sublabel={hideFinancials ? undefined : formatCurrency(totalUnpaidAmount)} icon={AlertCircle} color="ochre" />
+        {!hideFinancials && <StatCard label="درآمد این ماه" value={formatCurrency(totalIncome)} icon={TrendingUp} color="terracotta" info="مجموع درآمد حاصل از فضای کار، کافه، کارگاه‌ها و درآمدهای دلخواه در ماه جاری شمسی" />}
+        {!hideFinancials && <StatCard label="پرداخت تسهیلگران" value={formatCurrency(facilitatorExpenses)} icon={TrendingDown} color="pink" info="مجموع مبالغ پرداختی به تسهیلگران کارگاه‌های این ماه (بر اساس درصد تسهیلگر)" />}
+        {!hideFinancials && <StatCard label="سود/زیان این ماه" value={formatCurrency(profit)} sublabel={profit >= 0 ? 'سود' : 'زیان'} icon={Wallet} color={profit >= 0 ? 'teal' : 'pink'} info="تفاضل درآمد این ماه و پرداختی تسهیلگران (سود مثبت، زیان منفی)" />}
+        <StatCard label="پرداخت‌نشده" value={toPersianNum(totalUnpaid)} sublabel={hideFinancials ? undefined : formatCurrency(totalUnpaidAmount)} icon={AlertCircle} color="ochre" info="تعداد و مبلغ فاکتورهای پرداخت‌نشده در همه بخش‌ها" />
       </div>
 
       {unpaidFacilitators.length > 0 && (
@@ -284,18 +318,37 @@ export default function AccountingPage({ embedded = false }) {
       </div>
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center justify-between gap-2 flex-wrap">
-          <h3 className="text-sm font-semibold">فاکتورها</h3>
+        <div className="p-4 border-b border-border space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h3 className="text-sm font-semibold">فاکتورها</h3>
+            <ExportButton filename="فاکتورها-درآمدها" columns={exportColumns} rows={exportRows} />
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative">
               <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-              <input type="text" placeholder="جستجو نام / شرح / شماره..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-56" />
+              <input type="text" placeholder="جستجو شرح / نام / شماره..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-56" />
             </div>
-            {['all', 'paid', 'unpaid'].map(f => (
-              <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}>
-                {f === 'all' ? 'همه' : f === 'paid' ? 'پرداخت‌شده' : 'پرداخت‌نشده'}
-              </button>
-            ))}
+            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+              <option value="">همه انواع</option>
+              {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <select value={methodFilter} onChange={e => setMethodFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+              <option value="">همه مدل‌های پرداخت</option>
+              {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <select value={filter} onChange={e => setFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
+              <option value="all">همه وضعیت‌ها</option>
+              <option value="paid">پرداخت‌شده</option>
+              <option value="unpaid">پرداخت‌نشده</option>
+            </select>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">از</span>
+              <JalaliDateInput value={dateFrom} onChange={setDateFrom} showToday={false} />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">تا</span>
+              <JalaliDateInput value={dateTo} onChange={setDateTo} showToday={false} />
+            </div>
           </div>
         </div>
         {loading ? (
@@ -318,7 +371,7 @@ export default function AccountingPage({ embedded = false }) {
               </thead>
               <tbody>
                 {filtered.slice(0, 200).map(t => (
-                  <tr key={`${t.type}-${t.id}`} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/accounting/${t.type}/${t.id}`, { state: { from: '/accounting' } })}>
+                  <tr key={`${t.type}-${t.id}`} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/accounting/${t.type}/${t.id}`, { state: { from: fromPath } })}>
                     <td className="p-3 whitespace-nowrap">{toJalaliStr(t.purchase_date)}</td>
                     <td className="p-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs whitespace-nowrap ${t.type === 'workspace' ? 'bg-[#FDF2F1] text-[#B74B40]' : t.type === 'cafe' ? 'bg-[#FBF3EC] text-[#B9834B]' : 'bg-[#F0F7F8] text-[#8CB9C0]'}`}>

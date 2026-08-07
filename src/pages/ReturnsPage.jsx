@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { RotateCcw, Plus, Trash2, CheckCircle, AlertCircle, Wallet } from 'lucide-react';
+import { RotateCcw, Plus, Trash2, CheckCircle, AlertCircle, Wallet, Search } from 'lucide-react';
 import { toPersianNum, formatCurrency, findOrCreatePerson } from '@/lib/stats';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import PriceInput from '@/components/PriceInput';
+import ExportButton from '@/components/ExportButton';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 
 export default function ReturnsPage({ embedded = false }) {
@@ -13,6 +14,9 @@ export default function ReturnsPage({ embedded = false }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ person_name: '', person_phone: '', item_name: '', amount: '', return_date: todayGregorian(), reason: '' });
+  const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -49,9 +53,38 @@ export default function ReturnsPage({ embedded = false }) {
     fetchData();
   };
 
-  const totalReturns = returns.length;
-  const totalAmount = returns.reduce((s, r) => s + (r.amount || 0), 0);
-  const pendingCount = returns.filter(r => !r.is_refunded).length;
+  const filteredReturns = returns.filter(r => {
+    if (dateFrom && (!r.return_date || r.return_date < dateFrom)) return false;
+    if (dateTo && (!r.return_date || r.return_date > dateTo)) return false;
+    if (!search) return true;
+    const s = search.trim().toLowerCase();
+    return (r.person_name || '').toLowerCase().includes(s) ||
+      (r.person_phone || '').includes(search) ||
+      (r.item_name || '').toLowerCase().includes(s);
+  });
+
+  const totalReturns = filteredReturns.length;
+  const totalAmount = filteredReturns.reduce((s, r) => s + (r.amount || 0), 0);
+  const pendingCount = filteredReturns.filter(r => !r.is_refunded).length;
+
+  const exportColumns = [
+    { key: 'date', label: 'تاریخ' },
+    { key: 'name', label: 'نام' },
+    { key: 'phone', label: 'شماره' },
+    { key: 'item', label: 'آیتم' },
+    { key: 'reason', label: 'دلیل' },
+    { key: 'amount', label: 'مبلغ' },
+    { key: 'status', label: 'وضعیت' },
+  ];
+  const exportRows = filteredReturns.map(r => ({
+    date: r.return_date ? toJalaliStr(r.return_date) : '',
+    name: r.person_name || '-',
+    phone: r.person_phone || '',
+    item: r.item_name || '-',
+    reason: r.reason || '-',
+    amount: r.amount || 0,
+    status: r.is_refunded ? 'بازگشت شده' : 'در انتظار',
+  }));
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -63,9 +96,9 @@ export default function ReturnsPage({ embedded = false }) {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-        <StatCard label="کل مرجوعی‌ها" value={toPersianNum(totalReturns)} icon={RotateCcw} color="terracotta" />
-        <StatCard label="مبلغ کل" value={formatCurrency(totalAmount)} icon={Wallet} color="pink" />
-        <StatCard label="در انتظار بازگشت" value={toPersianNum(pendingCount)} icon={AlertCircle} color="ochre" />
+        <StatCard label="کل مرجوعی‌ها" value={toPersianNum(totalReturns)} icon={RotateCcw} color="terracotta" info="تعداد کل مرجوعی‌های ثبت‌شده در بازه فیلترشده" />
+        <StatCard label="مبلغ کل" value={formatCurrency(totalAmount)} icon={Wallet} color="pink" info="مجموع مبالغ مرجوعی‌ها در بازه فیلترشده" />
+        <StatCard label="در انتظار بازگشت" value={toPersianNum(pendingCount)} icon={AlertCircle} color="ochre" info="تعداد مرجوعی‌هایی که وجه آن‌ها هنوز بازگردانده نشده است" />
       </div>
 
       <div className="bg-white rounded-xl border border-border p-5">
@@ -104,10 +137,29 @@ export default function ReturnsPage({ embedded = false }) {
       </div>
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">فهرست مرجوعی‌ها ({toPersianNum(returns.length)})</h3></div>
+        <div className="p-4 border-b border-border space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h3 className="text-sm font-semibold">فهرست مرجوعی‌ها ({toPersianNum(filteredReturns.length)})</h3>
+            <ExportButton filename="مرجوعی‌ها" columns={exportColumns} rows={exportRows} />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+              <input type="text" placeholder="جستجو نام / شماره / آیتم..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-56" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">از</span>
+              <JalaliDateInput value={dateFrom} onChange={setDateFrom} showToday={false} />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">تا</span>
+              <JalaliDateInput value={dateTo} onChange={setDateTo} showToday={false} />
+            </div>
+          </div>
+        </div>
         {loading ? (
           <TableSkeleton rows={6} cols={7} />
-        ) : returns.length === 0 ? (
+        ) : filteredReturns.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">هنوز مرجوعی ثبت نشده است</div>
         ) : (
           <div className="overflow-x-auto">
@@ -125,7 +177,7 @@ export default function ReturnsPage({ embedded = false }) {
                 </tr>
               </thead>
               <tbody>
-                {returns.map(r => (
+                {filteredReturns.map(r => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                     <td className="p-3">{toJalaliStr(r.return_date)}</td>
                     <td className="p-3 font-medium">{r.person_name || '-'}</td>

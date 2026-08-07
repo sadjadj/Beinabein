@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Layers, ClipboardCheck, ClipboardList, History } from 'lucide-react';
+import { Layers, ClipboardCheck, ClipboardList, History, BarChart3 } from 'lucide-react';
 import GroupsPage from '@/pages/GroupsPage';
 import GroupAttendanceListPage from '@/pages/GroupAttendanceListPage';
 import GroupRegistrationsPage from '@/pages/GroupRegistrationsPage';
 import GroupHistoryTab from '@/components/groups/GroupHistoryTab';
+import GroupsReportTab from '@/components/groups/GroupsReportTab';
 
 const tabs = [
   { key: 'registrations', label: 'ثبت نام افراد در گروه‌ها', icon: ClipboardList, Component: GroupRegistrationsPage },
   { key: 'attendance', label: 'حضور غیاب', icon: ClipboardCheck, Component: GroupAttendanceListPage },
   { key: 'manage', label: 'مدیریت گروه‌ها', icon: Layers, Component: GroupsPage },
   { key: 'history', label: 'تاریخچه ثبت نام‌ها', icon: History, Component: GroupHistoryTab, isPlain: true },
+  { key: 'report', label: 'گزارش', icon: BarChart3, Component: GroupsReportTab, isPlain: true },
 ];
 
 export default function GroupsHubPage() {

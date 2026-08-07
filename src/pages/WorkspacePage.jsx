@@ -16,6 +16,7 @@ import {
   getMainHallCapacity, buildCapacityMap, computeUsageDates,
   checkCapacityForDates, getOrderUsageDates, formatInsufficientDates
 } from '@/lib/workspaceCapacity';
+import WorkspaceReportTab from '@/components/workspace/WorkspaceReportTab';
 
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 
@@ -270,12 +271,7 @@ export default function WorkspacePage() {
 
       {/* تب گزارش */}
       {tab === 'report' && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <StatCard label="مجموع سفارش‌ها" value={toPersianNum(stats.totalOrders)} icon={Briefcase} color="terracotta" info="تعداد کل سفارش‌های فضای کار ثبت‌شده" />
-          <StatCard label="افراد یونیک" value={toPersianNum(stats.uniqueCount)} icon={Users} color="teal" info="تعداد افراد یکتا بر اساس شماره تلفن که از فضای کار استفاده کرده‌اند" />
-          <StatCard label="افراد تکراری" value={toPersianNum(stats.repeatCount)} icon={Repeat} color="ochre" info="تعداد افرادی که بیش از یک بار از فضای کار استفاده کرده‌اند" />
-          <StatCard label="درآمد کل" value={formatCurrency(stats.totalRevenue)} icon={Briefcase} color="pink" info="مجموع درآمد فضای کار از همه سفارش‌ها" />
-        </div>
+        <WorkspaceReportTab orders={records} />
       )}
 
       {/* تب سفارش جدید */}

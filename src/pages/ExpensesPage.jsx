@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Wallet, Plus, Trash2, Wrench, ShoppingCart, Coffee, UtensilsCrossed, User } from 'lucide-react';
+import { Wallet, Plus, Trash2, Wrench, ShoppingCart, Coffee, UtensilsCrossed, User, Search } from 'lucide-react';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
-import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
+import { formatJalaliShort, todayGregorian, toJalaliStr } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import PriceInput from '@/components/PriceInput';
+import ExportButton from '@/components/ExportButton';
 import { TableSkeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 
 const categoryLabels = {
@@ -39,6 +40,9 @@ export default function ExpensesPage({ embedded = false }) {
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [filterCategory, setFilterCategory] = useState('');
+  const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [form, setForm] = useState({ title: '', amount: '', category: 'daily', date: todayGregorian(), description: '', facilitator_id: '' });
 
   const fetchData = async () => {
@@ -77,8 +81,31 @@ export default function ExpensesPage({ embedded = false }) {
     fetchData();
   };
 
-  const filtered = filterCategory ? expenses.filter(e => e.category === filterCategory) : expenses;
+  const filtered = expenses.filter(e => {
+    if (filterCategory && e.category !== filterCategory) return false;
+    if (dateFrom && (!e.date || e.date < dateFrom)) return false;
+    if (dateTo && (!e.date || e.date > dateTo)) return false;
+    if (!search) return true;
+    const s = search.trim().toLowerCase();
+    return (e.title || '').toLowerCase().includes(s) ||
+      (e.description || '').toLowerCase().includes(s);
+  });
   const totalAmount = filtered.reduce((s, e) => s + (e.amount || 0), 0);
+
+  const exportColumns = [
+    { key: 'title', label: 'عنوان' },
+    { key: 'category', label: 'دسته‌بندی' },
+    { key: 'date', label: 'تاریخ' },
+    { key: 'amount', label: 'مبلغ' },
+    { key: 'description', label: 'توضیحات' },
+  ];
+  const exportRows = filtered.map(e => ({
+    title: e.title || '-',
+    category: categoryLabels[e.category] || e.category || '',
+    date: e.date ? toJalaliStr(e.date) : '',
+    amount: e.amount || 0,
+    description: e.description || '',
+  }));
 
   const categoryTotals = {};
   expenses.forEach(e => {
@@ -105,10 +132,10 @@ export default function ExpensesPage({ embedded = false }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <StatCard label="کل هزینه‌ها" value={formatCurrency(totalAmount)} icon={Wallet} color="terracotta" sublabel={`${toPersianNum(filtered.length)} مورد`} />
+          <StatCard label="کل هزینه‌ها" value={formatCurrency(totalAmount)} icon={Wallet} color="terracotta" sublabel={`${toPersianNum(filtered.length)} مورد`} info="مجموع مبالغ هزینه‌ها در بازه و دسته‌بندی فیلترشده" />
           {Object.entries(categoryLabels).slice(0, 3).map(([key, label]) => {
             const Icon = categoryIcons[key];
-            return <StatCard key={key} label={label} value={formatCurrency(categoryTotals[key] || 0)} icon={Icon} color={categoryColors[key]} />;
+            return <StatCard key={key} label={label} value={formatCurrency(categoryTotals[key] || 0)} icon={Icon} color={categoryColors[key]} info={`مجموع هزینه‌های دسته «${label}» (بدون فیلتر بازه)`} />;
           })}
         </div>
       )}
@@ -158,8 +185,25 @@ export default function ExpensesPage({ embedded = false }) {
       )}
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
-          <h3 className="text-sm font-semibold">فهرست هزینه‌ها ({toPersianNum(filtered.length)})</h3>
+        <div className="p-4 border-b border-border space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="text-sm font-semibold">فهرست هزینه‌ها ({toPersianNum(filtered.length)})</h3>
+            <ExportButton filename="هزینه‌ها" columns={exportColumns} rows={exportRows} />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+              <input type="text" placeholder="جستجو عنوان / توضیحات..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-56" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">از</span>
+              <JalaliDateInput value={dateFrom} onChange={setDateFrom} showToday={false} />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">تا</span>
+              <JalaliDateInput value={dateTo} onChange={setDateTo} showToday={false} />
+            </div>
+          </div>
           {expenses.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => setFilterCategory('')} className={`px-2.5 py-1 rounded-full text-xs font-medium ${!filterCategory ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>همه</button>
