@@ -38,7 +38,6 @@ import WorkspaceOrderDetail from '@/pages/WorkspaceOrderDetail';
 import InvoiceDetail from '@/pages/InvoiceDetail';
 import DailyReport from '@/pages/DailyReport';
 import FinancialReport from '@/pages/FinancialReport';
-import ShopPage from '@/pages/ShopPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -79,7 +78,6 @@ const AuthenticatedApp = () => {
       <Route path="/groups" element={<GroupsHubPage />} />
       <Route path="/groups/:id" element={<GroupProfile />} />
       <Route path="/groups/attendance/:groupId" element={<GroupAttendancePage />} />
-      <Route path="/shop" element={<ShopPage />} />
       <Route path="/attendance" element={<AttendancePage />} />
       <Route path="/attendance/:workshopId" element={<WorkshopAttendancePage />} />
       <Route path="/people/:id" element={<PersonProfile />} />
