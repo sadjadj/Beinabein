@@ -15,11 +15,13 @@ import {
 } from '@/components/ui/alert-dialog';
 
 const entityMap = {
-  workspace: { entity: 'WorkspaceOrder', label: 'فضای کار', amountField: 'price', labelField: 'subscription_name', hasHowMet: true, labelFieldLabel: 'نام اشتراک' },
-  cafe: { entity: 'ItemPurchase', label: 'کافه', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم' },
-  workshop: { entity: 'WorkshopPurchase', label: 'کارگاه', amountField: 'price', labelField: 'workshop_title', hasHowMet: true, labelFieldLabel: 'نام کارگاه' },
-  group: { entity: 'GroupPurchase', label: 'گروه', amountField: 'price', labelField: 'group_title', hasHowMet: true, labelFieldLabel: 'نام گروه' },
-  custom: { entity: 'CustomIncome', label: 'درآمد دلخواه', amountField: 'amount', labelField: 'title', hasHowMet: true, labelFieldLabel: 'شرح درآمد' },
+  workspace: { entity: 'WorkspaceOrder', label: 'فضای کار', amountField: 'price', labelField: 'subscription_name', hasHowMet: true, labelFieldLabel: 'نام اشتراک', multiItem: false },
+  cafe: { entity: 'ItemPurchase', label: 'کافه', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
+  store: { entity: 'StorePurchase', label: 'استور', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
+  greenhouse: { entity: 'GreenhousePurchase', label: 'گلخانه', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
+  workshop: { entity: 'WorkshopPurchase', label: 'کارگاه', amountField: 'price', labelField: 'workshop_title', hasHowMet: true, labelFieldLabel: 'نام کارگاه', multiItem: false },
+  group: { entity: 'GroupPurchase', label: 'گروه', amountField: 'price', labelField: 'group_title', hasHowMet: true, labelFieldLabel: 'نام گروه', multiItem: false },
+  custom: { entity: 'CustomIncome', label: 'درآمد دلخواه', amountField: 'amount', labelField: 'title', hasHowMet: true, labelFieldLabel: 'شرح درآمد', multiItem: false },
 };
 
 export default function InvoiceDetail() {
@@ -52,12 +54,12 @@ export default function InvoiceDetail() {
         if (persons.length > 0) setPersonId(persons[0].id);
       }
 
-      if (type === 'cafe') {
+      if (cfg.multiItem) {
         let related = [];
         if (data.invoice_id) {
-          related = await base44.entities.ItemPurchase.filter({ invoice_id: data.invoice_id });
+          related = await base44.entities[cfg.entity].filter({ invoice_id: data.invoice_id });
         } else {
-          related = await base44.entities.ItemPurchase.filter({ person_phone: data.person_phone, purchase_date: data.purchase_date });
+          related = await base44.entities[cfg.entity].filter({ person_phone: data.person_phone, purchase_date: data.purchase_date });
         }
         setAllItems(related.length > 0 ? related : [data]);
       } else {
@@ -69,7 +71,7 @@ export default function InvoiceDetail() {
   useEffect(() => { fetchData(); }, [id]);
 
   const startEdit = () => {
-    if (type === 'cafe') {
+    if (cfg.multiItem) {
       setForm({
         person_name: invoice.person_name || '',
         person_phone: invoice.person_phone || '',
@@ -98,7 +100,7 @@ export default function InvoiceDetail() {
   const saveEdit = async () => {
     setSubmitting(true);
     try {
-      if (type === 'cafe') {
+      if (cfg.multiItem) {
         const payload = {
           person_name: form.person_name,
           person_phone: form.person_phone,
@@ -107,7 +109,7 @@ export default function InvoiceDetail() {
           is_paid: form.is_paid,
         };
         const itemIds = allItems.map(i => i.id);
-        await base44.entities.ItemPurchase.updateMany({ id: { $in: itemIds } }, { $set: payload });
+        await base44.entities[cfg.entity].updateMany({ id: { $in: itemIds } }, { $set: payload });
       } else {
         const payload = {
           [cfg.labelField]: form[cfg.labelField],
@@ -134,10 +136,10 @@ export default function InvoiceDetail() {
   const togglePaid = async () => {
     setToggling(true);
     try {
-      if (type === 'cafe') {
+      if (cfg.multiItem) {
         const newPaid = !invoice.is_paid;
         const itemIds = allItems.map(i => i.id);
-        await base44.entities.ItemPurchase.updateMany({ id: { $in: itemIds } }, { $set: { is_paid: newPaid } });
+        await base44.entities[cfg.entity].updateMany({ id: { $in: itemIds } }, { $set: { is_paid: newPaid } });
       } else {
         await base44.entities[cfg.entity].update(id, { is_paid: !invoice.is_paid });
       }
@@ -146,9 +148,9 @@ export default function InvoiceDetail() {
   };
 
   const handleDelete = async () => {
-    if (type === 'cafe') {
+    if (cfg.multiItem) {
       const itemIds = allItems.map(i => i.id);
-      await base44.entities.ItemPurchase.deleteMany({ id: { $in: itemIds } });
+      await base44.entities[cfg.entity].deleteMany({ id: { $in: itemIds } });
     } else {
       await base44.entities[cfg.entity].delete(id);
     }
@@ -158,7 +160,7 @@ export default function InvoiceDetail() {
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
   if (!invoice) return <div className="p-6 text-center text-muted-foreground">فاکتوری یافت نشد</div>;
 
-  const isCafe = type === 'cafe';
+  const isCafe = cfg.multiItem;
   const cafeTotalAmount = isCafe ? allItems.reduce((s, i) => s + (i.item_price || 0) * (i.quantity || 1) * (1 - (i.discount || 0) / 100), 0) : 0;
   const cafeTotalItems = isCafe ? allItems.reduce((s, i) => s + (i.quantity || 1), 0) : 0;
   const amount = isCafe ? cafeTotalAmount : (invoice[cfg.amountField] || 0) * (invoice.quantity || 1);

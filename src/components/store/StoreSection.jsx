@@ -7,7 +7,7 @@ import StoreOrderTab from '@/components/store/StoreOrderTab';
 import StoreInventoryTab from '@/components/store/StoreInventoryTab';
 import StoreCategoryTab from '@/components/store/StoreCategoryTab';
 
-export default function StoreSection({ itemEntity, purchaseEntity, categoryEntity, sectionName, exportSlug }) {
+export default function StoreSection({ itemEntity, purchaseEntity, categoryEntity, sectionName, exportSlug, invoiceType }) {
   const Item = base44.entities[itemEntity];
   const Purchase = base44.entities[purchaseEntity];
   const Category = base44.entities[categoryEntity];
@@ -55,6 +55,18 @@ export default function StoreSection({ itemEntity, purchaseEntity, categoryEntit
       const ids = group.items.map(i => i.id);
       await Purchase.updateMany({ id: { $in: ids } }, { $set: { is_paid: newPaid } });
       setPurchases(prev => prev.map(p => ids.includes(p.id) ? { ...p, is_paid: newPaid } : p));
+    }
+  };
+
+  const saveEditInvoice = async (group, editForm) => {
+    const payload = { payment_method: editForm.payment_method, purchase_reason: editForm.purchase_reason, is_paid: editForm.is_paid };
+    if (group.invoiceId) {
+      await Purchase.updateMany({ invoice_id: group.invoiceId }, { $set: payload });
+      setPurchases(prev => prev.map(p => p.invoice_id === group.invoiceId ? { ...p, ...payload } : p));
+    } else {
+      const ids = group.items.map(i => i.id);
+      await Purchase.updateMany({ id: { $in: ids } }, { $set: payload });
+      setPurchases(prev => prev.map(p => ids.includes(p.id) ? { ...p, ...payload } : p));
     }
   };
 
@@ -176,6 +188,8 @@ export default function StoreSection({ itemEntity, purchaseEntity, categoryEntit
           onEditInventory={() => setView('inventory')}
           sectionName={sectionName}
           exportSlug={exportSlug}
+          invoiceType={invoiceType}
+          onSaveEdit={saveEditInvoice}
         />
       )}
       {view === 'inventory' && (

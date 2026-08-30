@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Check, X, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
-import { paymentMethodLabels } from '@/lib/labels';
+import { paymentMethodLabels, purchaseReasonLabels } from '@/lib/labels';
 import { toJalaliStr } from '@/lib/jalali';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -9,11 +10,21 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 
-export default function StoreInvoiceList({ groups, onTogglePaid, onDelete, emptyMessage = 'امروز فروشی ثبت نشده است' }) {
+export default function StoreInvoiceList({ groups, type, onTogglePaid, onSaveEdit, onDelete, emptyMessage = 'امروز فروشی ثبت نشده است' }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [expanded, setExpanded] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
   const [deleteTarget, setDeleteTarget] = useState(null);
+
   const getGroupKey = (g) => g.invoiceId || `no-inv-${g.items[0]?.id}`;
 
+  const startEdit = (group) => {
+    setEditingId(getGroupKey(group));
+    setEditForm({ payment_method: group.payment_method, purchase_reason: group.purchase_reason, is_paid: group.is_paid });
+  };
+  const saveEdit = (group) => { onSaveEdit(group, editForm); setEditingId(null); };
   const confirmDelete = async () => { if (deleteTarget) { await onDelete(deleteTarget); setDeleteTarget(null); } };
 
   if (groups.length === 0) return <div className="p-8 text-center text-muted-foreground">{emptyMessage}</div>;
@@ -24,11 +35,18 @@ export default function StoreInvoiceList({ groups, onTogglePaid, onDelete, empty
         {groups.map((group) => {
           const key = getGroupKey(group);
           const isExpanded = expanded === key;
+          const isEditing = editingId === key;
           return (
             <div key={key} className="p-3">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div
+                className={`flex items-center justify-between gap-2 flex-wrap ${!isEditing ? 'cursor-pointer hover:bg-muted/30' : ''}`}
+                onClick={() => !isEditing && navigate(`/accounting/${type}/${group.items[0].id}`, { state: { from: location.pathname } })}
+              >
                 <div className="flex items-center gap-3 text-sm">
-                  <button onClick={() => setExpanded(isExpanded ? null : key)} className="text-muted-foreground hover:text-foreground">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setExpanded(isExpanded ? null : key); }}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">{group.purchase_date ? toJalaliStr(group.purchase_date) : '-'}</span>
@@ -36,10 +54,29 @@ export default function StoreInvoiceList({ groups, onTogglePaid, onDelete, empty
                   <span className="text-xs text-muted-foreground">{toPersianNum(group.itemCount)} آیتم</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{paymentMethodLabels[group.payment_method] || group.payment_method}</span>
-                  <button onClick={() => onTogglePaid(group)} className={`text-xs ${group.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{group.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
-                  <span className="font-medium text-sm">{formatCurrency(group.totalAmount)}</span>
-                  <button onClick={() => setDeleteTarget(group)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                  {isEditing ? (
+                    <>
+                      <select value={editForm.payment_method} onChange={e => setEditForm({ ...editForm, payment_method: e.target.value })} className="px-2 py-1 rounded-lg border border-input bg-background text-xs">
+                        {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                      </select>
+                      <select value={editForm.purchase_reason} onChange={e => setEditForm({ ...editForm, purchase_reason: e.target.value })} className="px-2 py-1 rounded-lg border border-input bg-background text-xs">
+                        {Object.entries(purchaseReasonLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                      </select>
+                      <label className="flex items-center gap-1 text-xs">
+                        <input type="checkbox" checked={editForm.is_paid} onChange={e => setEditForm({ ...editForm, is_paid: e.target.checked })} className="w-3.5 h-3.5" /> پرداخت
+                      </label>
+                      <button onClick={(e) => { e.stopPropagation(); saveEdit(group); }} className="text-green-600 hover:text-green-700"><Check className="w-4 h-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xs text-muted-foreground">{paymentMethodLabels[group.payment_method] || group.payment_method}</span>
+                      <button onClick={(e) => { e.stopPropagation(); onTogglePaid(group); }} className={`text-xs ${group.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{group.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
+                      <span className="font-medium text-sm">{formatCurrency(group.totalAmount)}</span>
+                      <button onClick={(e) => { e.stopPropagation(); startEdit(group); }} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(group); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </>
+                  )}
                 </div>
               </div>
               {isExpanded && (
@@ -61,7 +98,7 @@ export default function StoreInvoiceList({ groups, onTogglePaid, onDelete, empty
           <AlertDialogHeader className="text-center">
             <AlertDialogTitle className="text-center">حذف فاکتور</AlertDialogTitle>
             <AlertDialogDescription className="text-center block">
-              آیا از حذف این فاکتور اطمینان دارید؟ موجودی آیتم‌ها به استور بازگردانده می‌شود.
+              آیا از حذف این فاکتور اطمینان دارید؟ موجودی آیتم‌ها بازگردانده می‌شود.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex items-center justify-center gap-3 sm:justify-center">

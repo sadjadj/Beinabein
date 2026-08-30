@@ -21,7 +21,7 @@ const storeExportColumns = [
   { key: 'total', label: 'مبلغ کل' },
 ];
 
-export default function StoreOrderTab({ items, people, invoiceGroups, onCheckout, onTogglePaid, onDelete, onEditInventory, sectionName = 'استور', exportSlug = 'فروشگاه' }) {
+export default function StoreOrderTab({ items, people, invoiceGroups, onCheckout, onTogglePaid, onSaveEdit, onDelete, onEditInventory, sectionName = 'استور', exportSlug = 'فروشگاه', invoiceType }) {
   const [cart, setCart] = useState([]);
   const [cartDiscount, setCartDiscount] = useState({ type: 'percent', value: 0 });
   const [checkout, setCheckout] = useState({ person_name: '', person_phone: '', purchase_date: todayGregorian(), payment_method: 'cash', purchase_reason: 'independent' });
@@ -210,7 +210,7 @@ export default function StoreOrderTab({ items, people, invoiceGroups, onCheckout
           <h3 className="text-sm font-semibold">فاکتورهای امروز</h3>
           {todayInvoices.length > 0 && <ExportButton filename={`فاکتورهای-امروز-${exportSlug}`} columns={storeExportColumns} rows={todayExportRows} />}
         </div>
-        <StoreInvoiceList groups={todayInvoices} onTogglePaid={onTogglePaid} onDelete={onDelete} emptyMessage="امروز فروشی ثبت نشده است" />
+        <StoreInvoiceList groups={todayInvoices} type={invoiceType} onTogglePaid={onTogglePaid} onSaveEdit={onSaveEdit} onDelete={onDelete} emptyMessage="امروز فروشی ثبت نشده است" />
       </div>
     </div>
   );

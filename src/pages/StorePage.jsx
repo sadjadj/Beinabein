@@ -3,7 +3,7 @@ import StoreSection from '@/components/store/StoreSection';
 
 const mainTabs = [
   { key: 'store', label: 'استور' },
-  { key: 'event', label: 'ویژه ایونت' },
+  { key: 'event', label: 'ایونت' },
   { key: 'greenhouse', label: 'گلخانه' },
   { key: 'history', label: 'تاریخچه فروش‌ها' },
   { key: 'report', label: 'گزارش' },
@@ -39,10 +39,10 @@ export default function StorePage() {
       </div>
 
       {mainTab === 'store' && (
-        <StoreSection itemEntity="StoreItem" purchaseEntity="StorePurchase" categoryEntity="StoreCategory" sectionName="استور" exportSlug="فروشگاه" />
+        <StoreSection itemEntity="StoreItem" purchaseEntity="StorePurchase" categoryEntity="StoreCategory" sectionName="استور" exportSlug="فروشگاه" invoiceType="store" />
       )}
       {mainTab === 'greenhouse' && (
-        <StoreSection itemEntity="GreenhouseItem" purchaseEntity="GreenhousePurchase" categoryEntity="GreenhouseCategory" sectionName="گلخانه" exportSlug="گلخانه" />
+        <StoreSection itemEntity="GreenhouseItem" purchaseEntity="GreenhousePurchase" categoryEntity="GreenhouseCategory" sectionName="گلخانه" exportSlug="گلخانه" invoiceType="greenhouse" />
       )}
       {(mainTab === 'event' || mainTab === 'history' || mainTab === 'report') && (
         <div className="bg-white rounded-xl border border-border p-10 text-center">
