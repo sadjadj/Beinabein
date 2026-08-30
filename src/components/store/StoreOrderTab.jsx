@@ -21,7 +21,7 @@ const storeExportColumns = [
   { key: 'total', label: 'مبلغ کل' },
 ];
 
-export default function StoreOrderTab({ items, people, invoiceGroups, onCheckout, onTogglePaid, onDelete, onEditInventory }) {
+export default function StoreOrderTab({ items, people, invoiceGroups, onCheckout, onTogglePaid, onDelete, onEditInventory, sectionName = 'استور', exportSlug = 'فروشگاه' }) {
   const [cart, setCart] = useState([]);
   const [cartDiscount, setCartDiscount] = useState({ type: 'percent', value: 0 });
   const [checkout, setCheckout] = useState({ person_name: '', person_phone: '', purchase_date: todayGregorian(), payment_method: 'cash', purchase_reason: 'independent' });
@@ -101,7 +101,7 @@ export default function StoreOrderTab({ items, people, invoiceGroups, onCheckout
         <div className="flex items-center justify-between gap-2 mb-4">
           <h3 className="text-sm font-semibold flex items-center gap-2"><ShoppingCart className="w-4 h-4 text-[#B74B40]" /> ثبت فروش جدید</h3>
           <button type="button" onClick={onEditInventory} className="flex items-center gap-1 text-xs text-[#B74B40] hover:underline">
-            <Pencil className="w-3.5 h-3.5" /> ویرایش آیتم‌های استور
+            <Pencil className="w-3.5 h-3.5" /> ویرایش آیتم‌های {sectionName}
           </button>
         </div>
         {visibleItems.length === 0 ? (
@@ -208,7 +208,7 @@ export default function StoreOrderTab({ items, people, invoiceGroups, onCheckout
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold">فاکتورهای امروز</h3>
-          {todayInvoices.length > 0 && <ExportButton filename="فاکتورهای-امروز-فروشگاه" columns={storeExportColumns} rows={todayExportRows} />}
+          {todayInvoices.length > 0 && <ExportButton filename={`فاکتورهای-امروز-${exportSlug}`} columns={storeExportColumns} rows={todayExportRows} />}
         </div>
         <StoreInvoiceList groups={todayInvoices} onTogglePaid={onTogglePaid} onDelete={onDelete} emptyMessage="امروز فروشی ثبت نشده است" />
       </div>

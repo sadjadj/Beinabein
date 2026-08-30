@@ -9,7 +9,7 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 
-export default function StoreInventoryTab({ items, categories, onItemSubmit, onDeleteItem, onToggleVisible, onEditCategories }) {
+export default function StoreInventoryTab({ items, categories, onItemSubmit, onDeleteItem, onToggleVisible, onEditCategories, sectionName = 'استور' }) {
   const [itemForm, setItemForm] = useState({ name: '', category: '', add_quantity: '', price: '' });
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -37,7 +37,7 @@ export default function StoreInventoryTab({ items, categories, onItemSubmit, onD
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> افزودن آیتم جدید برای استور</h3>
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#B74B40]" /> افزودن آیتم جدید برای {sectionName}</h3>
         <form onSubmit={handleAddSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="text-xs text-muted-foreground block mb-1">نام آیتم</label>
@@ -72,7 +72,7 @@ export default function StoreInventoryTab({ items, categories, onItemSubmit, onD
       </div>
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">فهرست آیتم‌های استور ({toPersianNum(items.length)})</h3></div>
+        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">فهرست آیتم‌های {sectionName} ({toPersianNum(items.length)})</h3></div>
         {items.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">هنوز آیتمی ثبت نشده است</div>
         ) : (
