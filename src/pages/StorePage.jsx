@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useTabFromUrl } from '@/hooks/useTabFromUrl';
 import StoreSection from '@/components/store/StoreSection';
 
 const mainTabs = [
@@ -10,7 +11,7 @@ const mainTabs = [
 ];
 
 export default function StorePage() {
-  const [mainTab, setMainTab] = useState('store');
+  const [mainTab, setMainTab] = useTabFromUrl('store');
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">

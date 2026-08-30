@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useTabFromUrl } from '@/hooks/useTabFromUrl';
 import { Layers, ClipboardCheck, ClipboardList, History, BarChart3 } from 'lucide-react';
 import GroupsPage from '@/pages/GroupsPage';
 import GroupAttendanceListPage from '@/pages/GroupAttendanceListPage';
@@ -15,7 +16,7 @@ const tabs = [
 ];
 
 export default function GroupsHubPage() {
-  const [tab, setTab] = useState('registrations');
+  const [tab, setTab] = useTabFromUrl('registrations');
   const active = tabs.find(t => t.key === tab) || tabs[0];
   const ActiveComponent = active.Component;
 
