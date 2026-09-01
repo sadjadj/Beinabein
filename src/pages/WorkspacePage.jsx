@@ -17,6 +17,7 @@ import {
   checkCapacityForDates, getOrderUsageDates, formatInsufficientDates
 } from '@/lib/workspaceCapacity';
 import WorkspaceReportTab from '@/components/workspace/WorkspaceReportTab';
+import { useUrlTab } from '@/hooks/useUrlTab';
 
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 
@@ -34,7 +35,7 @@ export default function WorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [tab, setTab] = useState('order');
+  const [tab, setTab] = useUrlTab('tab', 'order', tabs.map(t => t.key));
   const [orderForm, setOrderForm] = useState({ person_name: '', person_phone: '', subscription_id: '', quantity: 1, purchase_date: '', payment_method: 'cash', entry_time: '', usage_start_date: '', how_met: '' });
   const [capacityError, setCapacityError] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');

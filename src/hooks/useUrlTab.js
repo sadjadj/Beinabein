@@ -5,8 +5,8 @@ import { useSearchParams } from 'react-router-dom';
  * Keeps the active tab in sync with a URL query param (default `?tab=`).
  * On mount it reads the param (validated against `validTabs`) so that
  * navigating back to the page restores the same tab. Changing the tab
- * rewrites the URL with `replace` (no extra history entries), which means
- * a `navigate(-1)` from a detail page returns to this page on the same tab.
+ * rewrites the URL with `replace` (no extra history entries), so a
+ * `navigate(-1)` from a detail page returns to this page on the same tab.
  *
  * @param {string} paramName   query param name, e.g. 'tab'
  * @param {string} defaultTab  fallback tab when param is missing/invalid
@@ -14,8 +14,7 @@ import { useSearchParams } from 'react-router-dom';
  * @returns {[string, (value: string) => void]}
  */
 export function useUrlTab(paramName, defaultTab, validTabs) {
-  const [, setSearchParams] = useSearchParams();
-  const [searchParams] = [useSearchParams()]; // read once per render
+  const [searchParams, setSearchParams] = useSearchParams();
   const fromUrl = searchParams.get(paramName);
   const initial = validTabs.includes(fromUrl) ? fromUrl : defaultTab;
   const [tab, setTabState] = useState(initial);

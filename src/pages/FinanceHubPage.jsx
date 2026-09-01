@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useUrlTab } from '@/hooks/useUrlTab';
 import { Wallet, BarChart3, RotateCcw, Receipt } from 'lucide-react';
 import AccountingPage from '@/pages/AccountingPage';
 import FinancialReport from '@/pages/FinancialReport';
@@ -13,7 +14,7 @@ const tabs = [
 ];
 
 export default function FinanceHubPage() {
-  const [tab, setTab] = useState('income');
+  const [tab, setTab] = useUrlTab('tab', 'income', tabs.map(t => t.key));
   const active = tabs.find(t => t.key === tab) || tabs[0];
   const ActiveComponent = active.Component;
 

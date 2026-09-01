@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useUrlTab } from '@/hooks/useUrlTab';
 import { Users, UserCheck, Tag, Palette } from 'lucide-react';
 import PeoplePage from '@/pages/PeoplePage';
 import FacilitatorsPage from '@/pages/FacilitatorsPage';
@@ -13,7 +14,7 @@ const tabs = [
 ];
 
 export default function PeopleHubPage() {
-  const [tab, setTab] = useState('customers');
+  const [tab, setTab] = useUrlTab('tab', 'customers', tabs.map(t => t.key));
   const active = tabs.find(t => t.key === tab) || tabs[0];
   const ActiveComponent = active.Component;
 
