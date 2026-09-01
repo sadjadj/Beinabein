@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTabFromUrl } from '@/hooks/useTabFromUrl';
 import { base44 } from '@/api/base44Client';
 import { findOrCreatePerson } from '@/lib/stats';
 import { todayGregorian, getJalaliParts, jalaliToGregorianStr, jalaliMonthNames } from '@/lib/jalali';
@@ -17,7 +16,7 @@ export default function CafePage() {
   const [people, setPeople] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mainTab, setMainTab] = useTabFromUrl('order');
+  const [mainTab, setMainTab] = useState('order');
   const [orderView, setOrderView] = useState('order');
 
   const todayParts = getJalaliParts(todayGregorian());
