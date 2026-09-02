@@ -435,7 +435,7 @@ export default function WorkshopProfile() {
                             {personByPhone[p.person_phone]
                               ? <Link to={`/people/${personByPhone[p.person_phone].id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
                               : <span className="font-medium">{p.person_name || '-'}</span>}
-                            {p.plan_name && <span className="text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
+                            {p.plan_name && <span className="inline-block text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
                             {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
                             {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
                             <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
@@ -458,7 +458,7 @@ export default function WorkshopProfile() {
                         {personByPhone[p.person_phone]
                           ? <Link to={`/people/${personByPhone[p.person_phone].id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
                           : <span className="font-medium">{p.person_name || '-'}</span>}
-                        {p.plan_name && <span className="text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
+                        {p.plan_name && <span className="inline-block text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
                         {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
                         {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
                         <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
