@@ -343,7 +343,7 @@ export default function WorkshopProfile() {
               </div>
               {showAddReg && (
                 <div className="mb-3 p-3 bg-muted/30 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm(prev => ({ ...prev, person_name: v }))} onPhoneChange={v => setRegForm(prev => ({ ...prev, person_phone: v }))} />
+                  <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm({ ...regForm, person_name: v })} onPhoneChange={v => setRegForm({ ...regForm, person_phone: v })} />
                   <div>
                     <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام</label>
                     <select value={regForm.plan_id} onChange={(e) => { const plan = plans.find(p => p.id === e.target.value); const isFree = plan && (Number(plan.price) === 0 || plan.name === 'رایگان'); setRegForm({ ...regForm, plan_id: e.target.value, price: plan ? plan.price : (workshop.price || ''), is_paid: !!isFree, payment_method: isFree ? 'free' : 'cash' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
@@ -422,10 +422,10 @@ export default function WorkshopProfile() {
                   ) : (
                     <div className="divide-y divide-border">
                       {activeRegParticipants.map(p => (
-                        <div key={p.id} className="py-2.5 flex items-center justify-between text-sm cursor-pointer hover:bg-muted/30 -mx-2 px-2 rounded-lg" onClick={() => navigate(`/accounting/workshop/${p.id}`, { state: { from: '/workshops' } })}>
+                        <div key={p.id} className="py-2.5 flex items-center justify-between text-sm">
                           <div>
                             {personByPhone[p.person_phone]
-                              ? <Link to={`/people/${personByPhone[p.person_phone].id}`} className="font-medium hover:text-[#B74B40]" onClick={(e) => e.stopPropagation()}>{p.person_name || '-'}</Link>
+                              ? <Link to={`/people/${personByPhone[p.person_phone].id}`} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
                               : <span className="font-medium">{p.person_name || '-'}</span>}
                             {p.plan_name && <span className="text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
                             {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
@@ -433,9 +433,9 @@ export default function WorkshopProfile() {
                             <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">{formatCurrency(p.is_paid ? (p.price || 0) * (p.quantity || 1) + (p.donation || 0) : 0)}</span>
-                            <button onClick={(e) => { e.stopPropagation(); toggleRegPaid(p); }} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
-                            <button onClick={(e) => { e.stopPropagation(); deleteRegistration(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                            <span className="text-xs text-muted-foreground">{p.payment_method === 'free' ? '—' : (paymentMethodLabels[p.payment_method] || p.payment_method)}</span>
+                            <button onClick={() => toggleRegPaid(p)} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
+                            <button onClick={() => deleteRegistration(p.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
                         </div>
                       ))}
@@ -445,10 +445,10 @@ export default function WorkshopProfile() {
               ) : (
                 <div className="divide-y divide-border">
                   {purchases.map(p => (
-                    <div key={p.id} className="py-2.5 flex items-center justify-between text-sm cursor-pointer hover:bg-muted/30 -mx-2 px-2 rounded-lg" onClick={() => navigate(`/accounting/workshop/${p.id}`, { state: { from: '/workshops' } })}>
+                    <div key={p.id} className="py-2.5 flex items-center justify-between text-sm">
                       <div>
                         {personByPhone[p.person_phone]
-                          ? <Link to={`/people/${personByPhone[p.person_phone].id}`} className="font-medium hover:text-[#B74B40]" onClick={(e) => e.stopPropagation()}>{p.person_name || '-'}</Link>
+                          ? <Link to={`/people/${personByPhone[p.person_phone].id}`} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
                           : <span className="font-medium">{p.person_name || '-'}</span>}
                         {p.plan_name && <span className="text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
                         {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
@@ -456,9 +456,9 @@ export default function WorkshopProfile() {
                         <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">{formatCurrency(p.is_paid ? (p.price || 0) * (p.quantity || 1) + (p.donation || 0) : 0)}</span>
-                        <button onClick={(e) => { e.stopPropagation(); toggleRegPaid(p); }} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
-                        <button onClick={(e) => { e.stopPropagation(); deleteRegistration(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <span className="text-xs text-muted-foreground">{p.payment_method === 'free' ? '—' : (paymentMethodLabels[p.payment_method] || p.payment_method)}</span>
+                        <button onClick={() => toggleRegPaid(p)} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
+                        <button onClick={() => deleteRegistration(p.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   ))}
