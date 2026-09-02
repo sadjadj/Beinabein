@@ -29,15 +29,17 @@ export default function WorkshopsPage({ embedded = false }) {
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'date_desc');
   const [archivedPage, setArchivedPage] = useState(1);
 
-  // Persist filters to URL
+  // Persist filters to URL (preserve other params such as the hub `tab`)
   useEffect(() => {
-    const params = {};
-    if (nameFilter) params.name = nameFilter;
-    if (facilitatorFilter) params.facilitator = facilitatorFilter;
-    if (spaceFilter) params.space = spaceFilter;
-    if (sortBy !== 'date_desc') params.sort = sortBy;
-    setSearchParams(params, { replace: true });
-  }, [nameFilter, facilitatorFilter, spaceFilter, sortBy]);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (nameFilter) next.set('name', nameFilter); else next.delete('name');
+      if (facilitatorFilter) next.set('facilitator', facilitatorFilter); else next.delete('facilitator');
+      if (spaceFilter) next.set('space', spaceFilter); else next.delete('space');
+      if (sortBy !== 'date_desc') next.set('sort', sortBy); else next.delete('sort');
+      return next;
+    }, { replace: true });
+  }, [nameFilter, facilitatorFilter, spaceFilter, sortBy, setSearchParams]);
 
   const fetchData = async () => {
     setLoading(true);
