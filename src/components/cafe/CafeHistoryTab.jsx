@@ -19,7 +19,7 @@ const cafeExportColumns = [
   { key: 'total', label: 'مبلغ کل' },
 ];
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 20;
 
 export default function CafeHistoryTab({ invoiceGroups, people, historyRange, setHistoryRange, monthName, onTogglePaid, onSaveEdit, onDelete }) {
   const [filters, setFilters] = useState({ paidStatus: 'all', customerName: '', paymentMethod: 'all' });

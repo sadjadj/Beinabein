@@ -39,6 +39,41 @@ export default function StorePage() {
     return () => { cancelled = true; };
   }, [mainTab, groups]);
 
+  const purchaseEntityNames = { store: 'StorePurchase', greenhouse: 'GreenhousePurchase', salesEvent: 'SalesEventPurchase' };
+  const itemEntityNames = { store: 'StoreItem', greenhouse: 'GreenhouseItem', salesEvent: 'SalesEventItem' };
+
+  const applyGroupPatch = (groupKey, patch) => setGroups(prev => prev.map(g => g.key === groupKey ? { ...g, ...patch } : g));
+
+  const toggleGroupPaid = async (group) => {
+    const Entity = base44.entities[purchaseEntityNames[group.source]];
+    const newPaid = !group.is_paid;
+    if (group.invoiceId) await Entity.updateMany({ invoice_id: group.invoiceId }, { $set: { is_paid: newPaid } });
+    else await Entity.updateMany({ id: { $in: group.items.map(i => i.id) } }, { $set: { is_paid: newPaid } });
+    applyGroupPatch(group.key, { is_paid: newPaid });
+  };
+
+  const saveGroupEdit = async (group, editForm) => {
+    const Entity = base44.entities[purchaseEntityNames[group.source]];
+    const payload = { payment_method: editForm.payment_method, purchase_reason: editForm.purchase_reason, is_paid: editForm.is_paid };
+    if (group.invoiceId) await Entity.updateMany({ invoice_id: group.invoiceId }, { $set: payload });
+    else await Entity.updateMany({ id: { $in: group.items.map(i => i.id) } }, { $set: payload });
+    applyGroupPatch(group.key, payload);
+  };
+
+  const deleteGroup = async (group) => {
+    const Entity = base44.entities[purchaseEntityNames[group.source]];
+    const ItemEntity = base44.entities[itemEntityNames[group.source]];
+    if (group.invoiceId) await Entity.deleteMany({ invoice_id: group.invoiceId });
+    else await Entity.deleteMany({ id: { $in: group.items.map(i => i.id) } });
+    await Promise.all(group.items.map(async line => {
+      if (!line.item_id) return null;
+      const item = await ItemEntity.get(line.item_id).catch(() => null);
+      if (!item) return null;
+      return ItemEntity.update(line.item_id, { stock_quantity: (Number(item.stock_quantity) || 0) + (line.quantity || 1) });
+    }));
+    setGroups(prev => prev.filter(g => g.key !== group.key));
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
@@ -78,7 +113,7 @@ export default function StorePage() {
         groups === null || historyLoading ? (
           <Skeleton className="h-72 rounded-xl" />
         ) : mainTab === 'history' ? (
-          <StoreHistoryTab groups={groups} />
+          <StoreHistoryTab groups={groups} onTogglePaid={toggleGroupPaid} onSaveEdit={saveGroupEdit} onDelete={deleteGroup} />
         ) : (
           <StoreReportTab groups={groups} />
         )

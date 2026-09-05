@@ -7,9 +7,9 @@ import { todayGregorian, getJalaliParts, jalaliMonthNames } from '@/lib/jalali';
 import { getRangeStart } from '@/lib/reportUtils';
 import { storeSourceFilters } from '@/lib/storeInvoices';
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 20;
 
-export default function StoreHistoryTab({ groups }) {
+export default function StoreHistoryTab({ groups, onTogglePaid, onSaveEdit, onDelete }) {
   const [startDate, setStartDate] = useState(getRangeStart('month'));
   const [endDate, setEndDate] = useState(todayGregorian());
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -70,7 +70,7 @@ export default function StoreHistoryTab({ groups }) {
         <div className="p-4 border-b border-border">
           <h3 className="text-sm font-semibold">فاکتورهای بازه انتخاب شده ({toPersianNum(filtered.length)})</h3>
         </div>
-        <HistoryInvoiceList groups={paginated} />
+        <HistoryInvoiceList groups={paginated} onTogglePaid={onTogglePaid} onSaveEdit={onSaveEdit} onDelete={onDelete} />
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 p-4 border-t border-border">
             <button

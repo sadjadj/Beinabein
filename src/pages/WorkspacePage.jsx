@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Briefcase, Users, Repeat, Plus, ChevronLeft, Search, RotateCcw } from 'lucide-react';
+import { Briefcase, Users, Repeat, Plus, ChevronLeft, ChevronRight, Search, RotateCcw, Pencil, Trash2 } from 'lucide-react';
 import ExportButton from '@/components/ExportButton';
 import { computeWorkspaceStats, findOrCreatePerson, toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
@@ -17,6 +17,12 @@ import {
   checkCapacityForDates, getOrderUsageDates, formatInsufficientDates
 } from '@/lib/workspaceCapacity';
 import WorkspaceReportTab from '@/components/workspace/WorkspaceReportTab';
+import PurchaseEditForm from '@/components/PurchaseEditForm';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 import { useUrlTab } from '@/hooks/useUrlTab';
 
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
@@ -47,6 +53,7 @@ export default function WorkspacePage() {
 
   const onHistoryFromChange = (v) => {
     setHistoryFrom(v);
+    setHistoryPage(1);
     if (v && historyTo && v >= historyTo) {
       setHistoryError('"از تاریخ" باید از "تا تاریخ" کوچکتر باشد');
     } else {
@@ -56,6 +63,7 @@ export default function WorkspacePage() {
 
   const onHistoryToChange = (v) => {
     setHistoryTo(v);
+    setHistoryPage(1);
     if (v && historyFrom && v <= historyFrom) {
       setHistoryError('"تا تاریخ" باید بزرگتر از "از تاریخ" باشد');
     } else {
@@ -67,7 +75,14 @@ export default function WorkspacePage() {
     setHistoryFrom(monthRange?.start || '');
     setHistoryTo(todayGregorian());
     setHistoryError('');
+    setHistoryPage(1);
   };
+
+  const [historyPage, setHistoryPage] = useState(1);
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -139,6 +154,27 @@ export default function WorkspacePage() {
     fetchData();
   };
 
+  const startEdit = (r) => {
+    setEditId(r.id);
+    setEditForm({ purchase_date: r.purchase_date || '', payment_method: r.payment_method || 'cash', how_met: r.how_met || 'other', is_paid: !!r.is_paid });
+  };
+
+  const saveEdit = async () => {
+    setSavingEdit(true);
+    try {
+      await base44.entities.WorkspaceOrder.update(editId, editForm);
+      setRecords(prev => prev.map(r => r.id === editId ? { ...r, ...editForm } : r));
+      setEditId(null);
+    } finally { setSavingEdit(false); }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await base44.entities.WorkspaceOrder.delete(deleteTarget.id);
+    setRecords(prev => prev.filter(r => r.id !== deleteTarget.id));
+    setDeleteTarget(null);
+  };
+
   const stats = computeWorkspaceStats(records, null);
 
   const sortedRecords = [...records].sort((a, b) => {
@@ -168,6 +204,11 @@ export default function WorkspacePage() {
     return matchSearch(r);
   });
 
+  const HISTORY_PAGE_SIZE = 20;
+  const historyTotalPages = Math.max(1, Math.ceil(historyRecords.length / HISTORY_PAGE_SIZE));
+  const historySafePage = Math.min(historyPage, historyTotalPages);
+  const pagedHistoryRecords = historyRecords.slice((historySafePage - 1) * HISTORY_PAGE_SIZE, historySafePage * HISTORY_PAGE_SIZE);
+
   const currentMonthName = (() => {
     try { return jMonths[getJalaliParts(today).jm - 1]; } catch { return ''; }
   })();
@@ -193,7 +234,7 @@ export default function WorkspacePage() {
     amount: (r.price || 0) * (r.quantity || 1),
   }));
 
-  const renderOrdersTable = (list) => (
+  const renderOrdersTable = (list, withActions = false) => (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="bg-muted/50">
@@ -206,13 +247,15 @@ export default function WorkspacePage() {
             <th className="text-right p-3 font-medium">مدل پرداخت</th>
             <th className="text-center p-3 font-medium">وضعیت</th>
             <th className="text-center p-3 font-medium"></th>
+            {withActions && <th className="text-center p-3 font-medium">عملیات</th>}
           </tr>
         </thead>
         <tbody>
           {list.length === 0 ? (
-            <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">{orderSearch ? 'نتیجه‌ای یافت نشد' : 'موردی وجود ندارد'}</td></tr>
+            <tr><td colSpan={withActions ? 9 : 8} className="p-8 text-center text-muted-foreground">{orderSearch ? 'نتیجه‌ای یافت نشد' : 'موردی وجود ندارد'}</td></tr>
           ) : list.map(r => (
-            <tr key={r.id} className="border-t border-border hover:bg-[#FDF2F1]/30 cursor-pointer" onClick={() => navigate(`/workspace/${r.id}`)}>
+            <React.Fragment key={r.id}>
+            <tr className="border-t border-border hover:bg-[#FDF2F1]/30 cursor-pointer" onClick={() => editId !== r.id && navigate(`/workspace/${r.id}`)}>
               <td className="p-3">{r.purchase_date ? toJalaliStr(r.purchase_date) : '-'}</td>
               <td className="p-3">{r.subscription_name || '-'}</td>
               <td className="p-3">{r.person_name || '-'}</td>
@@ -230,7 +273,23 @@ export default function WorkspacePage() {
               <td className="p-3 text-center">
                 <ChevronLeft className="w-4 h-4 text-muted-foreground inline-block" />
               </td>
+              {withActions && (
+                <td className="p-3 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <button onClick={(e) => { e.stopPropagation(); startEdit(r); }} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-3.5 h-3.5" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
+                </td>
+              )}
             </tr>
+            {withActions && editId === r.id && (
+              <tr className="border-t border-border">
+                <td colSpan={9} className="p-3 bg-muted/20">
+                  <PurchaseEditForm form={editForm} setForm={setEditForm} onSave={saveEdit} onCancel={() => setEditId(null)} saving={savingEdit} showHowMet />
+                </td>
+              </tr>
+            )}
+            </React.Fragment>
           ))}
         </tbody>
       </table>
@@ -463,10 +522,34 @@ export default function WorkspacePage() {
                 <input type="text" placeholder="جستجوی نام، شماره، اشتراک..." value={orderSearch} onChange={e => setOrderSearch(e.target.value)} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-full sm:w-72" />
               </div>
             </div>
-            {renderOrdersTable(historyRecords)}
+            {renderOrdersTable(pagedHistoryRecords, true)}
+            {historyTotalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 p-4 border-t border-border">
+                <button onClick={() => setHistoryPage(p => Math.max(1, p - 1))} disabled={historySafePage === 1} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 hover:bg-muted">
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <span className="text-sm text-muted-foreground">صفحه {toPersianNum(historySafePage)} از {toPersianNum(historyTotalPages)}</span>
+                <button onClick={() => setHistoryPage(p => Math.min(historyTotalPages, p + 1))} disabled={historySafePage === historyTotalPages} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 hover:bg-muted">
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="text-center">
+          <AlertDialogHeader className="text-center">
+            <AlertDialogTitle className="text-center">حذف سفارش</AlertDialogTitle>
+            <AlertDialogDescription className="text-center block">آیا از حذف این سفارش اطمینان دارید؟ این عملیات قابل بازگشت نیست.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex items-center justify-center gap-3 sm:justify-center">
+            <AlertDialogCancel className="mx-2">انصراف</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white mx-2">حذف</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
