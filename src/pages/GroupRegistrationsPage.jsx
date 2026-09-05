@@ -10,6 +10,8 @@ import PersonSearch from '@/components/PersonSearch';
 import PriceInput from '@/components/PriceInput';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
+import PlanOverflowDialog from '@/components/PlanOverflowDialog';
+import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
 
 const paymentMethodDisplay = (method) => (method === 'free' ? '—' : (paymentMethodLabels[method] || method || '-'));
 
@@ -27,8 +29,9 @@ export default function GroupRegistrationsPage({ embedded = false }) {
   const [paidFilter, setPaidFilter] = useState('');
   const [regForm, setRegForm] = useState({
     group_id: '', person_name: '', person_phone: '', price: '', quantity: 1,
-    purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, donation: '', plan_id: ''
+    purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', donation: '', plan_id: ''
   });
+  const [overflow, setOverflow] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,6 +55,8 @@ export default function GroupRegistrationsPage({ embedded = false }) {
   const groupById = {};
   groups.forEach(g => { groupById[g.id] = g; });
   const groupPlans = plans.filter(p => p.group_id === regForm.group_id);
+  const selectedPlan = plans.find(p => p.id === regForm.plan_id);
+  const computedPaid = selectedPlan ? isAmountPaid(regForm.price, selectedPlan) : false;
 
   const today = todayGregorian();
   const todayPurchases = useMemo(() => purchases.filter(p => p.purchase_date === today)
@@ -66,15 +71,14 @@ export default function GroupRegistrationsPage({ embedded = false }) {
 
   const handlePlanChange = (planId) => {
     const plan = plans.find(p => p.id === planId);
-    const isFree = plan && (Number(plan.price) === 0 || plan.name === 'رایگان');
     setRegForm(prev => ({
-      ...prev, plan_id: planId, price: plan ? plan.price : '',
-      is_paid: !!isFree, payment_method: isFree ? 'free' : 'cash'
+      ...prev, plan_id: planId, price: plan ? getPlanBounds(plan).min : '',
+      payment_method: isFreePlan(plan) ? 'free' : 'cash'
     }));
   };
 
   const resetForm = () => {
-    setRegForm({ group_id: '', person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, donation: '', plan_id: '' });
+    setRegForm({ group_id: '', person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', donation: '', plan_id: '' });
     setFormError('');
     setDupWarning('');
   };
@@ -85,13 +89,29 @@ export default function GroupRegistrationsPage({ embedded = false }) {
     if (!regForm.person_name) { setFormError('نام مشتری الزامی است'); return; }
     if (!regForm.person_phone) { setFormError('شماره تلفن الزامی است'); return; }
     setFormError('');
-    const selectedGroup = groupById[regForm.group_id];
     const monthKey = currentJalaliMonthKey();
     const dup = purchases.find(p => p.group_id === regForm.group_id && p.month === monthKey && p.person_phone === regForm.person_phone);
     if (dup) { setDupWarning('این شخص در این ماه قبلاً در این گروه ثبت‌نام شده است.'); return; }
     setDupWarning('');
+    const plan = plans.find(p => p.id === regForm.plan_id);
+    const { min, max } = getPlanBounds(plan);
+    const amount = Number(regForm.price) || 0;
+    const donation = Number(regForm.donation) || 0;
+    if (amount > max) { setOverflow({ amount, max, donation }); return; }
+    await doAddRegistration(amount, donation, amount >= min);
+  };
+
+  const acceptOverflow = () => {
+    const { amount, max, donation } = overflow;
+    setOverflow(null);
+    doAddRegistration(max, donation + (amount - max), true);
+  };
+
+  const doAddRegistration = async (amount, donation, isPaid) => {
     setSubmitting(true);
     try {
+      const selectedGroup = groupById[regForm.group_id];
+      const monthKey = currentJalaliMonthKey();
       await findOrCreatePerson(regForm.person_phone, regForm.person_name);
       const newPurchase = await base44.entities.GroupPurchase.create({
         group_id: regForm.group_id,
@@ -99,13 +119,13 @@ export default function GroupRegistrationsPage({ embedded = false }) {
         month: monthKey,
         person_name: regForm.person_name,
         person_phone: regForm.person_phone,
-        price: Number(regForm.price) || 0,
+        price: amount,
         quantity: Number(regForm.quantity) || 1,
         purchase_date: regForm.purchase_date,
         payment_method: regForm.payment_method,
         how_met: regForm.how_met || 'other',
-        is_paid: regForm.is_paid,
-        donation: Number(regForm.donation) || 0,
+        is_paid: isPaid,
+        donation: donation,
         plan_name: plans.find(p => p.id === regForm.plan_id)?.name || ''
       });
       setPurchases(prev => [newPurchase, ...prev]);
@@ -149,7 +169,7 @@ export default function GroupRegistrationsPage({ embedded = false }) {
             <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام *</label>
             <select value={regForm.plan_id} onChange={e => handlePlanChange(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required>
               <option value="">انتخاب مدل...</option>
-              {groupPlans.map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
+              {groupPlans.map(p => <option key={p.id} value={p.id}>{p.name} — {formatPlanRange(p)}</option>)}
             </select>
           </div>
           <div>
@@ -165,14 +185,10 @@ export default function GroupRegistrationsPage({ embedded = false }) {
             <PriceInput value={regForm.donation} onChange={v => setRegForm({ ...regForm, donation: v })} placeholder="اختیاری" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">تعداد</label>
-            <input type="number" placeholder="تعداد" value={regForm.quantity} onChange={e => setRegForm({ ...regForm, quantity: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-          </div>
-          <div>
             <label className="text-xs text-muted-foreground block mb-1">تاریخ ثبت</label>
             <JalaliDateInput value={regForm.purchase_date} onChange={v => setRegForm({ ...regForm, purchase_date: v })} showToday={false} max={todayGregorian()} />
           </div>
-          {!regForm.is_paid && (
+          {!computedPaid && (
             <div>
               <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>
               <select value={regForm.payment_method} onChange={e => setRegForm({ ...regForm, payment_method: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
@@ -188,9 +204,9 @@ export default function GroupRegistrationsPage({ embedded = false }) {
             </select>
           </div>
           <div className="flex items-end">
-            <label className="flex items-center gap-2 text-sm py-2">
-              <input type="checkbox" checked={regForm.is_paid} onChange={e => setRegForm({ ...regForm, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
-            </label>
+            <span className={`text-xs font-medium px-2 py-1.5 rounded ${computedPaid ? 'text-green-600 bg-green-50' : 'text-[#B9834B] bg-[#FBF3EC]'}`}>
+              {computedPaid ? 'پرداخت شده' : 'پرداخت نشده'}
+            </span>
           </div>
         </div>
         {formError && (
@@ -208,6 +224,8 @@ export default function GroupRegistrationsPage({ embedded = false }) {
           </button>
         </div>
       </div>
+
+      <PlanOverflowDialog payload={overflow} onAccept={acceptOverflow} onClose={() => setOverflow(null)} />
 
       {/* Today's registrations list */}
       <div className="bg-white rounded-xl border border-border overflow-hidden">

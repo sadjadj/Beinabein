@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Pencil, Trash2, Calendar, Clock, MapPin, Plus, X, Sparkles } from 'lucide-react';
+import { Pencil, Trash2, Calendar, Clock, MapPin, Plus, X, Sparkles, Users } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { formatJalaliShort } from '@/lib/jalali';
 import EventForm from '@/components/EventForm';
+import EventRegistrationsView from '@/components/events/EventRegistrationsView';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -25,6 +26,7 @@ export default function EventManagementTab({ spaces }) {
   const [editingId, setEditingId] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [regViewId, setRegViewId] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -49,13 +51,13 @@ export default function EventManagementTab({ spaces }) {
         session_count: Number(form.session_count) || 0,
         capacity: Number(form.capacity) || null
       });
-      const validPlans = (submittedPlans || []).filter(p => p.name && p.price !== '' && p.price !== null);
+      const validPlans = (submittedPlans || []).filter(p => p.name && p.price_min !== '' && p.price_min !== null && p.price_max !== '' && p.price_max !== null);
       if (validPlans.length > 0) {
         await base44.entities.EventPlan.bulkCreate(
-          validPlans.map(p => ({ event_id: created.id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false }))
+          validPlans.map(p => ({ event_id: created.id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false }))
         );
       }
-      await base44.entities.EventPlan.create({ event_id: created.id, name: 'رایگان', price: 0, is_active: false });
+      await base44.entities.EventPlan.create({ event_id: created.id, name: 'رایگان', price_min: 0, price_max: 0, is_active: false });
       setShowAdd(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -81,8 +83,8 @@ export default function EventManagementTab({ spaces }) {
       const plansToUpdate = (submittedPlans || []).filter(p => p.id);
       const plansToAdd = (submittedPlans || []).filter(p => !p.id);
       for (const p of plansToDelete) await base44.entities.EventPlan.delete(p.id);
-      if (plansToUpdate.length) await base44.entities.EventPlan.bulkUpdate(plansToUpdate.map(p => ({ id: p.id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false })));
-      if (plansToAdd.length) await base44.entities.EventPlan.bulkCreate(plansToAdd.map(p => ({ event_id: id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false })));
+      if (plansToUpdate.length) await base44.entities.EventPlan.bulkUpdate(plansToUpdate.map(p => ({ id: p.id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false })));
+      if (plansToAdd.length) await base44.entities.EventPlan.bulkCreate(plansToAdd.map(p => ({ event_id: id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false })));
       setEditingId(null);
       fetchData();
     } finally { setSubmitting(false); }
@@ -91,6 +93,7 @@ export default function EventManagementTab({ spaces }) {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     await base44.entities.EventPlan.deleteMany({ event_id: deleteTarget.id });
+    await base44.entities.EventPurchase.deleteMany({ event_id: deleteTarget.id });
     await base44.entities.Event.delete(deleteTarget.id);
     setDeleteTarget(null);
     fetchData();
@@ -137,6 +140,18 @@ export default function EventManagementTab({ spaces }) {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      </div>
+    );
+  }
+
+  const regEvent = events.find(e => e.id === regViewId);
+  if (regEvent) {
+    return (
+      <div className="space-y-3">
+        <button onClick={() => setRegViewId(null)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <X className="w-4 h-4" /> بازگشت به لیست
+        </button>
+        <EventRegistrationsView event={regEvent} plans={plans} />
       </div>
     );
   }
@@ -190,6 +205,7 @@ export default function EventManagementTab({ spaces }) {
                     <td className="p-3 text-center text-xs">{toPersianNum((e.session_dates || []).length)}</td>
                     <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
+                        <button onClick={() => setRegViewId(e.id)} className="text-muted-foreground hover:text-[#3B8A95]" title="ثبت‌نام‌ها"><Users className="w-4 h-4" /></button>
                         <button onClick={() => setEditingId(e.id)} className="text-muted-foreground hover:text-[#B74B40]" title="ویرایش"><Pencil className="w-4 h-4" /></button>
                         <button onClick={() => setDeleteTarget(e)} className="text-muted-foreground hover:text-red-600" title="حذف"><Trash2 className="w-4 h-4" /></button>
                       </div>

@@ -9,6 +9,7 @@ import CafeInventoryTab from '@/components/cafe/CafeInventoryTab';
 import CafeCategoryTab from '@/components/cafe/CafeCategoryTab';
 import CafeHistoryTab from '@/components/cafe/CafeHistoryTab';
 import CafeReportTab from '@/components/cafe/CafeReportTab';
+import { useUrlTab } from '@/hooks/useUrlTab';
 
 export default function CafePage() {
   const [items, setItems] = useState([]);
@@ -16,7 +17,7 @@ export default function CafePage() {
   const [people, setPeople] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mainTab, setMainTab] = useState('order');
+  const [mainTab, setMainTab] = useUrlTab('tab', 'order', ['order', 'history', 'report']);
   const [orderView, setOrderView] = useState('order');
 
   const todayParts = getJalaliParts(todayGregorian());

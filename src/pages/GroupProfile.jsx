@@ -12,6 +12,8 @@ import GroupForm from '@/components/GroupForm';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import PriceInput from '@/components/PriceInput';
 import PersonSearch from '@/components/PersonSearch';
+import PlanOverflowDialog from '@/components/PlanOverflowDialog';
+import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
 
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 function monthLabel(key) {
@@ -38,7 +40,9 @@ export default function GroupProfile() {
   const [ending, setEnding] = useState(false);
   const [monthKey, setMonthKey] = useState(currentJalaliMonthKey());
   const [showAddReg, setShowAddReg] = useState(false);
-  const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, donation: '', plan_id: '' });
+  const [regError, setRegError] = useState('');
+  const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', donation: '', plan_id: '' });
+  const [overflow, setOverflow] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -81,6 +85,8 @@ export default function GroupProfile() {
 
   const monthSessions = useMemo(() => allSessions.filter(s => gregorianToMonthKey(s.date) === monthKey), [allSessions, monthKey]);
   const monthPurchases = purchases.filter(p => p.month === monthKey);
+  const selectedRegPlan = plans.find(p => p.id === regForm.plan_id);
+  const computedPaid = selectedRegPlan ? isAmountPaid(regForm.price, selectedRegPlan) : false;
 
   const buildInitialForm = () => ({
     title: group.title || '',
@@ -113,8 +119,8 @@ export default function GroupProfile() {
       const plansToUpdate = (submittedPlans || []).filter(p => p.id);
       const plansToAdd = (submittedPlans || []).filter(p => !p.id);
       for (const p of plansToDelete) await base44.entities.GroupPlan.delete(p.id);
-      if (plansToUpdate.length) await base44.entities.GroupPlan.bulkUpdate(plansToUpdate.map(p => ({ id: p.id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false })));
-      if (plansToAdd.length) await base44.entities.GroupPlan.bulkCreate(plansToAdd.map(p => ({ group_id: id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false })));
+      if (plansToUpdate.length) await base44.entities.GroupPlan.bulkUpdate(plansToUpdate.map(p => ({ id: p.id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false })));
+      if (plansToAdd.length) await base44.entities.GroupPlan.bulkCreate(plansToAdd.map(p => ({ group_id: id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false })));
       setEditing(false);
       fetchData();
     } finally { setSubmitting(false); }
@@ -142,9 +148,26 @@ export default function GroupProfile() {
   };
 
   const addRegistration = async () => {
+    if (!regForm.plan_id) { setRegError('انتخاب مدل ثبت‌نام الزامی است'); return; }
+    setRegError('');
     if (!regForm.person_phone) return;
     const dup = monthPurchases.find(p => p.person_phone === regForm.person_phone);
     if (dup) { alert('این شخص در این ماه قبلاً ثبت‌نام شده است.'); return; }
+    const plan = plans.find(p => p.id === regForm.plan_id);
+    const { min, max } = getPlanBounds(plan);
+    const amount = Number(regForm.price) || 0;
+    const donation = Number(regForm.donation) || 0;
+    if (amount > max) { setOverflow({ amount, max, donation }); return; }
+    await doAddRegistration(amount, donation, amount >= min);
+  };
+
+  const acceptOverflow = () => {
+    const { amount, max, donation } = overflow;
+    setOverflow(null);
+    doAddRegistration(max, donation + (amount - max), true);
+  };
+
+  const doAddRegistration = async (amount, donation, isPaid) => {
     setSubmitting(true);
     try {
       await findOrCreatePerson(regForm.person_phone, regForm.person_name);
@@ -154,17 +177,17 @@ export default function GroupProfile() {
         month: monthKey,
         person_name: regForm.person_name,
         person_phone: regForm.person_phone,
-        price: Number(regForm.price) || 0,
+        price: amount,
         quantity: Number(regForm.quantity) || 1,
         purchase_date: regForm.purchase_date,
-        payment_method: regForm.payment_method,
+        payment_method: isFreePlan(plans.find(p => p.id === regForm.plan_id)) ? 'free' : regForm.payment_method,
         how_met: regForm.how_met || 'other',
-        is_paid: regForm.is_paid,
-        donation: Number(regForm.donation) || 0,
+        is_paid: isPaid,
+        donation: donation,
         plan_name: plans.find(p => p.id === regForm.plan_id)?.name || ''
       });
       setPurchases(prev => [newPurchase, ...prev]);
-      setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', is_paid: false, donation: '', plan_id: '' });
+      setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', donation: '', plan_id: '' });
       setShowAddReg(false);
     } finally { setSubmitting(false); }
   };
@@ -274,19 +297,18 @@ export default function GroupProfile() {
               </div>
               {showAddReg && (
                 <div className="mb-3 p-3 bg-muted/30 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm({ ...regForm, person_name: v })} onPhoneChange={v => setRegForm({ ...regForm, person_phone: v })} />
+                  <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm(prev => ({ ...prev, person_name: v }))} onPhoneChange={v => setRegForm(prev => ({ ...prev, person_phone: v }))} />
                   <div>
-                    <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام</label>
-                    <select value={regForm.plan_id} onChange={e => { const plan = plans.find(p => p.id === e.target.value); const isFree = plan && (Number(plan.price) === 0 || plan.name === 'رایگان'); setRegForm({ ...regForm, plan_id: e.target.value, price: plan ? plan.price : '', is_paid: !!isFree, payment_method: isFree ? 'free' : 'cash' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                      <option value="">دستی (بدون پلن)</option>
-                      {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
+                    <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام *</label>
+                    <select required value={regForm.plan_id} onChange={e => { setRegError(''); const plan = plans.find(p => p.id === e.target.value); setRegForm(prev => ({ ...prev, plan_id: e.target.value, price: plan ? getPlanBounds(plan).min : '', payment_method: isFreePlan(plan) ? 'free' : 'cash' })); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                      <option value="" disabled>انتخاب مدل ثبت‌نام...</option>
+                      {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {formatPlanRange(p)}</option>)}
                     </select>
                   </div>
                   <PriceInput value={regForm.price} onChange={v => setRegForm({ ...regForm, price: v })} />
                   <PriceInput value={regForm.donation} onChange={v => setRegForm({ ...regForm, donation: v })} placeholder="دونیشین (اختیاری)" />
-                  <input type="number" placeholder="تعداد" value={regForm.quantity} onChange={e => setRegForm({ ...regForm, quantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
                   <JalaliDateInput value={regForm.purchase_date} onChange={v => setRegForm({ ...regForm, purchase_date: v })} />
-                  {!regForm.is_paid && (
+                  {!computedPaid && (
                     <select value={regForm.payment_method} onChange={e => setRegForm({ ...regForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
                       {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                     </select>
@@ -295,9 +317,12 @@ export default function GroupProfile() {
                     <option value="">نحوه آشنایی...</option>
                     {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={regForm.is_paid} onChange={e => setRegForm({ ...regForm, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
-                  </label>
+                  <span className={`self-center text-xs font-medium px-2 py-1 rounded ${computedPaid ? 'text-green-600 bg-green-50' : 'text-[#B9834B] bg-[#FBF3EC]'}`}>
+                    {computedPaid ? 'پرداخت شده' : 'پرداخت نشده'}
+                  </span>
+                  {regError && (
+                    <div className="sm:col-span-2 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">{regError}</div>
+                  )}
                   <div className="sm:col-span-2 flex gap-2">
                     <button onClick={addRegistration} disabled={submitting} className="px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">{submitting ? 'در حال ثبت...' : 'ثبت'}</button>
                     <button onClick={() => setShowAddReg(false)} className="px-3 py-1.5 rounded-lg border border-border text-sm">انصراف</button>
@@ -309,19 +334,19 @@ export default function GroupProfile() {
               ) : (
                 <div className="divide-y divide-border">
                   {monthPurchases.map(p => (
-                    <div key={p.id} className="py-2.5 flex items-center justify-between text-sm">
+                    <div key={p.id} onClick={() => navigate(`/accounting/group/${p.id}`, { state: { from: `/groups/${id}` } })} className="py-2.5 flex items-center justify-between text-sm cursor-pointer hover:bg-muted/30 rounded-lg">
                       <div>
                         {personByPhone[p.person_phone]
-                          ? <Link to={`/people/${personByPhone[p.person_phone].id}`} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
+                          ? <Link to={`/people/${personByPhone[p.person_phone].id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
                           : <span className="font-medium">{p.person_name || '-'}</span>}
-                        {p.plan_name && <span className="text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
+                        {p.plan_name && <span className="inline-block text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
                         {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
                         <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{p.payment_method === 'free' ? '—' : (paymentMethodLabels[p.payment_method] || p.payment_method)}</span>
-                        <button onClick={() => toggleRegPaid(p)} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
-                        <button onClick={() => deleteRegistration(p.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <span className={`text-xs font-medium ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{formatCurrency((p.price || 0) * (p.quantity || 1) + (p.donation || 0))}</span>
+                        <button onClick={(e) => { e.stopPropagation(); toggleRegPaid(p); }} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
+                        <button onClick={(e) => { e.stopPropagation(); deleteRegistration(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   ))}
@@ -357,6 +382,7 @@ export default function GroupProfile() {
           </div>
         </>
       )}
+      <PlanOverflowDialog payload={overflow} onAccept={acceptOverflow} onClose={() => setOverflow(null)} />
     </div>
   );
 }
