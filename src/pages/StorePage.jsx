@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
 import StoreSection from '@/components/store/StoreSection';
 import EventSection from '@/components/salesevent/EventSection';
+import StoreHistoryTab from '@/components/store/StoreHistoryTab';
+import StoreReportTab from '@/components/store/StoreReportTab';
+import { Skeleton } from '@/components/SkeletonPatterns';
+import { buildStoreInvoiceGroups } from '@/lib/storeInvoices';
 import { useUrlTab } from '@/hooks/useUrlTab';
 
 const mainTabs = [
@@ -13,6 +18,26 @@ const mainTabs = [
 
 export default function StorePage() {
   const [mainTab, setMainTab] = useUrlTab('tab', 'store', mainTabs.map(t => t.key));
+  const [groups, setGroups] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    if ((mainTab !== 'history' && mainTab !== 'report') || groups !== null) return;
+    let cancelled = false;
+    setHistoryLoading(true);
+    const fetchGroups = async () => {
+      try {
+        const [store, greenhouse, salesEvent] = await Promise.all([
+          base44.entities.StorePurchase.list('-purchase_date', 1000),
+          base44.entities.GreenhousePurchase.list('-purchase_date', 1000),
+          base44.entities.SalesEventPurchase.list('-purchase_date', 1000),
+        ]);
+        if (!cancelled) setGroups(buildStoreInvoiceGroups(store, greenhouse, salesEvent));
+      } finally { if (!cancelled) setHistoryLoading(false); }
+    };
+    fetchGroups();
+    return () => { cancelled = true; };
+  }, [mainTab, groups]);
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -50,9 +75,13 @@ export default function StorePage() {
         <EventSection />
       )}
       {(mainTab === 'history' || mainTab === 'report') && (
-        <div className="bg-white rounded-xl border border-border p-10 text-center">
-          <p className="text-sm text-muted-foreground">این بخش به‌زودی تکمیل خواهد شد.</p>
-        </div>
+        groups === null || historyLoading ? (
+          <Skeleton className="h-72 rounded-xl" />
+        ) : mainTab === 'history' ? (
+          <StoreHistoryTab groups={groups} />
+        ) : (
+          <StoreReportTab groups={groups} />
+        )
       )}
     </div>
   );

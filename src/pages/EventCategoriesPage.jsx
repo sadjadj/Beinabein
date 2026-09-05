@@ -9,6 +9,7 @@ export default function EventCategoriesPage() {
   const { id } = useParams();
   const [event, setEvent] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,10 +20,12 @@ export default function EventCategoriesPage() {
         const results = await Promise.allSettled([
           base44.entities.SalesEvent.get(id),
           base44.entities.SalesEventCategory.filter({ event_id: id }),
+          base44.entities.SalesEventItem.filter({ event_id: id }),
         ]);
         if (cancelled) return;
         if (results[0].status === 'fulfilled') setEvent(results[0].value);
         if (results[1].status === 'fulfilled') setCategories(results[1].value);
+        if (results[2].status === 'fulfilled') setItems(results[2].value);
       } finally { if (!cancelled) setLoading(false); }
     };
     fetchData();
@@ -75,6 +78,7 @@ export default function EventCategoriesPage() {
 
       <StoreCategoryTab
         categories={categories}
+        items={items}
         onCategorySubmit={handleAdd}
         onUpdateCategory={handleUpdate}
         onDeleteCategory={handleDelete}

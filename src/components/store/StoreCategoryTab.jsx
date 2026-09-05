@@ -6,7 +6,7 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 
-export default function StoreCategoryTab({ categories, onCategorySubmit, onUpdateCategory, onDeleteCategory }) {
+export default function StoreCategoryTab({ categories, items = [], onCategorySubmit, onUpdateCategory, onDeleteCategory }) {
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -21,7 +21,9 @@ export default function StoreCategoryTab({ categories, onCategorySubmit, onUpdat
   };
   const startEdit = (c) => { setEditingId(c.id); setEditName(c.name); };
   const saveEdit = async (c) => { if (editName) { await onUpdateCategory(c.id, editName); setEditingId(null); } };
-  const confirmDelete = async () => { if (deleteTarget) { await onDeleteCategory(deleteTarget); setDeleteTarget(null); } };
+  const isCategoryInUse = (name) => items.some(i => (i.category || '').trim() === (name || '').trim());
+  const deleteBlocked = !!deleteTarget && isCategoryInUse(deleteTarget.name);
+  const confirmDelete = async () => { if (deleteTarget) { await onDeleteCategory(deleteTarget.id); setDeleteTarget(null); } };
 
   return (
     <div className="bg-white rounded-xl border border-border overflow-hidden">
@@ -77,12 +79,22 @@ export default function StoreCategoryTab({ categories, onCategorySubmit, onUpdat
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent className="text-center">
           <AlertDialogHeader className="text-center">
-            <AlertDialogTitle className="text-center">حذف کتگوری</AlertDialogTitle>
-            <AlertDialogDescription className="text-center block">آیا از حذف این کتگوری اطمینان دارید؟</AlertDialogDescription>
+            <AlertDialogTitle className="text-center">{deleteBlocked ? 'امکان حذف کتگوری وجود ندارد' : 'حذف کتگوری'}</AlertDialogTitle>
+            <AlertDialogDescription className="text-center block">
+              {deleteBlocked
+                ? 'تا زمانی که آیتمی با این کتگوری وجود داشته باشد، امکان حذف آن وجود ندارد. برای حذف، ابتدا آیتم‌های این کتگوری را پاک کنید یا کتگوری آن‌ها را تغییر دهید.'
+                : 'آیا از حذف این کتگوری اطمینان دارید؟'}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex items-center justify-center gap-3 sm:justify-center">
-            <AlertDialogCancel className="mx-2">انصراف</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white mx-2">حذف</AlertDialogAction>
+            {deleteBlocked ? (
+              <AlertDialogAction className="mx-2">متوجه شدم</AlertDialogAction>
+            ) : (
+              <>
+                <AlertDialogCancel className="mx-2">انصراف</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white mx-2">حذف</AlertDialogAction>
+              </>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

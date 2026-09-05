@@ -206,6 +206,7 @@ export default function StoreSection({ itemEntity, purchaseEntity, categoryEntit
       {view === 'categories' && (
         <StoreCategoryTab
           categories={categories}
+          items={items}
           onCategorySubmit={handleCategorySubmit}
           onUpdateCategory={updateCategory}
           onDeleteCategory={deleteCategory}

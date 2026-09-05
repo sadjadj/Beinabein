@@ -153,7 +153,7 @@ export default function CalendarPage() {
     workshop: { label: 'کارگاه', icon: GraduationCap, color: 'text-[#B74B40] bg-[#FDF2F1]' },
     group: { label: 'گروه', icon: Layers, color: 'text-[#3B8A95] bg-[#F0F7F8]' },
     event: { label: 'رخداد', icon: Sparkles, color: 'text-[#B9834B] bg-[#FBF3EC]' },
-    salesEvent: { label: 'ایونت', icon: ShoppingBag, color: 'text-[#5A9A8E] bg-[#F0F7F8]' },
+    salesEvent: { label: 'ایونت', icon: ShoppingBag, color: 'text-[#5A9A5D] bg-[#F0F7F8]' },
   };
 
   // Split days: upcoming (>= today) first, then past (< today)
