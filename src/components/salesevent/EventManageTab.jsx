@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
@@ -20,8 +21,14 @@ export default function EventManageTab({ events, onCreate, onUpdate, onDelete })
   const [editForm, setEditForm] = useState({});
   const [editError, setEditError] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const navigate = useNavigate();
 
   const confirmDelete = async () => { if (deleteTarget) { await onDelete(deleteTarget); setDeleteTarget(null); } };
+
+  const handleRowClick = (ev) => {
+    if (editingId === ev.id) return;
+    navigate(`/store/event-items/${ev.id}`);
+  };
 
   const today = todayGregorian();
   const current = [], upcoming = [], ended = [];
@@ -94,14 +101,18 @@ export default function EventManageTab({ events, onCreate, onUpdate, onDelete })
         <div className="divide-y divide-border">
           {list.map(ev => (
             <div key={ev.id} className="py-2.5">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div
+                onClick={() => handleRowClick(ev)}
+                className={`flex items-center justify-between gap-2 flex-wrap rounded-lg ${editingId === ev.id ? '' : 'cursor-pointer hover:bg-muted/30'}`}
+              >
                 <div className="flex items-center gap-2 text-sm min-w-0">
                   <span className="font-medium truncate">{ev.title}</span>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">{toJalaliStr(ev.start_date)} تا {toJalaliStr(ev.end_date)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       if (editingId === ev.id) { setEditingId(null); setEditError(''); }
                       else { setEditingId(ev.id); setEditError(''); setEditForm({ title: ev.title, start_date: ev.start_date, end_date: ev.end_date, description: ev.description || '' }); }
                     }}
@@ -109,7 +120,7 @@ export default function EventManageTab({ events, onCreate, onUpdate, onDelete })
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => setDeleteTarget(ev)} className="text-muted-foreground hover:text-red-600">
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(ev); }} className="text-muted-foreground hover:text-red-600">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>

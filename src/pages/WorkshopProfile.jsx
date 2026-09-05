@@ -12,6 +12,7 @@ import PersonSearch from '@/components/PersonSearch';
 import { Skeleton } from '@/components/SkeletonPatterns';
 import WorkshopForm from '@/components/WorkshopForm';
 import PlanOverflowDialog from '@/components/PlanOverflowDialog';
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
 
 export default function WorkshopProfile() {
@@ -37,6 +38,7 @@ export default function WorkshopProfile() {
   const [capacityWarning, setCapacityWarning] = useState('');
   const [plans, setPlans] = useState([]);
   const [regSessionTab, setRegSessionTab] = useState(null);
+  const [deleteRegId, setDeleteRegId] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -272,6 +274,12 @@ export default function WorkshopProfile() {
     await base44.entities.WorkshopPurchase.delete(purchaseId);
   };
 
+  const confirmDeleteReg = async () => {
+    if (!deleteRegId) return;
+    await deleteRegistration(deleteRegId);
+    setDeleteRegId(null);
+  };
+
   const toggleRegPaid = async (p) => {
     setPurchases(prev => prev.map(x => x.id === p.id ? { ...x, is_paid: !p.is_paid } : x));
     await base44.entities.WorkshopPurchase.update(p.id, { is_paid: !p.is_paid });
@@ -500,7 +508,7 @@ export default function WorkshopProfile() {
                           <div className="flex items-center gap-2">
                             <span className={`text-xs font-medium ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{formatCurrency((p.price || 0) * (p.quantity || 1) + (p.donation || 0))}</span>
                             <button onClick={(e) => { e.stopPropagation(); toggleRegPaid(p); }} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
-                            <button onClick={(e) => { e.stopPropagation(); deleteRegistration(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteRegId(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
                         </div>
                       ))}
@@ -523,7 +531,7 @@ export default function WorkshopProfile() {
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-medium ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{formatCurrency((p.price || 0) * (p.quantity || 1) + (p.donation || 0))}</span>
                         <button onClick={(e) => { e.stopPropagation(); toggleRegPaid(p); }} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
-                        <button onClick={(e) => { e.stopPropagation(); deleteRegistration(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteRegId(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   ))}
@@ -558,6 +566,7 @@ export default function WorkshopProfile() {
         </>
       )}
       <PlanOverflowDialog payload={overflow} onAccept={acceptOverflow} onClose={() => setOverflow(null)} />
+      <ConfirmDeleteDialog open={!!deleteRegId} onConfirm={confirmDeleteReg} onClose={() => setDeleteRegId(null)} />
     </div>
   );
 }

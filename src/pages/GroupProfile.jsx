@@ -13,6 +13,7 @@ import JalaliDateInput from '@/components/JalaliDateInput';
 import PriceInput from '@/components/PriceInput';
 import PersonSearch from '@/components/PersonSearch';
 import PlanOverflowDialog from '@/components/PlanOverflowDialog';
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
 
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
@@ -43,6 +44,7 @@ export default function GroupProfile() {
   const [regError, setRegError] = useState('');
   const [regForm, setRegForm] = useState({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', donation: '', plan_id: '' });
   const [overflow, setOverflow] = useState(null);
+  const [deleteRegId, setDeleteRegId] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -197,6 +199,12 @@ export default function GroupProfile() {
     await base44.entities.GroupPurchase.delete(purchaseId);
   };
 
+  const confirmDeleteReg = async () => {
+    if (!deleteRegId) return;
+    await deleteRegistration(deleteRegId);
+    setDeleteRegId(null);
+  };
+
   const toggleRegPaid = async (p) => {
     setPurchases(prev => prev.map(x => x.id === p.id ? { ...x, is_paid: !p.is_paid } : x));
     await base44.entities.GroupPurchase.update(p.id, { is_paid: !p.is_paid });
@@ -346,7 +354,7 @@ export default function GroupProfile() {
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-medium ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{formatCurrency((p.price || 0) * (p.quantity || 1) + (p.donation || 0))}</span>
                         <button onClick={(e) => { e.stopPropagation(); toggleRegPaid(p); }} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
-                        <button onClick={(e) => { e.stopPropagation(); deleteRegistration(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteRegId(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   ))}
@@ -383,6 +391,7 @@ export default function GroupProfile() {
         </>
       )}
       <PlanOverflowDialog payload={overflow} onAccept={acceptOverflow} onClose={() => setOverflow(null)} />
+      <ConfirmDeleteDialog open={!!deleteRegId} onConfirm={confirmDeleteReg} onClose={() => setDeleteRegId(null)} />
     </div>
   );
 }
