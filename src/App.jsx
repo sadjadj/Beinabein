@@ -39,6 +39,8 @@ import WorkspaceOrderDetail from '@/pages/WorkspaceOrderDetail';
 import InvoiceDetail from '@/pages/InvoiceDetail';
 import DailyReport from '@/pages/DailyReport';
 import FinancialReport from '@/pages/FinancialReport';
+import EventItemsPage from '@/pages/EventItemsPage';
+import EventCategoriesPage from '@/pages/EventCategoriesPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -80,6 +82,8 @@ const AuthenticatedApp = () => {
       <Route path="/groups/:id" element={<GroupProfile />} />
       <Route path="/groups/attendance/:groupId" element={<GroupAttendancePage />} />
       <Route path="/store" element={<StorePage />} />
+      <Route path="/store/event-items/:id" element={<EventItemsPage />} />
+      <Route path="/store/event-categories/:id" element={<EventCategoriesPage />} />
       <Route path="/attendance" element={<AttendancePage />} />
       <Route path="/attendance/:workshopId" element={<WorkshopAttendancePage />} />
       <Route path="/people/:id" element={<PersonProfile />} />

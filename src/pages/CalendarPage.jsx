@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Calendar, Clock, MapPin, Plus, X, Layers, GraduationCap, Sparkles } from 'lucide-react';
+import { Calendar, Clock, MapPin, Plus, X, Layers, GraduationCap, Sparkles, ShoppingBag } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { dayLabels, dayOrder } from '@/lib/labels';
 import { toJalaliStr, todayGregorian, formatJalaliFull } from '@/lib/jalali';
@@ -15,6 +15,7 @@ export default function CalendarPage() {
   const [workshops, setWorkshops] = useState([]);
   const [groups, setGroups] = useState([]);
   const [events, setEvents] = useState([]);
+  const [salesEvents, setSalesEvents] = useState([]);
   const [spaces, setSpaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showEventForm, setShowEventForm] = useState(false);
@@ -25,15 +26,17 @@ export default function CalendarPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [ws, gs, evs, spcs] = await Promise.all([
+        const [ws, gs, evs, ses, spcs] = await Promise.all([
           base44.entities.Workshop.list('-start_date', 500),
           base44.entities.Group.list('-start_date', 500),
           base44.entities.Event.list('-start_date', 500),
+          base44.entities.SalesEvent.list('-start_date', 500),
           base44.entities.Space.list('-created_date', 100)
         ]);
         setWorkshops(ws);
         setGroups(gs);
         setEvents(evs);
+        setSalesEvents(ses);
         setSpaces(spcs);
       } finally { setLoading(false); }
     };
@@ -76,8 +79,25 @@ export default function CalendarPage() {
         }
       });
     });
+    // Sales events (ایونت) — one entry per day of the event range inside the week
+    salesEvents.forEach(se => {
+      if (!se.start_date || !se.end_date) return;
+      const from = se.start_date > week.start ? se.start_date : week.start;
+      const to = se.end_date < week.end ? se.end_date : week.end;
+      if (from > to) return;
+      let cursor = new Date(from + 'T00:00:00');
+      const endD = new Date(to + 'T00:00:00');
+      while (cursor <= endD) {
+        const y = cursor.getFullYear();
+        const m = String(cursor.getMonth() + 1).padStart(2, '0');
+        const d = String(cursor.getDate()).padStart(2, '0');
+        const iso = `${y}-${m}-${d}`;
+        entries.push({ date: iso, day: jsDayKey(iso), start_time: '', end_time: '', space: '', title: se.title, type: 'salesEvent', id: se.id, link: `/store/event-items/${se.id}` });
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    });
     return entries.sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.start_time || '').localeCompare(b.start_time || ''));
-  }, [workshops, groups, events, week.start, week.end]);
+  }, [workshops, groups, events, salesEvents, week.start, week.end]);
 
   // Group by date
   const byDate = useMemo(() => {
@@ -133,6 +153,7 @@ export default function CalendarPage() {
     workshop: { label: 'کارگاه', icon: GraduationCap, color: 'text-[#B74B40] bg-[#FDF2F1]' },
     group: { label: 'گروه', icon: Layers, color: 'text-[#3B8A95] bg-[#F0F7F8]' },
     event: { label: 'رخداد', icon: Sparkles, color: 'text-[#B9834B] bg-[#FBF3EC]' },
+    salesEvent: { label: 'ایونت', icon: ShoppingBag, color: 'text-[#5A9A8E] bg-[#F0F7F8]' },
   };
 
   // Split days: upcoming (>= today) first, then past (< today)
@@ -203,7 +224,7 @@ export default function CalendarPage() {
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">تقویم</h1>
-        <p className="text-sm text-muted-foreground mt-1">کارگاه‌ها، گروه‌ها و رخدادهای هفته جاری</p>
+        <p className="text-sm text-muted-foreground mt-1">کارگاه‌ها، گروه‌ها، رخدادها و ایونت‌های هفته جاری</p>
       </div>
 
       <div className="bg-white border-b border-border">
@@ -247,7 +268,7 @@ export default function CalendarPage() {
             />
           )}
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="bg-white rounded-xl border border-border p-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground"><GraduationCap className="w-4 h-4" /> جلسات کارگاه‌ها</div>
               <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'workshop').length)}</p>
@@ -261,6 +282,10 @@ export default function CalendarPage() {
               <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'event').length)}</p>
             </div>
             <div className="bg-white rounded-xl border border-border p-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><ShoppingBag className="w-4 h-4" /> ایونت‌ها</div>
+              <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'salesEvent').length)}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-border p-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="w-4 h-4" /> کل این هفته</div>
               <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.length)}</p>
             </div>
@@ -268,7 +293,7 @@ export default function CalendarPage() {
 
           {loading ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3"><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></div>
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></div>
               {weekDates.map(d => <Skeleton key={d} className="h-32 rounded-xl" />)}
             </div>
           ) : (

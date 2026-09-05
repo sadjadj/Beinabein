@@ -51,6 +51,7 @@ export default function StoreInvoiceList({ groups, type, onTogglePaid, onSaveEdi
                   </button>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">{group.purchase_date ? toJalaliStr(group.purchase_date) : '-'}</span>
                   <span className="font-medium">{group.person_name || '-'}</span>
+                  {group.event_title && <span className="text-xs text-[#B9834B]">— {group.event_title}</span>}
                   <span className="text-xs text-muted-foreground">{toPersianNum(group.itemCount)} آیتم</span>
                 </div>
                 <div className="flex items-center gap-2">
