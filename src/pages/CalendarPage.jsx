@@ -110,13 +110,13 @@ export default function CalendarPage() {
         session_count: Number(form.session_count) || 0,
         capacity: Number(form.capacity) || null
       });
-      const validPlans = (plans || []).filter(p => p.name && p.price !== '' && p.price !== null);
+      const validPlans = (plans || []).filter(p => p.name && p.price_min !== '' && p.price_min !== null && p.price_max !== '' && p.price_max !== null);
       if (validPlans.length > 0) {
         await base44.entities.EventPlan.bulkCreate(
-          validPlans.map(p => ({ event_id: created.id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false }))
+          validPlans.map(p => ({ event_id: created.id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false }))
         );
       }
-      await base44.entities.EventPlan.create({ event_id: created.id, name: 'رایگان', price: 0, is_active: false });
+      await base44.entities.EventPlan.create({ event_id: created.id, name: 'رایگان', price_min: 0, price_max: 0, is_active: false });
       setShowEventForm(false);
       const evs = await base44.entities.Event.list('-start_date', 500);
       setEvents(evs);
