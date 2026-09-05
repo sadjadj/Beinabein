@@ -9,7 +9,7 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 
-export default function EventItemsList({ eventTitle, items, categories, onSave, onDelete, onToggleVisible }) {
+export default function EventItemsList({ eventTitle, items, categories, brands, onSave, onDelete, onToggleVisible }) {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -17,7 +17,7 @@ export default function EventItemsList({ eventTitle, items, categories, onSave, 
 
   const startEdit = (item) => {
     setEditingId(item.id);
-    setEditForm({ name: item.name, category: item.category || '', price: item.price, stock_quantity: item.stock_quantity || 0 });
+    setEditForm({ name: item.name, category: item.category || '', brand: item.brand || '', price: item.price, stock_quantity: item.stock_quantity || 0 });
   };
   const cancelEdit = () => { setEditingId(null); setEditForm({}); };
 
@@ -29,6 +29,7 @@ export default function EventItemsList({ eventTitle, items, categories, onSave, 
       await onSave(editingId, {
         name: editForm.name,
         category: editForm.category,
+        brand: editForm.brand || '',
         price: Number(editForm.price) || 0,
         stock_quantity: Number(editForm.stock_quantity) || 0,
       });
@@ -53,6 +54,7 @@ export default function EventItemsList({ eventTitle, items, categories, onSave, 
                 <th className="text-right p-3 font-medium">نام آیتم</th>
                 <th className="text-right p-3 font-medium">کتگوری</th>
                 <th className="text-right p-3 font-medium">قیمت به تومان</th>
+                <th className="text-right p-3 font-medium">برند</th>
                 <th className="text-center p-3 font-medium">تعداد باقی مانده</th>
                 <th className="text-center p-3 font-medium">نمایش</th>
                 <th className="text-center p-3 font-medium">عملیات</th>
@@ -65,6 +67,7 @@ export default function EventItemsList({ eventTitle, items, categories, onSave, 
                     <td className="p-3 font-medium">{item.name}</td>
                     <td className="p-3 text-muted-foreground">{item.category || '-'}</td>
                     <td className="p-3">{formatCurrency(item.price)}</td>
+                    <td className="p-3 text-muted-foreground">{item.brand || '-'}</td>
                     <td className="p-3 text-center">{toPersianNum(item.stock_quantity || 0)}</td>
                     <td className="p-3 text-center">
                       <input type="checkbox" checked={item.is_visible !== false} onChange={() => onToggleVisible(item.id, item.is_visible !== false)} className="w-4 h-4 cursor-pointer" />
@@ -78,8 +81,8 @@ export default function EventItemsList({ eventTitle, items, categories, onSave, 
                   </tr>
                   {editingId === item.id && (
                     <tr className="border-t border-border bg-muted/20">
-                      <td colSpan={6} className="p-4">
-                        <form onSubmit={saveEdit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                      <td colSpan={7} className="p-4">
+                        <form onSubmit={saveEdit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
                           <div>
                             <label className="text-xs text-muted-foreground block mb-1">نام آیتم</label>
                             <input type="text" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
@@ -94,6 +97,13 @@ export default function EventItemsList({ eventTitle, items, categories, onSave, 
                           <div>
                             <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
                             <PriceInput value={editForm.price} onChange={v => setEditForm({ ...editForm, price: v })} required />
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-foreground block mb-1">برند</label>
+                            <select value={editForm.brand || ''} onChange={e => setEditForm({ ...editForm, brand: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                              <option value="">انتخاب برند...</option>
+                              {brands.map(b => <option key={b.id} value={b.brand_name || b.full_name}>{b.brand_name || b.full_name}</option>)}
+                            </select>
                           </div>
                           <div>
                             <label className="text-xs text-muted-foreground block mb-1">موجودی</label>

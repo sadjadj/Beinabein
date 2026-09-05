@@ -28,7 +28,6 @@ const exportColumns = [
 export default function EventSection() {
   const [events, setEvents] = useState([]);
   const [purchases, setPurchases] = useState([]);
-  const [brands, setBrands] = useState([]);
   const [itemsByEvent, setItemsByEvent] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedEventId, setSelectedEventId] = useState('');
@@ -42,14 +41,12 @@ export default function EventSection() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [evs, pur, brs] = await Promise.all([
+      const [evs, pur] = await Promise.all([
         base44.entities.SalesEvent.list('-start_date', 500),
         base44.entities.SalesEventPurchase.list('-purchase_date', 1000),
-        base44.entities.Brand.list('-created_date', 500),
       ]);
       setEvents(evs);
       setPurchases(pur);
-      setBrands(brs);
       const { current, recent } = classifySalesEvents(evs);
       const saleableIds = [...current, ...recent].map(e => e.id);
       const itemLists = await Promise.all(saleableIds.map(id => base44.entities.SalesEventItem.filter({ event_id: id })));
@@ -92,7 +89,7 @@ export default function EventSection() {
       item_price: c.price,
       quantity: c.quantity,
       discount: effectivePercent,
-      brand: checkout.brand,
+      brand: c.brand || '',
       purchase_date: checkout.purchase_date,
       payment_method: checkout.payment_method,
       purchase_reason: checkout.purchase_reason,
@@ -267,7 +264,6 @@ export default function EventSection() {
             {activeEvent && (
               <EventSalePanel
                 items={itemsByEvent[activeEvent.id] || []}
-                brands={brands}
                 onCheckout={(cart, checkout, discount) => handleCheckout(activeEvent, cart, checkout, discount)}
               />
             )}

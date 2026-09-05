@@ -11,6 +11,7 @@ export default function EventItemsPage() {
   const [event, setEvent] = useState(null);
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,11 +23,13 @@ export default function EventItemsPage() {
           base44.entities.SalesEvent.get(id),
           base44.entities.SalesEventItem.filter({ event_id: id }),
           base44.entities.SalesEventCategory.filter({ event_id: id }),
+          base44.entities.Brand.list('-created_date', 500),
         ]);
         if (cancelled) return;
         if (results[0].status === 'fulfilled') setEvent(results[0].value);
         if (results[1].status === 'fulfilled') setItems(results[1].value);
         if (results[2].status === 'fulfilled') setCategories(results[2].value);
+        if (results[3].status === 'fulfilled') setBrands(results[3].value);
       } finally { if (!cancelled) setLoading(false); }
     };
     fetchData();
@@ -46,6 +49,7 @@ export default function EventItemsPage() {
         event_id: id,
         name: form.name,
         category: form.category,
+        brand: form.brand,
         price: Number(form.price) || 0,
         stock_quantity: addQty,
         is_visible: true,
@@ -100,12 +104,13 @@ export default function EventItemsPage() {
         </Link>
       </div>
 
-      <EventItemAddForm eventId={id} eventTitle={event.title} categories={categories} onAdd={handleAddItem} />
+      <EventItemAddForm eventId={id} eventTitle={event.title} categories={categories} brands={brands} onAdd={handleAddItem} />
 
       <EventItemsList
         eventTitle={event.title}
         items={items}
         categories={categories}
+        brands={brands}
         onSave={handleItemSave}
         onDelete={handleDeleteItem}
         onToggleVisible={handleToggleVisible}

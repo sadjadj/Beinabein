@@ -7,10 +7,10 @@ import { persianToEnglish } from '@/lib/inputUtils';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import PersonSearch from '@/components/PersonSearch';
 
-export default function EventSalePanel({ items, brands, onCheckout }) {
+export default function EventSalePanel({ items, onCheckout }) {
   const [cart, setCart] = useState([]);
   const [cartDiscount, setCartDiscount] = useState(0);
-  const [checkout, setCheckout] = useState({ person_name: '', person_phone: '', brand: '', purchase_date: todayGregorian(), payment_method: 'cash', purchase_reason: 'independent' });
+  const [checkout, setCheckout] = useState({ person_name: '', person_phone: '', purchase_date: todayGregorian(), payment_method: 'cash', purchase_reason: 'independent' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,7 +32,7 @@ export default function EventSalePanel({ items, brands, onCheckout }) {
         return prev.map(c => c.item_id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
       }
       if (stockOf(item.id) < 1) return prev;
-      return [...prev, { item_id: item.id, name: item.name, price: item.price, quantity: 1 }];
+      return [...prev, { item_id: item.id, name: item.name, price: item.price, brand: item.brand || '', quantity: 1 }];
     });
   };
   const updateQty = (itemId, delta) => {
@@ -47,7 +47,7 @@ export default function EventSalePanel({ items, brands, onCheckout }) {
   const cancelCart = () => {
     setCart([]);
     setCartDiscount(0);
-    setCheckout({ person_name: '', person_phone: '', brand: '', purchase_date: todayGregorian(), payment_method: 'cash', purchase_reason: 'independent' });
+    setCheckout({ person_name: '', person_phone: '', purchase_date: todayGregorian(), payment_method: 'cash', purchase_reason: 'independent' });
     setError('');
   };
 
@@ -57,7 +57,7 @@ export default function EventSalePanel({ items, brands, onCheckout }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!checkout.person_name || !checkout.person_phone || !checkout.brand || !checkout.purchase_date || !checkout.payment_method || !checkout.purchase_reason || cart.length === 0) return;
+    if (!checkout.person_name || !checkout.person_phone || !checkout.purchase_date || !checkout.payment_method || !checkout.purchase_reason || cart.length === 0) return;
     setSubmitting(true);
     setError('');
     try {
@@ -155,13 +155,6 @@ export default function EventSalePanel({ items, brands, onCheckout }) {
               onNameChange={v => setCheckout({ ...checkout, person_name: v })}
               onPhoneChange={v => setCheckout({ ...checkout, person_phone: v })}
             />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">برند</label>
-            <select value={checkout.brand} onChange={e => setCheckout({ ...checkout, brand: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required>
-              <option value="">انتخاب برند...</option>
-              {brands.map(b => <option key={b.id} value={b.brand_name || b.full_name}>{b.brand_name || b.full_name}</option>)}
-            </select>
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">تاریخ فروش</label>

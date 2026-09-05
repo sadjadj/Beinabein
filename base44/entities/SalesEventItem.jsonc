@@ -14,6 +14,10 @@
       "type": "string",
       "title": "\u06a9\u062a\u06af\u0648\u0631\u06cc"
     },
+    "brand": {
+      "type": "string",
+      "title": "\u0628\u0631\u0646\u062f"
+    },
     "price": {
       "type": "number",
       "default": 0,
