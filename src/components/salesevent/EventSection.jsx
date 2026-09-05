@@ -128,6 +128,11 @@ export default function EventSection() {
     await fetchEvents();
   };
 
+  const deleteEvent = async (ev) => {
+    await base44.entities.SalesEvent.delete(ev.id);
+    await fetchEvents();
+  };
+
   const today = todayGregorian();
   const invoiceGroups = (() => {
     const groups = {};
@@ -293,6 +298,7 @@ export default function EventSection() {
           events={events}
           onCreate={createEvent}
           onUpdate={updateEvent}
+          onDelete={deleteEvent}
         />
       </div>
     </div>

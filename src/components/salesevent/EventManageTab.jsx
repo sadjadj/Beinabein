@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 
 const blankForm = { title: '', start_date: '', end_date: '', description: '' };
 
-export default function EventManageTab({ events, onCreate, onUpdate }) {
+export default function EventManageTab({ events, onCreate, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(blankForm);
   const [formError, setFormError] = useState('');
@@ -14,6 +19,9 @@ export default function EventManageTab({ events, onCreate, onUpdate }) {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editError, setEditError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const confirmDelete = async () => { if (deleteTarget) { await onDelete(deleteTarget); setDeleteTarget(null); } };
 
   const today = todayGregorian();
   const current = [], upcoming = [], ended = [];
@@ -91,15 +99,20 @@ export default function EventManageTab({ events, onCreate, onUpdate }) {
                   <span className="font-medium truncate">{ev.title}</span>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">{toJalaliStr(ev.start_date)} تا {toJalaliStr(ev.end_date)}</span>
                 </div>
-                <button
-                  onClick={() => {
-                    if (editingId === ev.id) { setEditingId(null); setEditError(''); }
-                    else { setEditingId(ev.id); setEditError(''); setEditForm({ title: ev.title, start_date: ev.start_date, end_date: ev.end_date, description: ev.description || '' }); }
-                  }}
-                  className="text-muted-foreground hover:text-[#B74B40]"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (editingId === ev.id) { setEditingId(null); setEditError(''); }
+                      else { setEditingId(ev.id); setEditError(''); setEditForm({ title: ev.title, start_date: ev.start_date, end_date: ev.end_date, description: ev.description || '' }); }
+                    }}
+                    className="text-muted-foreground hover:text-[#B74B40]"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setDeleteTarget(ev)} className="text-muted-foreground hover:text-red-600">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               {editingId === ev.id && renderForm(editForm, setEditForm, handleSaveEdit, () => { setEditingId(null); setEditError(''); }, 'ذخیره', editError)}
             </div>
@@ -124,6 +137,21 @@ export default function EventManageTab({ events, onCreate, onUpdate }) {
       {renderList('ایونت‌های جاری', current)}
       {renderList('ایونت‌های آینده', upcoming)}
       {renderList('ایونت‌های پیشین', ended)}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="text-center">
+          <AlertDialogHeader className="text-center">
+            <AlertDialogTitle className="text-center">حذف ایونت</AlertDialogTitle>
+            <AlertDialogDescription className="text-center block">
+              آیا از حذف ایونت «{deleteTarget?.title}» اطمینان دارید؟ این عملیات قابل بازگشت نیست.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex items-center justify-center gap-3 sm:justify-center">
+            <AlertDialogCancel className="mx-2">انصراف</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white mx-2">حذف</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
