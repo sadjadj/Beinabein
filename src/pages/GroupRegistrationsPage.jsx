@@ -89,7 +89,6 @@ export default function GroupRegistrationsPage({ embedded = false }) {
     if (!regForm.person_name) { setFormError('نام مشتری الزامی است'); return; }
     if (!regForm.person_phone) { setFormError('شماره تلفن الزامی است'); return; }
     setFormError('');
-    const selectedGroup = groupById[regForm.group_id];
     const monthKey = currentJalaliMonthKey();
     const dup = purchases.find(p => p.group_id === regForm.group_id && p.month === monthKey && p.person_phone === regForm.person_phone);
     if (dup) { setDupWarning('این شخص در این ماه قبلاً در این گروه ثبت‌نام شده است.'); return; }
@@ -111,6 +110,8 @@ export default function GroupRegistrationsPage({ embedded = false }) {
   const doAddRegistration = async (amount, donation, isPaid) => {
     setSubmitting(true);
     try {
+      const selectedGroup = groupById[regForm.group_id];
+      const monthKey = currentJalaliMonthKey();
       await findOrCreatePerson(regForm.person_phone, regForm.person_name);
       const newPurchase = await base44.entities.GroupPurchase.create({
         group_id: regForm.group_id,
