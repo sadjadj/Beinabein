@@ -101,12 +101,17 @@ export function fromJalaliStr(jalaliStr) {
 
 // Get today's date as a Jalali string
 export function todayJalali() {
-  return toJalaliStr(new Date().toISOString().split('T')[0]);
+  return toJalaliStr(todayGregorian());
 }
 
-// Get today's date as Gregorian YYYY-MM-DD
+// Get today's date as Gregorian YYYY-MM-DD (Tehran timezone, not UTC)
 export function todayGregorian() {
-  return new Date().toISOString().split('T')[0];
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date());
 }
 
 // Format Jalali date with month name

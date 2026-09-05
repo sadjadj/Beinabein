@@ -3,7 +3,7 @@ import { getJalaliParts, jalaliToGregorianStr, jalaliDaysInMonth } from '@/lib/j
 
 // ─── Date helpers ───
 export function formatDate(d) {
-  return d.toISOString().split('T')[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function getDateRange(preset, customStart, customEnd) {

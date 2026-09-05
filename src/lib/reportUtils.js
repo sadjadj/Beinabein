@@ -10,11 +10,10 @@ export function getRangeStart(preset) {
   const today = todayGregorian();
   const parts = getJalaliParts(today);
   if (preset === 'week') {
-    const jsDay = new Date().getDay(); // 0=Sunday, 6=Saturday
-    const persianDay = (jsDay + 1) % 7; // Saturday=0 ... Friday=6
     const d = new Date();
+    const persianDay = (d.getDay() + 1) % 7; // Saturday=0 ... Friday=6
     d.setDate(d.getDate() - persianDay);
-    return d.toISOString().split('T')[0];
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
   if (preset === 'month') return jalaliToGregorianStr(parts.jy, parts.jm, 1);
   return today;
