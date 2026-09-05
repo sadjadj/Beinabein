@@ -16,7 +16,7 @@ export default function StoreInventoryTab({ items, categories, onItemSubmit, onD
   const [editForm, setEditForm] = useState({});
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const confirmDelete = async () => { if (deleteTarget) { await onDeleteItem(deleteTarget); setDeleteTarget(null); } };
+  const confirmDelete = async () => { if (deleteTarget) { await onDeleteItem(deleteTarget.id); setDeleteTarget(null); } };
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
