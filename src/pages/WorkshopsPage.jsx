@@ -29,17 +29,15 @@ export default function WorkshopsPage({ embedded = false }) {
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'date_desc');
   const [archivedPage, setArchivedPage] = useState(1);
 
-  // Persist filters to URL (preserve other params such as the hub `tab`)
+  // Persist filters to URL
   useEffect(() => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (nameFilter) next.set('name', nameFilter); else next.delete('name');
-      if (facilitatorFilter) next.set('facilitator', facilitatorFilter); else next.delete('facilitator');
-      if (spaceFilter) next.set('space', spaceFilter); else next.delete('space');
-      if (sortBy !== 'date_desc') next.set('sort', sortBy); else next.delete('sort');
-      return next;
-    }, { replace: true });
-  }, [nameFilter, facilitatorFilter, spaceFilter, sortBy, setSearchParams]);
+    const params = {};
+    if (nameFilter) params.name = nameFilter;
+    if (facilitatorFilter) params.facilitator = facilitatorFilter;
+    if (spaceFilter) params.space = spaceFilter;
+    if (sortBy !== 'date_desc') params.sort = sortBy;
+    setSearchParams(params, { replace: true });
+  }, [nameFilter, facilitatorFilter, spaceFilter, sortBy]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -84,14 +82,14 @@ export default function WorkshopsPage({ embedded = false }) {
         );
       }
       // Create workshop plans
-      const validPlans = (plans || []).filter(p => p.name && p.price_min !== '' && p.price_min !== null && p.price_max !== '' && p.price_max !== null);
+      const validPlans = (plans || []).filter(p => p.name && p.price !== '' && p.price !== null);
       if (validPlans.length > 0) {
         await base44.entities.WorkshopPlan.bulkCreate(
-          validPlans.map(p => ({ workshop_id: created.id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false }))
+          validPlans.map(p => ({ workshop_id: created.id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false }))
         );
       }
       // Auto-create a default "رایگان" (free) plan, inactive
-      await base44.entities.WorkshopPlan.create({ workshop_id: created.id, name: 'رایگان', price_min: 0, price_max: 0, is_active: false });
+      await base44.entities.WorkshopPlan.create({ workshop_id: created.id, name: 'رایگان', price: 0, is_active: false });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }

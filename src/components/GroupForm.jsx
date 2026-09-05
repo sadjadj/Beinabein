@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2, Check, X, Plus } from 'lucide-react';
-import { toPersianNum } from '@/lib/stats';
-import { formatPlanRange } from '@/lib/planPricing';
+import { toPersianNum, formatCurrency } from '@/lib/stats';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
@@ -27,9 +26,9 @@ export default function GroupForm({
 }) {
   const [form, setForm] = useState(initialForm);
   const [plans, setPlans] = useState(
-    (initialPlans || []).map(p => ({ id: p.id || '', name: p.name || '', price_min: p.price_min ?? '', price_max: p.price_max ?? '', is_active: p.is_active !== false }))
+    (initialPlans || []).map(p => ({ id: p.id || '', name: p.name || '', price: p.price ?? '', is_active: p.is_active !== false }))
   );
-  const [newPlan, setNewPlan] = useState({ name: '', price_min: '', price_max: '' });
+  const [newPlan, setNewPlan] = useState({ name: '', price: '' });
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -52,17 +51,13 @@ export default function GroupForm({
   };
 
   const handleAddPlan = () => {
-    if (!newPlan.name || newPlan.price_min === '' || newPlan.price_min === null || newPlan.price_max === '' || newPlan.price_max === null) {
-      setError('برای افزودن مدل ثبت‌نام، نام و هر دو کران قیمت الزامی است');
-      return;
-    }
-    if (Number(newPlan.price_min) > Number(newPlan.price_max)) {
-      setError('کران پایین قیمت باید کوچکتر یا مساوی کران بالای قیمت باشد');
+    if (!newPlan.name || newPlan.price === '' || newPlan.price === null) {
+      setError('برای افزودن مدل ثبت‌نام، نام و قیمت الزامی است');
       return;
     }
     setError('');
-    setPlans(prev => [...prev, { id: '', name: newPlan.name, price_min: newPlan.price_min, price_max: newPlan.price_max, is_active: true }]);
-    setNewPlan({ name: '', price_min: '', price_max: '' });
+    setPlans(prev => [...prev, { id: '', name: newPlan.name, price: newPlan.price, is_active: true }]);
+    setNewPlan({ name: '', price: '' });
   };
   const togglePlanActive = (i) => setPlans(prev => prev.map((p, idx) => idx === i ? { ...p, is_active: !p.is_active } : p));
   const removePlan = (i) => setPlans(prev => prev.filter((_, idx) => idx !== i));
@@ -160,12 +155,8 @@ export default function GroupForm({
               <input type="text" placeholder="مثلاً ماهانه" value={newPlan.name} onChange={e => setNewPlan({ ...newPlan, name: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" />
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">کران پایین قیمت (تومان)</label>
-              <PriceInput value={newPlan.price_min} onChange={v => setNewPlan({ ...newPlan, price_min: v })} placeholder="حداقل" />
-            </div>
-            <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">کران بالای قیمت (تومان)</label>
-              <PriceInput value={newPlan.price_max} onChange={v => setNewPlan({ ...newPlan, price_max: v })} placeholder="حداکثر" />
+              <label className="text-[11px] text-muted-foreground block mb-1">قیمت (تومان)</label>
+              <PriceInput value={newPlan.price} onChange={v => setNewPlan({ ...newPlan, price: v })} />
             </div>
             <button type="button" onClick={handleAddPlan} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
               <Plus className="w-4 h-4" /> افزودن مدل ثبت‌نام
@@ -177,7 +168,7 @@ export default function GroupForm({
                 <thead className="bg-muted/50">
                   <tr>
                     <th className="text-right p-2.5 font-medium">نام مدل</th>
-                    <th className="text-right p-2.5 font-medium">کران قیمت</th>
+                    <th className="text-right p-2.5 font-medium">قیمت</th>
                     <th className="text-center p-2.5 font-medium">وضعیت</th>
                     <th className="text-center p-2.5 font-medium">حذف</th>
                   </tr>
@@ -186,7 +177,7 @@ export default function GroupForm({
                   {plans.map((pl, i) => (
                     <tr key={i} className="border-t border-border">
                       <td className="p-2.5 font-medium">{pl.name || '-'}</td>
-                      <td className="p-2.5">{formatPlanRange(pl)}</td>
+                      <td className="p-2.5">{(pl.price !== '' && pl.price !== null) ? formatCurrency(Number(pl.price)) : '-'}</td>
                       <td className="p-2.5 text-center">
                         <button type="button" onClick={() => togglePlanActive(i)} className={`text-xs px-2 py-1 rounded-full ${pl.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{pl.is_active ? 'فعال' : 'غیرفعال'}</button>
                       </td>

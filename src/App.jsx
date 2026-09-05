@@ -17,7 +17,6 @@ import CafePage from '@/pages/CafePage';
 import WorkshopsHubPage from '@/pages/WorkshopsHubPage';
 import WorkshopRegistrationsPage from '@/pages/WorkshopRegistrationsPage';
 import GroupsHubPage from '@/pages/GroupsHubPage';
-import StorePage from '@/pages/StorePage';
 import GroupProfile from '@/pages/GroupProfile';
 import GroupAttendancePage from '@/pages/GroupAttendancePage';
 import AttendancePage from '@/pages/AttendancePage';
@@ -79,7 +78,6 @@ const AuthenticatedApp = () => {
       <Route path="/groups" element={<GroupsHubPage />} />
       <Route path="/groups/:id" element={<GroupProfile />} />
       <Route path="/groups/attendance/:groupId" element={<GroupAttendancePage />} />
-      <Route path="/store" element={<StorePage />} />
       <Route path="/attendance" element={<AttendancePage />} />
       <Route path="/attendance/:workshopId" element={<WorkshopAttendancePage />} />
       <Route path="/people/:id" element={<PersonProfile />} />

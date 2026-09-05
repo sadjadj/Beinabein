@@ -58,13 +58,13 @@ export default function GroupsPage({ embedded = false }) {
         schedule: (form.schedule || []).map(s => ({ day: s.day, start_time: s.start_time, end_time: s.end_time }))
       };
       const created = await base44.entities.Group.create(payload);
-      const validPlans = (plans || []).filter(p => p.name && p.price_min !== '' && p.price_min !== null && p.price_max !== '' && p.price_max !== null);
+      const validPlans = (plans || []).filter(p => p.name && p.price !== '' && p.price !== null);
       if (validPlans.length > 0) {
         await base44.entities.GroupPlan.bulkCreate(
-          validPlans.map(p => ({ group_id: created.id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false }))
+          validPlans.map(p => ({ group_id: created.id, name: p.name, price: Number(p.price) || 0, is_active: p.is_active !== false }))
         );
       }
-      await base44.entities.GroupPlan.create({ group_id: created.id, name: 'رایگان', price_min: 0, price_max: 0, is_active: false });
+      await base44.entities.GroupPlan.create({ group_id: created.id, name: 'رایگان', price: 0, is_active: false });
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }

@@ -13,8 +13,6 @@ import { toPersianNum, formatCurrency, findOrCreatePerson } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
 import ExportButton from '@/components/ExportButton';
-import PlanOverflowDialog from '@/components/PlanOverflowDialog';
-import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -40,10 +38,9 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
   const [form, setForm] = useState({
     workshop_id: '', person_name: '', person_phone: '', price: '',
     purchase_date: todayGregorian(), payment_method: 'card_to_card', how_met: 'other',
-    registered_sessions: '', donation: '', plan_id: '',
+    is_paid: false, registered_sessions: '', donation: '', plan_id: '',
     description: '', registration_type: 'full', selected_sessions: []
   });
-  const [overflow, setOverflow] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -90,8 +87,6 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
   const selectedWorkshop = workshopById[form.workshop_id];
   const sessionCount = selectedWorkshop?.session_dates?.length || selectedWorkshop?.session_count || 0;
   const sessions = Array.from({ length: sessionCount }, (_, i) => i + 1);
-  const selectedPlan = plans.find(p => p.id === form.plan_id);
-  const computedPaid = selectedPlan ? isAmountPaid(form.price, selectedPlan) : false;
 
   const handleWorkshopChange = (wid) => {
     setFormError('');
@@ -145,21 +140,6 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     const dup = purchases.find(p => p.workshop_id === form.workshop_id && p.person_phone === form.person_phone);
     if (dup) { setDupWarning('این شخص قبلاً در این کارگاه ثبت‌نام شده است.'); return; }
     setDupWarning('');
-    const plan = plans.find(p => p.id === form.plan_id);
-    const { min, max } = getPlanBounds(plan);
-    const amount = Number(form.price) || 0;
-    const donation = Number(form.donation) || 0;
-    if (amount > max) { setOverflow({ amount, max, donation }); return; }
-    await doAddRegistration(amount, donation, amount >= min);
-  };
-
-  const acceptOverflow = () => {
-    const { amount, max, donation } = overflow;
-    setOverflow(null);
-    doAddRegistration(max, donation + (amount - max), true);
-  };
-
-  const doAddRegistration = async (amount, donation, isPaid) => {
     setSubmitting(true);
     try {
       const ws = workshopById[form.workshop_id];
@@ -171,21 +151,21 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
         workshop_title: ws?.title || '',
         person_name: form.person_name,
         person_phone: form.person_phone,
-        price: amount,
+        price: Number(form.price) || ws?.price || 0,
         quantity: 1,
         purchase_date: form.purchase_date,
-        payment_method: isFreePlan(plans.find(p => p.id === form.plan_id)) ? 'free' : form.payment_method,
+        payment_method: form.is_paid ? 'free' : form.payment_method,
         how_met: form.how_met || 'other',
-        is_paid: isPaid,
+        is_paid: form.is_paid,
         registered_sessions: selected.length || null,
-        donation: donation,
+        donation: Number(form.donation) || 0,
         plan_name: plans.find(p => p.id === form.plan_id)?.name || '',
         description: form.description || '',
         registration_type: regType,
         selected_sessions: selected
       });
       setPurchases(prev => [newPurchase, ...prev]);
-      setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', purchase_date: todayGregorian(), payment_method: 'card_to_card', how_met: 'other', registered_sessions: '', donation: '', plan_id: '', description: '', registration_type: 'full', selected_sessions: [] });
+      setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', purchase_date: todayGregorian(), payment_method: 'card_to_card', how_met: 'other', is_paid: false, registered_sessions: '', donation: '', plan_id: '', description: '', registration_type: 'full', selected_sessions: [] });
     } finally { setSubmitting(false); }
   };
 
@@ -249,18 +229,14 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام *</label>
-            <select value={form.plan_id} onClick={() => { if (!form.workshop_id) setFormError('انتخاب کارگاه الزامی است'); }} onChange={(e) => { if (!form.workshop_id) { setFormError('انتخاب کارگاه الزامی است'); return; } setFormError(''); const plan = plans.find(p => p.id === e.target.value); setForm(prev => ({ ...prev, plan_id: e.target.value, price: plan ? getPlanBounds(plan).min : '', payment_method: isFreePlan(plan) ? 'free' : 'card_to_card' })); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required>
+            <select value={form.plan_id} onClick={() => { if (!form.workshop_id) setFormError('انتخاب کارگاه الزامی است'); }} onChange={(e) => { if (!form.workshop_id) { setFormError('انتخاب کارگاه الزامی است'); return; } setFormError(''); const plan = plans.find(p => p.id === e.target.value); const isFree = plan && (Number(plan.price) === 0 || plan.name === 'رایگان'); setForm({ ...form, plan_id: e.target.value, price: plan ? plan.price : '', is_paid: !!isFree, payment_method: isFree ? 'free' : 'card_to_card' }); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required>
               <option value="">انتخاب مدل...</option>
-              {plans.filter(p => p.workshop_id === form.workshop_id).map(p => <option key={p.id} value={p.id}>{p.name} — {formatPlanRange(p)}</option>)}
+              {plans.filter(p => p.workshop_id === form.workshop_id).map(p => <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>)}
             </select>
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">نام و شماره تلفن مشتری *</label>
             <PersonSearch personName={form.person_name} personPhone={form.person_phone} onNameChange={v => setForm({ ...form, person_name: v })} onPhoneChange={v => setForm({ ...form, person_phone: v })} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">مبلغ (تومان)</label>
-            <PriceInput value={form.price} onChange={v => setForm({ ...form, price: v })} />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">دونیشین (تومان)</label>
@@ -270,7 +246,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
             <label className="text-xs text-muted-foreground block mb-1">تاریخ ثبت</label>
             <JalaliDateInput value={form.purchase_date} onChange={v => setForm({ ...form, purchase_date: v })} showToday={false} max={todayGregorian()} />
           </div>
-          {!computedPaid && (
+          {!form.is_paid && (
             <div>
               <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>
               <select value={form.payment_method} onChange={e => setForm({ ...form, payment_method: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
@@ -329,7 +305,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
           <button onClick={addRegistration} disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
             {submitting ? 'در حال ثبت...' : 'ثبت'}
           </button>
-          <button onClick={() => { setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', purchase_date: todayGregorian(), payment_method: 'card_to_card', how_met: 'other', registered_sessions: '', donation: '', plan_id: '', description: '', registration_type: 'full', selected_sessions: [] }); setFormError(''); setDupWarning(''); }} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-border text-sm">
+          <button onClick={() => { setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', purchase_date: todayGregorian(), payment_method: 'card_to_card', how_met: 'other', is_paid: false, registered_sessions: '', donation: '', plan_id: '', description: '', registration_type: 'full', selected_sessions: [] }); setFormError(''); setDupWarning(''); }} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-border text-sm">
             <RotateCcw className="w-3.5 h-3.5" /> پاک کردن فرم
           </button>
         </div>
@@ -434,8 +410,6 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
           </div>
         )}
       </div>
-
-      <PlanOverflowDialog payload={overflow} onAccept={acceptOverflow} onClose={() => setOverflow(null)} />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent className="text-center">
