@@ -239,6 +239,10 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
             <PersonSearch personName={form.person_name} personPhone={form.person_phone} onNameChange={v => setForm({ ...form, person_name: v })} onPhoneChange={v => setForm({ ...form, person_phone: v })} />
           </div>
           <div>
+            <label className="text-xs text-muted-foreground block mb-1">مبلغ (تومان)</label>
+            <PriceInput value={form.price} onChange={v => setForm({ ...form, price: v })} />
+          </div>
+          <div>
             <label className="text-xs text-muted-foreground block mb-1">دونیشین (تومان)</label>
             <PriceInput value={form.donation} onChange={v => setForm({ ...form, donation: v })} placeholder="اختیاری" />
           </div>

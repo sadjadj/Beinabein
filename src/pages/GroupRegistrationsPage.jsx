@@ -165,10 +165,6 @@ export default function GroupRegistrationsPage({ embedded = false }) {
             <PriceInput value={regForm.donation} onChange={v => setRegForm({ ...regForm, donation: v })} placeholder="اختیاری" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">تعداد</label>
-            <input type="number" placeholder="تعداد" value={regForm.quantity} onChange={e => setRegForm({ ...regForm, quantity: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-          </div>
-          <div>
             <label className="text-xs text-muted-foreground block mb-1">تاریخ ثبت</label>
             <JalaliDateInput value={regForm.purchase_date} onChange={v => setRegForm({ ...regForm, purchase_date: v })} showToday={false} max={todayGregorian()} />
           </div>
