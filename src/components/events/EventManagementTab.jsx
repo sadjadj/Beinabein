@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Pencil, Trash2, Calendar, Clock, MapPin, Plus, X, Sparkles, Users } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
-import { formatJalaliShort } from '@/lib/jalali';
+import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
 import EventForm from '@/components/EventForm';
 import EventRegistrationsView from '@/components/events/EventRegistrationsView';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
@@ -18,7 +18,7 @@ const blankEventForm = {
   start_date: '', end_date: '', capacity: '', session_dates: []
 };
 
-export default function EventManagementTab({ spaces }) {
+export default function EventManagementTab({ spaces, groupByPeriod = false }) {
   const [events, setEvents] = useState([]);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +94,9 @@ export default function EventManagementTab({ spaces }) {
     if (!deleteTarget) return;
     await base44.entities.EventPlan.deleteMany({ event_id: deleteTarget.id });
     await base44.entities.EventPurchase.deleteMany({ event_id: deleteTarget.id });
+    await base44.entities.EventItem.deleteMany({ event_id: deleteTarget.id });
+    await base44.entities.EventItemCategory.deleteMany({ event_id: deleteTarget.id });
+    await base44.entities.EventItemPurchase.deleteMany({ event_id: deleteTarget.id });
     await base44.entities.Event.delete(deleteTarget.id);
     setDeleteTarget(null);
     fetchData();
@@ -144,6 +147,50 @@ export default function EventManagementTab({ spaces }) {
     );
   }
 
+  const today = todayGregorian();
+  const isCurrentEvent = (e) => !e.is_ended && e.start_date && e.start_date <= today && (e.end_date || e.start_date) >= today;
+  const isFutureEvent = (e) => !isCurrentEvent(e) && (!e.start_date || e.start_date > today);
+  const currentList = events.filter(isCurrentEvent);
+  const futureList = events.filter(isFutureEvent);
+  const pastList = events.filter(e => !isCurrentEvent(e) && !isFutureEvent(e));
+
+  const renderEventsTable = (list) => (
+    <div className="bg-white rounded-xl border border-border overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="text-right p-3 font-medium">عنوان</th>
+              <th className="text-right p-3 font-medium">تاریخ شروع</th>
+              <th className="text-right p-3 font-medium">ساعت</th>
+              <th className="text-right p-3 font-medium">فضا</th>
+              <th className="text-center p-3 font-medium">جلسات</th>
+              <th className="text-center p-3 font-medium">عملیات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.map(e => (
+              <tr key={e.id} className="border-t border-border hover:bg-muted/30">
+                <td className="p-3 font-medium">{e.title || '-'}</td>
+                <td className="p-3 text-xs">{e.start_date ? formatJalaliShort(e.start_date) : '-'}</td>
+                <td className="p-3 text-xs whitespace-nowrap">{e.start_time || '-'}{e.end_time ? ` - ${e.end_time}` : ''}</td>
+                <td className="p-3 text-xs">{e.space || '-'}</td>
+                <td className="p-3 text-center text-xs">{toPersianNum((e.session_dates || []).length)}</td>
+                <td className="p-3 text-center">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button onClick={() => setRegViewId(e.id)} className="text-muted-foreground hover:text-[#3B8A95]" title="ثبت‌نام‌ها"><Users className="w-4 h-4" /></button>
+                    <button onClick={() => setEditingId(e.id)} className="text-muted-foreground hover:text-[#B74B40]" title="ویرایش"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => setDeleteTarget(e)} className="text-muted-foreground hover:text-red-600" title="حذف"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   const regEvent = events.find(e => e.id === regViewId);
   if (regEvent) {
     return (
@@ -181,42 +228,22 @@ export default function EventManagementTab({ spaces }) {
         <TableSkeleton rows={5} cols={5} />
       ) : events.length === 0 ? (
         <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground text-sm">هنوز رخدادی ثبت نشده است</div>
-      ) : (
-        <div className="bg-white rounded-xl border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-right p-3 font-medium">عنوان</th>
-                  <th className="text-right p-3 font-medium">تاریخ شروع</th>
-                  <th className="text-right p-3 font-medium">ساعت</th>
-                  <th className="text-right p-3 font-medium">فضا</th>
-                  <th className="text-center p-3 font-medium">جلسات</th>
-                  <th className="text-center p-3 font-medium">عملیات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map(e => (
-                  <tr key={e.id} className="border-t border-border hover:bg-muted/30">
-                    <td className="p-3 font-medium">{e.title || '-'}</td>
-                    <td className="p-3 text-xs">{e.start_date ? formatJalaliShort(e.start_date) : '-'}</td>
-                    <td className="p-3 text-xs whitespace-nowrap">{e.start_time || '-'}{e.end_time ? ` - ${e.end_time}` : ''}</td>
-                    <td className="p-3 text-xs">{e.space || '-'}</td>
-                    <td className="p-3 text-center text-xs">{toPersianNum((e.session_dates || []).length)}</td>
-                    <td className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button onClick={() => setRegViewId(e.id)} className="text-muted-foreground hover:text-[#3B8A95]" title="ثبت‌نام‌ها"><Users className="w-4 h-4" /></button>
-                        <button onClick={() => setEditingId(e.id)} className="text-muted-foreground hover:text-[#B74B40]" title="ویرایش"><Pencil className="w-4 h-4" /></button>
-                        <button onClick={() => setDeleteTarget(e)} className="text-muted-foreground hover:text-red-600" title="حذف"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      ) : groupByPeriod ? (
+        <div className="space-y-5">
+          {[
+            { label: 'ایونت‌های جاری', list: currentList },
+            { label: 'ایونت‌های آینده', list: futureList },
+            { label: 'ایونت‌های پیشین', list: pastList },
+          ].map(g => (
+            <div key={g.label} className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">{g.label} ({toPersianNum(g.list.length)})</p>
+              {g.list.length === 0 ? (
+                <div className="bg-white rounded-xl border border-border p-5 text-center text-muted-foreground text-sm">موردی وجود ندارد</div>
+              ) : renderEventsTable(g.list)}
+            </div>
+          ))}
         </div>
-      )}
+      ) : renderEventsTable(events)}
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent className="text-center">

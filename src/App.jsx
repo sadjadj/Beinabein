@@ -18,6 +18,8 @@ import WorkshopsHubPage from '@/pages/WorkshopsHubPage';
 import WorkshopRegistrationsPage from '@/pages/WorkshopRegistrationsPage';
 import GroupsHubPage from '@/pages/GroupsHubPage';
 import StorePage from '@/pages/StorePage';
+import EventItemsPage from '@/pages/EventItemsPage';
+import EventItemCategoriesPage from '@/pages/EventItemCategoriesPage';
 import GroupProfile from '@/pages/GroupProfile';
 import GroupAttendancePage from '@/pages/GroupAttendancePage';
 import AttendancePage from '@/pages/AttendancePage';
@@ -80,6 +82,8 @@ const AuthenticatedApp = () => {
       <Route path="/groups/:id" element={<GroupProfile />} />
       <Route path="/groups/attendance/:groupId" element={<GroupAttendancePage />} />
       <Route path="/store" element={<StorePage />} />
+      <Route path="/event-items/:id" element={<EventItemsPage />} />
+      <Route path="/event-item-categories/:id" element={<EventItemCategoriesPage />} />
       <Route path="/attendance" element={<AttendancePage />} />
       <Route path="/attendance/:workshopId" element={<WorkshopAttendancePage />} />
       <Route path="/people/:id" element={<PersonProfile />} />

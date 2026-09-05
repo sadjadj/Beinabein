@@ -9,7 +9,7 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 
-export default function StoreInventoryTab({ items, categories, onItemSubmit, onDeleteItem, onToggleVisible, onEditCategories, sectionName = 'استور' }) {
+export default function StoreInventoryTab({ items, categories, onItemSubmit, onDeleteItem, onToggleVisible, onEditCategories, sectionName = 'استور', showBrand = true }) {
   const [itemForm, setItemForm] = useState({ name: '', category: '', add_quantity: '', price: '' });
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -83,7 +83,7 @@ export default function StoreInventoryTab({ items, categories, onItemSubmit, onD
                   <th className="text-right p-3 font-medium">نام آیتم</th>
                   <th className="text-right p-3 font-medium">کتگوری</th>
                   <th className="text-right p-3 font-medium">قیمت به تومان</th>
-                  <th className="text-right p-3 font-medium">برند</th>
+                  {showBrand && <th className="text-right p-3 font-medium">برند</th>}
                   <th className="text-center p-3 font-medium">تعداد باقی مانده</th>
                   <th className="text-center p-3 font-medium">نمایش</th>
                   <th className="text-center p-3 font-medium">عملیات</th>
@@ -96,7 +96,7 @@ export default function StoreInventoryTab({ items, categories, onItemSubmit, onD
                       <td className="p-3 font-medium">{item.name}</td>
                       <td className="p-3 text-muted-foreground">{item.category || '-'}</td>
                       <td className="p-3">{formatCurrency(item.price)}</td>
-                      <td className="p-3">{item.brand || '-'}</td>
+                      {showBrand && <td className="p-3">{item.brand || '-'}</td>}
                       <td className="p-3 text-center">{toPersianNum(item.stock_quantity || 0)}</td>
                       <td className="p-3 text-center">
                         <input type="checkbox" checked={item.is_visible !== false} onChange={() => onToggleVisible(item.id, item.is_visible !== false)} className="w-4 h-4 cursor-pointer" />
@@ -110,7 +110,7 @@ export default function StoreInventoryTab({ items, categories, onItemSubmit, onD
                     </tr>
                     {editingId === item.id && (
                       <tr className="border-t border-border bg-muted/20">
-                        <td colSpan={7} className="p-4">
+                        <td colSpan={showBrand ? 7 : 6} className="p-4">
                           <form onSubmit={saveEdit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
                             <div>
                               <label className="text-xs text-muted-foreground block mb-1">نام آیتم</label>
@@ -127,10 +127,12 @@ export default function StoreInventoryTab({ items, categories, onItemSubmit, onD
                               <label className="text-xs text-muted-foreground block mb-1">قیمت به تومان</label>
                               <PriceInput value={editForm.price} onChange={v => setEditForm({ ...editForm, price: v })} required />
                             </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground block mb-1">برند</label>
-                              <input type="text" value={editForm.brand || ''} onChange={e => setEditForm({ ...editForm, brand: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-                            </div>
+                            {showBrand && (
+                              <div>
+                                <label className="text-xs text-muted-foreground block mb-1">برند</label>
+                                <input type="text" value={editForm.brand || ''} onChange={e => setEditForm({ ...editForm, brand: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+                              </div>
+                            )}
                             <div>
                               <label className="text-xs text-muted-foreground block mb-1">موجودی</label>
                               <PersianNumberInput value={editForm.stock_quantity || 0} onChange={v => setEditForm({ ...editForm, stock_quantity: v })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />

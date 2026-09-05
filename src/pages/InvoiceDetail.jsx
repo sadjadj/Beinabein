@@ -19,6 +19,7 @@ const entityMap = {
   cafe: { entity: 'ItemPurchase', label: 'کافه', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
   store: { entity: 'StorePurchase', label: 'استور', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
   greenhouse: { entity: 'GreenhousePurchase', label: 'گلخانه', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
+  event_item: { entity: 'EventItemPurchase', label: 'ایونت', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
   workshop: { entity: 'WorkshopPurchase', label: 'کارگاه', amountField: 'price', labelField: 'workshop_title', hasHowMet: true, labelFieldLabel: 'نام کارگاه', multiItem: false },
   group: { entity: 'GroupPurchase', label: 'گروه', amountField: 'price', labelField: 'group_title', hasHowMet: true, labelFieldLabel: 'نام گروه', multiItem: false },
   custom: { entity: 'CustomIncome', label: 'درآمد دلخواه', amountField: 'amount', labelField: 'title', hasHowMet: true, labelFieldLabel: 'شرح درآمد', multiItem: false },
@@ -40,7 +41,7 @@ export default function InvoiceDetail() {
   const cfg = entityMap[type];
 
   const fromPath = location.state?.from || '/accounting';
-  const fromLabels = { '/cafe': 'کافه', '/accounting': 'حسابداری', '/workspace': 'فضای کار', '/groups': 'گروه‌ها', '/workshops': 'کارگاه‌ها', '/finance': 'مالی' };
+  const fromLabels = { '/cafe': 'کافه', '/accounting': 'حسابداری', '/workspace': 'فضای کار', '/groups': 'گروه‌ها', '/workshops': 'کارگاه‌ها', '/finance': 'مالی', '/store': 'فروشگاه' };
   const fromLabel = fromLabels[fromPath] || 'حسابداری';
 
   const fetchData = async () => {

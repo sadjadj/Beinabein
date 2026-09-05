@@ -1,5 +1,6 @@
 import React from 'react';
 import StoreSection from '@/components/store/StoreSection';
+import EventSection from '@/components/events/EventSection';
 import { useUrlTab } from '@/hooks/useUrlTab';
 
 const mainTabs = [
@@ -45,7 +46,8 @@ export default function StorePage() {
       {mainTab === 'greenhouse' && (
         <StoreSection itemEntity="GreenhouseItem" purchaseEntity="GreenhousePurchase" categoryEntity="GreenhouseCategory" sectionName="گلخانه" exportSlug="گلخانه" invoiceType="greenhouse" />
       )}
-      {(mainTab === 'event' || mainTab === 'history' || mainTab === 'report') && (
+      {mainTab === 'event' && <EventSection />}
+      {(mainTab === 'history' || mainTab === 'report') && (
         <div className="bg-white rounded-xl border border-border p-10 text-center">
           <p className="text-sm text-muted-foreground">این بخش به‌زودی تکمیل خواهد شد.</p>
         </div>
