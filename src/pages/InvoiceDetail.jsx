@@ -20,8 +20,9 @@ const entityMap = {
   store: { entity: 'StorePurchase', label: 'استور', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
   greenhouse: { entity: 'GreenhousePurchase', label: 'گلخانه', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
   salesEvent: { entity: 'SalesEventPurchase', label: 'ایونت', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
-  workshop: { entity: 'WorkshopPurchase', label: 'کارگاه', amountField: 'price', labelField: 'workshop_title', hasHowMet: true, labelFieldLabel: 'نام کارگاه', multiItem: false },
-  group: { entity: 'GroupPurchase', label: 'گروه', amountField: 'price', labelField: 'group_title', hasHowMet: true, labelFieldLabel: 'نام گروه', multiItem: false },
+  workshop: { entity: 'WorkshopPurchase', label: 'کارگاه', amountField: 'price', labelField: 'workshop_title', hasHowMet: true, labelFieldLabel: 'نام کارگاه', multiItem: false, hasDonation: true },
+  group: { entity: 'GroupPurchase', label: 'گروه', amountField: 'price', labelField: 'group_title', hasHowMet: true, labelFieldLabel: 'نام گروه', multiItem: false, hasDonation: true },
+  event: { entity: 'EventPurchase', label: 'رخداد', amountField: 'price', labelField: 'event_title', hasHowMet: true, labelFieldLabel: 'نام رخداد', multiItem: false, hasDonation: true },
   custom: { entity: 'CustomIncome', label: 'درآمد دلخواه', amountField: 'amount', labelField: 'title', hasHowMet: true, labelFieldLabel: 'شرح درآمد', multiItem: false },
 };
 
@@ -164,7 +165,7 @@ export default function InvoiceDetail() {
   const isCafe = cfg.multiItem;
   const cafeTotalAmount = isCafe ? allItems.reduce((s, i) => s + (i.item_price || 0) * (i.quantity || 1) * (1 - (i.discount || 0) / 100), 0) : 0;
   const cafeTotalItems = isCafe ? allItems.reduce((s, i) => s + (i.quantity || 1), 0) : 0;
-  const amount = isCafe ? cafeTotalAmount : (invoice[cfg.amountField] || 0) * (invoice.quantity || 1);
+  const amount = isCafe ? cafeTotalAmount : (invoice[cfg.amountField] || 0) * (invoice.quantity || 1) + (cfg.hasDonation ? (invoice.donation || 0) : 0);
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-3xl mx-auto">
@@ -339,6 +340,12 @@ export default function InvoiceDetail() {
                 <div>
                   <p className="text-xs text-muted-foreground">مبلغ واحد</p>
                   <p className="text-sm font-medium mt-1">{formatCurrency(invoice[cfg.amountField] || 0)}</p>
+                </div>
+              )}
+              {cfg.hasDonation && (invoice.donation || 0) > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground">دونیشن</p>
+                  <p className="text-sm font-medium mt-1">{formatCurrency(invoice.donation)}</p>
                 </div>
               )}
               {cfg.hasHowMet && invoice.how_met && (

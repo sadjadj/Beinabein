@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell, Search, Plus } from 'lucide-react';
 import { computeWorkshopRevenue, toPersianNum, formatCurrency, findOrCreatePerson, currentJalaliMonthKey, gregorianToJalaliMonthKey } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
+import { buildStoreInvoiceGroups } from '@/lib/storeInvoices';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import PersonSearch from '@/components/PersonSearch';
 import PriceInput from '@/components/PriceInput';
@@ -23,6 +24,11 @@ export default function AccountingPage({ embedded = false }) {
   const [workshopPurchases, setWorkshopPurchases] = useState([]);
   const [workshops, setWorkshops] = useState([]);
   const [customIncomes, setCustomIncomes] = useState([]);
+  const [groupPurchases, setGroupPurchases] = useState([]);
+  const [eventPurchases, setEventPurchases] = useState([]);
+  const [storePurchases, setStorePurchases] = useState([]);
+  const [greenhousePurchases, setGreenhousePurchases] = useState([]);
+  const [salesEventPurchases, setSalesEventPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -35,33 +41,47 @@ export default function AccountingPage({ embedded = false }) {
   const [customError, setCustomError] = useState('');
   const [customSubmitting, setCustomSubmitting] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [ws, items, wp, wsList, ci] = await Promise.all([
-          base44.entities.WorkspaceOrder.list('-purchase_date', 1000),
-          base44.entities.ItemPurchase.list('-purchase_date', 1000),
-          base44.entities.WorkshopPurchase.list('-purchase_date', 1000),
-          base44.entities.Workshop.list('-start_date', 500),
-          base44.entities.CustomIncome.list('-purchase_date', 1000)
-        ]);
-        setWorkspaceOrders(ws);
-        setItemPurchases(items);
-        setWorkshopPurchases(wp);
-        setWorkshops(wsList);
-        setCustomIncomes(ci);
-      } finally { setLoading(false); }
-    };
-    fetchData();
-  }, []);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [ws, items, wp, wsList, ci, gp, ep, sp, gh, se] = await Promise.all([
+        base44.entities.WorkspaceOrder.list('-purchase_date', 1000),
+        base44.entities.ItemPurchase.list('-purchase_date', 1000),
+        base44.entities.WorkshopPurchase.list('-purchase_date', 1000),
+        base44.entities.Workshop.list('-start_date', 500),
+        base44.entities.CustomIncome.list('-purchase_date', 1000),
+        base44.entities.GroupPurchase.list('-purchase_date', 1000),
+        base44.entities.EventPurchase.list('-purchase_date', 1000),
+        base44.entities.StorePurchase.list('-purchase_date', 1000),
+        base44.entities.GreenhousePurchase.list('-purchase_date', 1000),
+        base44.entities.SalesEventPurchase.list('-purchase_date', 1000)
+      ]);
+      setWorkspaceOrders(ws);
+      setItemPurchases(items);
+      setWorkshopPurchases(wp);
+      setWorkshops(wsList);
+      setCustomIncomes(ci);
+      setGroupPurchases(gp);
+      setEventPurchases(ep);
+      setStorePurchases(sp);
+      setGreenhousePurchases(gh);
+      setSalesEventPurchases(se);
+    } finally { setLoading(false); }
+  };
 
-  const togglePaid = async (entity, id, current) => {
-    await base44.entities[entity].update(id, { is_paid: !current });
-    if (entity === 'WorkspaceOrder') setWorkspaceOrders(await base44.entities.WorkspaceOrder.list('-purchase_date', 1000));
-    if (entity === 'ItemPurchase') setItemPurchases(await base44.entities.ItemPurchase.list('-purchase_date', 1000));
-    if (entity === 'WorkshopPurchase') setWorkshopPurchases(await base44.entities.WorkshopPurchase.list('-purchase_date', 1000));
-    if (entity === 'CustomIncome') setCustomIncomes(await base44.entities.CustomIncome.list('-purchase_date', 1000));
+  useEffect(() => { fetchData(); }, []);
+
+  const entityByType = { workspace: 'WorkspaceOrder', cafe: 'ItemPurchase', workshop: 'WorkshopPurchase', custom: 'CustomIncome', group: 'GroupPurchase', event: 'EventPurchase', store: 'StorePurchase', greenhouse: 'GreenhousePurchase', salesEvent: 'SalesEventPurchase' };
+
+  const togglePaid = async (t) => {
+    const entity = entityByType[t.type];
+    const newPaid = !t.is_paid;
+    if (t.groupItemIds) {
+      await base44.entities[entity].updateMany({ id: { $in: t.groupItemIds } }, { $set: { is_paid: newPaid } });
+    } else {
+      await base44.entities[entity].update(t.id, { is_paid: newPaid });
+    }
+    fetchData();
   };
 
   const handleCustomSubmit = async () => {
@@ -106,7 +126,17 @@ export default function AccountingPage({ embedded = false }) {
   const workshopRevenue = monthWp.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
   const monthCi = customIncomes.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
   const ciRevenue = monthCi.reduce((s, p) => s + (p.amount || 0) * (p.quantity || 1), 0);
-  const totalIncome = wsRevenue + cafeRevenue + workshopRevenue + ciRevenue;
+  const monthGp = groupPurchases.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
+  const groupRevenue = monthGp.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
+  const monthEp = eventPurchases.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
+  const eventRevenue = monthEp.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
+  const monthSp = storePurchases.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
+  const storeRevenue = monthSp.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
+  const monthGh = greenhousePurchases.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
+  const greenhouseRevenue = monthGh.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
+  const monthSe = salesEventPurchases.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
+  const salesEventRevenue = monthSe.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
+  const totalIncome = wsRevenue + cafeRevenue + workshopRevenue + ciRevenue + groupRevenue + eventRevenue + storeRevenue + greenhouseRevenue + salesEventRevenue;
 
   // Facilitator expenses (from all workshops this month)
   const monthWorkshops = workshops.filter(w => gregorianToJalaliMonthKey(w.start_date) === currentMonth);
@@ -118,17 +148,21 @@ export default function AccountingPage({ embedded = false }) {
   const profit = totalIncome - facilitatorExpenses;
 
   // Unpaid items
+  const invoiceGroups = buildStoreInvoiceGroups(storePurchases, greenhousePurchases, salesEventPurchases);
   const unpaidWs = workspaceOrders.filter(o => !o.is_paid && o.payment_method !== 'free');
   const unpaidItems = itemPurchases.filter(p => !p.is_paid && p.payment_method !== 'free');
   const unpaidWp = workshopPurchases.filter(p => !p.is_paid && p.payment_method !== 'free');
   const unpaidCi = customIncomes.filter(p => !p.is_paid && p.payment_method !== 'free');
-  const totalUnpaid = unpaidWs.length + unpaidItems.length + unpaidWp.length + unpaidCi.length;
-  const totalUnpaidAmount = [...unpaidWs, ...unpaidItems, ...unpaidWp, ...unpaidCi].reduce((s, r) => {
+  const unpaidGp = groupPurchases.filter(p => !p.is_paid);
+  const unpaidEp = eventPurchases.filter(p => !p.is_paid);
+  const unpaidGroups = invoiceGroups.filter(g => !g.is_paid);
+  const totalUnpaid = unpaidWs.length + unpaidItems.length + unpaidWp.length + unpaidCi.length + unpaidGp.length + unpaidEp.length + unpaidGroups.length;
+  const totalUnpaidAmount = [...unpaidWs, ...unpaidItems, ...unpaidWp, ...unpaidCi, ...unpaidGp, ...unpaidEp].reduce((s, r) => {
     if (r.amount) return s + r.amount * (r.quantity || 1);
     if (r.price) return s + r.price * (r.quantity || 1) + (r.donation || 0);
     if (r.item_price) return s + r.item_price * (r.quantity || 1) * (1 - (r.discount || 0) / 100);
     return s;
-  }, 0);
+  }, 0) + unpaidGroups.reduce((s, g) => s + g.totalAmount, 0);
 
   // Unpaid facilitator payments
   const unpaidFacilitators = workshops.filter(w => !w.facilitator_paid).map(w => {
@@ -141,6 +175,15 @@ export default function AccountingPage({ embedded = false }) {
     ...itemPurchases.map(p => ({ ...p, type: 'cafe', amount: (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), label: p.item_name })),
     ...workshopPurchases.map(p => ({ ...p, type: 'workshop', amount: (p.price || 0) * (p.quantity || 1) + (p.donation || 0), label: p.workshop_title })),
     ...customIncomes.map(p => ({ ...p, type: 'custom', amount: (p.amount || 0) * (p.quantity || 1), label: p.title || '-' })),
+    ...groupPurchases.map(p => ({ ...p, type: 'group', amount: (p.price || 0) * (p.quantity || 1) + (p.donation || 0), label: p.group_title })),
+    ...eventPurchases.map(p => ({ ...p, type: 'event', amount: (p.price || 0) * (p.quantity || 1) + (p.donation || 0), label: p.event_title })),
+    ...invoiceGroups.map(g => ({
+      type: g.source, id: g.items[0].id, groupItemIds: g.items.map(i => i.id),
+      amount: g.totalAmount,
+      label: g.source === 'salesEvent' && g.event_title ? g.event_title : (g.items.length > 1 ? `${g.items[0].item_name} (+${g.items.length - 1} آیتم)` : g.items[0].item_name),
+      person_name: g.person_name, person_phone: g.person_phone,
+      purchase_date: g.purchase_date, payment_method: g.payment_method, is_paid: g.is_paid,
+    })),
   ].sort((a, b) => (b.purchase_date || '').localeCompare(a.purchase_date || ''));
 
   const filtered = allTransactions.filter(t => {
@@ -161,7 +204,7 @@ export default function AccountingPage({ embedded = false }) {
       (t.person_phone || '').toLowerCase().includes(s);
   });
 
-  const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه', custom: 'درآمد دلخواه' };
+  const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه', group: 'گروه', event: 'رخداد', store: 'استور', salesEvent: 'ایونت', greenhouse: 'گلخانه', custom: 'درآمد دلخواه' };
 
   const fromPath = embedded ? '/finance' : '/accounting';
 
@@ -211,7 +254,7 @@ export default function AccountingPage({ embedded = false }) {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        {!hideFinancials && <StatCard label="درآمد این ماه" value={formatCurrency(totalIncome)} icon={TrendingUp} color="terracotta" info="مجموع درآمد حاصل از فضای کار، کافه، کارگاه‌ها و درآمدهای دلخواه در ماه جاری شمسی" />}
+        {!hideFinancials && <StatCard label="درآمد این ماه" value={formatCurrency(totalIncome)} icon={TrendingUp} color="terracotta" info="مجموع درآمد حاصل از فضای کار، کافه، کارگاه‌ها، گروه‌ها، رخدادها، استور، ایونت‌ها، گلخانه و درآمدهای دلخواه در ماه جاری شمسی" />}
         {!hideFinancials && <StatCard label="پرداخت تسهیلگران" value={formatCurrency(facilitatorExpenses)} icon={TrendingDown} color="pink" info="مجموع مبالغ پرداختی به تسهیلگران کارگاه‌های این ماه (بر اساس درصد تسهیلگر)" />}
         {!hideFinancials && <StatCard label="سود/زیان این ماه" value={formatCurrency(profit)} sublabel={profit >= 0 ? 'سود' : 'زیان'} icon={Wallet} color={profit >= 0 ? 'teal' : 'pink'} info="تفاضل درآمد این ماه و پرداختی تسهیلگران (سود مثبت، زیان منفی)" />}
         <StatCard label="پرداخت‌نشده" value={toPersianNum(totalUnpaid)} sublabel={hideFinancials ? undefined : formatCurrency(totalUnpaidAmount)} icon={AlertCircle} color="ochre" info="تعداد و مبلغ فاکتورهای پرداخت‌نشده در همه بخش‌ها" />
@@ -383,7 +426,7 @@ export default function AccountingPage({ embedded = false }) {
                     <td className="p-3 text-xs whitespace-nowrap">{paymentMethodLabels[t.payment_method] || t.payment_method}</td>
                     <td className="p-3 font-medium whitespace-nowrap text-left" dir="ltr">{formatCurrency(t.amount)}</td>
                     <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => togglePaid({ workspace: 'WorkspaceOrder', cafe: 'ItemPurchase', workshop: 'WorkshopPurchase', custom: 'CustomIncome' }[t.type], t.id, t.is_paid)} className="inline-flex items-center gap-1 text-xs whitespace-nowrap">
+                      <button onClick={() => togglePaid(t)} className="inline-flex items-center gap-1 text-xs whitespace-nowrap">
                         {t.is_paid ? (
                           <span className="inline-flex items-center gap-1 text-green-600"><CheckCircle className="w-3.5 h-3.5" /> پرداخت شده</span>
                         ) : (
