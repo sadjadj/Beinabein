@@ -22,7 +22,6 @@ const entityMap = {
   salesEvent: { entity: 'SalesEventPurchase', label: 'ایونت', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
   workshop: { entity: 'WorkshopPurchase', label: 'کارگاه', amountField: 'price', labelField: 'workshop_title', hasHowMet: true, labelFieldLabel: 'نام کارگاه', multiItem: false },
   group: { entity: 'GroupPurchase', label: 'گروه', amountField: 'price', labelField: 'group_title', hasHowMet: true, labelFieldLabel: 'نام گروه', multiItem: false },
-  event: { entity: 'EventPurchase', label: 'رخداد', amountField: 'price', labelField: 'event_title', hasHowMet: true, labelFieldLabel: 'نام رخداد', multiItem: false },
   custom: { entity: 'CustomIncome', label: 'درآمد دلخواه', amountField: 'amount', labelField: 'title', hasHowMet: true, labelFieldLabel: 'شرح درآمد', multiItem: false },
 };
 

@@ -13,7 +13,6 @@ import PersianNumberInput from '@/components/PersianNumberInput';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 import ExportButton from '@/components/ExportButton';
-import { buildStoreInvoiceGroups } from '@/lib/storeInvoices';
 
 export default function AccountingPage({ embedded = false }) {
   const navigate = useNavigate();
@@ -24,11 +23,6 @@ export default function AccountingPage({ embedded = false }) {
   const [workshopPurchases, setWorkshopPurchases] = useState([]);
   const [workshops, setWorkshops] = useState([]);
   const [customIncomes, setCustomIncomes] = useState([]);
-  const [groupPurchases, setGroupPurchases] = useState([]);
-  const [eventPurchases, setEventPurchases] = useState([]);
-  const [storePurchases, setStorePurchases] = useState([]);
-  const [greenhousePurchases, setGreenhousePurchases] = useState([]);
-  const [salesEventPurchases, setSalesEventPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -45,58 +39,29 @@ export default function AccountingPage({ embedded = false }) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [ws, items, wp, wsList, ci, gp, ep, sp, ghp, sep] = await Promise.all([
+        const [ws, items, wp, wsList, ci] = await Promise.all([
           base44.entities.WorkspaceOrder.list('-purchase_date', 1000),
           base44.entities.ItemPurchase.list('-purchase_date', 1000),
           base44.entities.WorkshopPurchase.list('-purchase_date', 1000),
           base44.entities.Workshop.list('-start_date', 500),
-          base44.entities.CustomIncome.list('-purchase_date', 1000),
-          base44.entities.GroupPurchase.list('-purchase_date', 1000),
-          base44.entities.EventPurchase.list('-purchase_date', 1000),
-          base44.entities.StorePurchase.list('-purchase_date', 1000),
-          base44.entities.GreenhousePurchase.list('-purchase_date', 1000),
-          base44.entities.SalesEventPurchase.list('-purchase_date', 1000)
+          base44.entities.CustomIncome.list('-purchase_date', 1000)
         ]);
         setWorkspaceOrders(ws);
         setItemPurchases(items);
         setWorkshopPurchases(wp);
         setWorkshops(wsList);
         setCustomIncomes(ci);
-        setGroupPurchases(gp);
-        setEventPurchases(ep);
-        setStorePurchases(sp);
-        setGreenhousePurchases(ghp);
-        setSalesEventPurchases(sep);
       } finally { setLoading(false); }
     };
     fetchData();
   }, []);
 
-  const entityByType = {
-    workspace: 'WorkspaceOrder', cafe: 'ItemPurchase', workshop: 'WorkshopPurchase', custom: 'CustomIncome',
-    group: 'GroupPurchase', event: 'EventPurchase', store: 'StorePurchase', greenhouse: 'GreenhousePurchase', salesEvent: 'SalesEventPurchase'
-  };
-
-  const reloadByType = {
-    workspace: () => base44.entities.WorkspaceOrder.list('-purchase_date', 1000).then(setWorkspaceOrders),
-    cafe: () => base44.entities.ItemPurchase.list('-purchase_date', 1000).then(setItemPurchases),
-    workshop: () => base44.entities.WorkshopPurchase.list('-purchase_date', 1000).then(setWorkshopPurchases),
-    custom: () => base44.entities.CustomIncome.list('-purchase_date', 1000).then(setCustomIncomes),
-    group: () => base44.entities.GroupPurchase.list('-purchase_date', 1000).then(setGroupPurchases),
-    event: () => base44.entities.EventPurchase.list('-purchase_date', 1000).then(setEventPurchases),
-    store: () => base44.entities.StorePurchase.list('-purchase_date', 1000).then(setStorePurchases),
-    greenhouse: () => base44.entities.GreenhousePurchase.list('-purchase_date', 1000).then(setGreenhousePurchases),
-    salesEvent: () => base44.entities.SalesEventPurchase.list('-purchase_date', 1000).then(setSalesEventPurchases),
-  };
-
-  const togglePaid = async (t) => {
-    const entity = entityByType[t.type];
-    if (t.ids) {
-      await base44.entities[entity].updateMany({ id: { $in: t.ids } }, { $set: { is_paid: !t.is_paid } });
-    } else {
-      await base44.entities[entity].update(t.id, { is_paid: !t.is_paid });
-    }
-    await reloadByType[t.type]();
+  const togglePaid = async (entity, id, current) => {
+    await base44.entities[entity].update(id, { is_paid: !current });
+    if (entity === 'WorkspaceOrder') setWorkspaceOrders(await base44.entities.WorkspaceOrder.list('-purchase_date', 1000));
+    if (entity === 'ItemPurchase') setItemPurchases(await base44.entities.ItemPurchase.list('-purchase_date', 1000));
+    if (entity === 'WorkshopPurchase') setWorkshopPurchases(await base44.entities.WorkshopPurchase.list('-purchase_date', 1000));
+    if (entity === 'CustomIncome') setCustomIncomes(await base44.entities.CustomIncome.list('-purchase_date', 1000));
   };
 
   const handleCustomSubmit = async () => {
@@ -171,27 +136,11 @@ export default function AccountingPage({ embedded = false }) {
     return { ...w, facilitatorRevenue: rev.facilitatorRevenue, participantCount: rev.participantCount };
   }).filter(w => w.facilitatorRevenue > 0);
 
-  const storeInvoiceTransactions = buildStoreInvoiceGroups(storePurchases, greenhousePurchases, salesEventPurchases).map(g => ({
-    id: g.items[0].id,
-    ids: g.items.map(i => i.id),
-    type: g.invoiceType,
-    amount: g.totalAmount,
-    label: g.items.length > 1 ? `${toPersianNum(g.items.length)} آیتم` : g.items[0].item_name,
-    person_name: g.person_name,
-    person_phone: g.person_phone,
-    purchase_date: g.purchase_date,
-    payment_method: g.payment_method,
-    is_paid: g.is_paid,
-  }));
-
   const allTransactions = [
     ...workspaceOrders.map(o => ({ ...o, type: 'workspace', amount: (o.price || 0) * (o.quantity || 1), label: o.subscription_name || '-' })),
     ...itemPurchases.map(p => ({ ...p, type: 'cafe', amount: (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), label: p.item_name })),
     ...workshopPurchases.map(p => ({ ...p, type: 'workshop', amount: (p.price || 0) * (p.quantity || 1) + (p.donation || 0), label: p.workshop_title })),
     ...customIncomes.map(p => ({ ...p, type: 'custom', amount: (p.amount || 0) * (p.quantity || 1), label: p.title || '-' })),
-    ...groupPurchases.map(p => ({ ...p, type: 'group', amount: (p.price || 0) * (p.quantity || 1) + (p.donation || 0), label: p.group_title })),
-    ...eventPurchases.map(p => ({ ...p, type: 'event', amount: (p.price || 0) * (p.quantity || 1) + (p.donation || 0), label: p.event_title })),
-    ...storeInvoiceTransactions,
   ].sort((a, b) => (b.purchase_date || '').localeCompare(a.purchase_date || ''));
 
   const filtered = allTransactions.filter(t => {
@@ -212,18 +161,7 @@ export default function AccountingPage({ embedded = false }) {
       (t.person_phone || '').toLowerCase().includes(s);
   });
 
-  const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه', custom: 'درآمد دلخواه', group: 'گروه', event: 'رخداد', store: 'استور', salesEvent: 'ایونت', greenhouse: 'گلخانه' };
-  const typeBadgeColors = {
-    workspace: 'bg-[#FDF2F1] text-[#B74B40]',
-    cafe: 'bg-[#FBF3EC] text-[#B9834B]',
-    workshop: 'bg-[#F0F7F8] text-[#8CB9C0]',
-    custom: 'bg-[#F0F7F8] text-[#8CB9C0]',
-    group: 'bg-[#F0F7F8] text-[#8CB9C0]',
-    event: 'bg-[#EDF5EE] text-[#5a9a5d]',
-    store: 'bg-[#FDF2F1] text-[#B74B40]',
-    salesEvent: 'bg-[#FBF3EC] text-[#B9834B]',
-    greenhouse: 'bg-[#F0F7F8] text-[#8CB9C0]',
-  };
+  const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه', custom: 'درآمد دلخواه' };
 
   const fromPath = embedded ? '/finance' : '/accounting';
 
@@ -436,7 +374,7 @@ export default function AccountingPage({ embedded = false }) {
                   <tr key={`${t.type}-${t.id}`} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/accounting/${t.type}/${t.id}`, { state: { from: fromPath } })}>
                     <td className="p-3 whitespace-nowrap">{toJalaliStr(t.purchase_date)}</td>
                     <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs whitespace-nowrap ${typeBadgeColors[t.type] || 'bg-muted text-muted-foreground'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs whitespace-nowrap ${t.type === 'workspace' ? 'bg-[#FDF2F1] text-[#B74B40]' : t.type === 'cafe' ? 'bg-[#FBF3EC] text-[#B9834B]' : 'bg-[#F0F7F8] text-[#8CB9C0]'}`}>
                         {typeLabels[t.type]}
                       </span>
                     </td>
@@ -445,7 +383,7 @@ export default function AccountingPage({ embedded = false }) {
                     <td className="p-3 text-xs whitespace-nowrap">{paymentMethodLabels[t.payment_method] || t.payment_method}</td>
                     <td className="p-3 font-medium whitespace-nowrap text-left" dir="ltr">{formatCurrency(t.amount)}</td>
                     <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => togglePaid(t)} className="inline-flex items-center gap-1 text-xs whitespace-nowrap">
+                      <button onClick={() => togglePaid({ workspace: 'WorkspaceOrder', cafe: 'ItemPurchase', workshop: 'WorkshopPurchase', custom: 'CustomIncome' }[t.type], t.id, t.is_paid)} className="inline-flex items-center gap-1 text-xs whitespace-nowrap">
                         {t.is_paid ? (
                           <span className="inline-flex items-center gap-1 text-green-600"><CheckCircle className="w-3.5 h-3.5" /> پرداخت شده</span>
                         ) : (
