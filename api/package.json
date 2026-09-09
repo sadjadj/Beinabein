@@ -1,0 +1,17 @@
+{
+  "name": "beinabein-api",
+  "version": "1.0.0",
+  "description": "Beinabein – Express/Postgres backend (replaces Base44), serves generic entity CRUD",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node src/queryBuilder.test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@base44/sdk": "^0.8.41"
+  }
+}

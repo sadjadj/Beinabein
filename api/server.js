@@ -1,0 +1,50 @@
+'use strict';
+
+// ── API Reference ─────────────────────────────────────────────────────────────
+//
+//  Generic entity CRUD, one route per action, entity name is the collection.
+//  PUBLIC (no auth): GET Workshop (list/get), POST Person, POST WorkshopPurchase.
+//  Everything else needs HTTP Basic Auth against ADMIN_USERS ("user:pass,...").
+//
+//  GET    /api/entities/:name?sort=-created_date&limit=500
+//  GET    /api/entities/:name/:id
+//  POST   /api/entities/:name              body: record fields
+//  POST   /api/entities/:name/bulk         body: array of records
+//  POST   /api/entities/:name/filter       body: { field: value | { $in: [...] } }
+//  PUT    /api/entities/:name/:id          body: partial patch (shallow merge)
+//  PATCH  /api/entities/:name/many         body: { filter, set }
+//  DELETE /api/entities/:name/:id
+//  DELETE /api/entities/:name/many         body: filter
+//  GET    /api/me                          admin only, echoes the matched username
+//
+//  Phase 3 (deploy) adds express.static for the two frontend builds + SPA
+//  fallbacks — not wired yet since neither `dist/` exists locally.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const express = require('express');
+const { initDb } = require('./src/db');
+const { requireAdmin } = require('./src/auth');
+const entitiesRouter = require('./src/routes/entities');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+
+app.get('/healthz', (req, res) => res.json({ ok: true }));
+
+app.get('/api/me', requireAdmin, (req, res) => res.json({ user: req.adminUser }));
+
+app.use('/api/entities', entitiesRouter);
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: 'internal error' });
+});
+
+initDb()
+  .then(() => app.listen(PORT, () => console.log(`beinabein-api listening on :${PORT}`)))
+  .catch((err) => {
+    console.error('failed to init db', err);
+    process.exit(1);
+  });

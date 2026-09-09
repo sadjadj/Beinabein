@@ -1,0 +1,49 @@
+{
+  "name": "Expense",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "\u0639\u0646\u0648\u0627\u0646 \u0647\u0632\u06cc\u0646\u0647"
+    },
+    "amount": {
+      "type": "number",
+      "default": 0,
+      "title": "\u0645\u0628\u0644\u063a"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "repairs",
+        "daily",
+        "facilitator_payment",
+        "cafe_purchase",
+        "kitchen_purchase"
+      ],
+      "default": "daily",
+      "title": "\u062f\u0633\u062a\u0647\u200c\u0628\u0646\u062f\u06cc"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "\u062a\u0627\u0631\u06cc\u062e"
+    },
+    "description": {
+      "type": "string",
+      "title": "\u062a\u0648\u0636\u06cc\u062d\u0627\u062a"
+    },
+    "facilitator_id": {
+      "type": "string",
+      "title": "\u062a\u0633\u0647\u06cc\u0644\u06af\u0631"
+    },
+    "facilitator_name": {
+      "type": "string",
+      "title": "\u0646\u0627\u0645 \u062a\u0633\u0647\u06cc\u0644\u06af\u0631"
+    }
+  },
+  "required": [
+    "title",
+    "amount",
+    "date"
+  ]
+}

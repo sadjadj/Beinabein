@@ -1,0 +1,91 @@
+{
+  "name": "GroupPurchase",
+  "type": "object",
+  "properties": {
+    "group_id": {
+      "type": "string",
+      "title": "\u06af\u0631\u0648\u0647"
+    },
+    "group_title": {
+      "type": "string",
+      "title": "\u0627\u0633\u0645 \u06af\u0631\u0648\u0647"
+    },
+    "month": {
+      "type": "string",
+      "title": "\u0645\u0627\u0647 \u062b\u0628\u062a\u200c\u0646\u0627\u0645"
+    },
+    "price": {
+      "type": "number",
+      "default": 0,
+      "title": "\u0642\u06cc\u0645\u062a"
+    },
+    "donation": {
+      "type": "number",
+      "default": 0,
+      "title": "\u062f\u0648\u0646\u06cc\u0634\u0646"
+    },
+    "plan_name": {
+      "type": "string",
+      "title": "\u0645\u062f\u0644 \u062b\u0628\u062a\u200c\u0646\u0627\u0645"
+    },
+    "person_name": {
+      "type": "string",
+      "title": "\u0627\u0633\u0645 \u06a9\u0627\u0631\u0628\u0631"
+    },
+    "person_phone": {
+      "type": "string",
+      "title": "\u0634\u0645\u0627\u0631\u0647 \u062a\u0644\u0641\u0646"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "title": "\u062a\u0639\u062f\u0627\u062f"
+    },
+    "purchase_date": {
+      "type": "string",
+      "format": "date",
+      "title": "\u062a\u0627\u0631\u06cc\u062e \u062e\u0631\u06cc\u062f"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "online",
+        "card_to_card",
+        "cash",
+        "azno"
+      ],
+      "default": "cash",
+      "title": "\u0645\u062f\u0644 \u067e\u0631\u062f\u0627\u062e\u062a"
+    },
+    "how_met": {
+      "type": "string",
+      "enum": [
+        "instagram",
+        "telegram",
+        "referral",
+        "friends",
+        "facilitator",
+        "event",
+        "introduction",
+        "other"
+      ],
+      "default": "other",
+      "title": "\u0646\u062d\u0648\u0647 \u0622\u0634\u0646\u0627\u06cc\u06cc"
+    },
+    "is_paid": {
+      "type": "boolean",
+      "default": false,
+      "title": "\u067e\u0631\u062f\u0627\u062e\u062a \u0634\u062f\u0647"
+    },
+    "description": {
+      "type": "string",
+      "title": "\u062a\u0648\u0636\u06cc\u062d\u0627\u062a"
+    }
+  },
+  "required": [
+    "group_id",
+    "person_phone",
+    "purchase_date",
+    "month"
+  ]
+}
