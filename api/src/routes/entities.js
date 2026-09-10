@@ -60,9 +60,16 @@ router.post('/:name/filter', publicOr('filter'), async (req, res, next) => {
 router.post('/:name/bulk', publicOr('bulkCreate'), async (req, res, next) => {
   try {
     const now = new Date().toISOString();
-    const records = req.body.map((r) => ({ id: crypto.randomUUID(), data: { created_date: now, ...r } }));
+    // id is normally omitted (fresh record, server assigns one) — the
+    // migration script passes it explicitly to keep cross-entity references
+    // (workshop_id, facilitator_ids, ...) pointing at the right rows.
+    const records = req.body.map(({ id, ...r }) => ({ id: id || crypto.randomUUID(), data: { created_date: now, ...r } }));
     for (const r of records) {
-      await pool.query('INSERT INTO entities (collection, id, data) VALUES ($1, $2, $3)', [req.params.name, r.id, r.data]);
+      await pool.query(
+        `INSERT INTO entities (collection, id, data) VALUES ($1, $2, $3)
+         ON CONFLICT (collection, id) DO UPDATE SET data = EXCLUDED.data`,
+        [req.params.name, r.id, r.data]
+      );
     }
     res.status(201).json(records.map((r) => toRecord({ id: r.id, data: r.data })));
   } catch (err) { next(err); }

@@ -1,20 +1,20 @@
 // One-off: pull all 36 entities out of the still-live Base44 backend and write
-// them into the new Postgres `entities` table. Run once after Phase 1 is
-// deployed, before cutting the dashboard over to it. Delete once confirmed good.
+// them into the new backend — via the live API's own bulk-create route, not a
+// direct DB connection. Simpler (no DATABASE_URL/pg needed here, no need to
+// expose Postgres externally) and it's the same write path the app already
+// uses and has been tested through. Run once, delete once confirmed good.
 //
 // Needs, as env vars:
-//   BASE44_APP_ID       — from the app editor URL: base44.app/apps/<APP_ID>/editor/...
-//   BASE44_APP_BASE_URL — the deployed app's URL, https://<name>.base44.app
-//   BASE44_ADMIN_EMAIL, BASE44_ADMIN_PASSWORD — a real admin login on that app.
+//   BASE44_APP_ID, BASE44_APP_BASE_URL   — the source app
+//   BASE44_ADMIN_EMAIL, BASE44_ADMIN_PASSWORD — a real admin login on it
 //     (Base44's service-role tokens only work inside Base44's own hosted
 //     functions, not from an external script — logging in as an admin user is
-//     the actual supported path for this. The script logs in itself; nothing
-//     is stored.)
-//   DATABASE_URL        — the new Postgres, reachable from wherever this runs.
+//     the actual supported path here. Nothing is stored.)
+//   API_BASE_URL   — the live beinabein-api URL, e.g. https://beinabein.darkube.ir
+//   ADMIN_USER, ADMIN_PASSWORD — one of the ADMIN_USERS pairs on that API
 'use strict';
 
 const { createClient } = require('@base44/sdk');
-const { pool, initDb } = require('../src/db');
 const { ENTITY_NAMES } = require('../src/schemas');
 
 const base44 = createClient({
@@ -24,16 +24,25 @@ const base44 = createClient({
   appBaseUrl: process.env.BASE44_APP_BASE_URL,
 });
 
+const API_BASE_URL = process.env.API_BASE_URL;
+const AUTH = 'Basic ' + Buffer.from(`${process.env.ADMIN_USER}:${process.env.ADMIN_PASSWORD}`).toString('base64');
+
 async function migrateOne(name) {
   const records = await base44.entities[name].list('-created_date', 100000);
-  for (const record of records) {
-    const { id, ...data } = record;
-    await pool.query(
-      `INSERT INTO entities (collection, id, data) VALUES ($1, $2, $3)
-       ON CONFLICT (collection, id) DO UPDATE SET data = EXCLUDED.data`,
-      [name, id, data]
-    );
+  if (records.length === 0) {
+    console.log(`${name}: 0 rows`);
+    return;
   }
+  // Keep Base44's id as-is (the bulk route accepts a caller-supplied id) —
+  // records reference each other by id (workshop_id, facilitator_ids, ...),
+  // so dropping it here would silently break every cross-reference.
+  const payload = records;
+  const res = await fetch(`${API_BASE_URL}/api/entities/${name}/bulk`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: AUTH },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`${name}: ${res.status} ${await res.text()}`);
   console.log(`${name}: ${records.length} rows`);
 }
 
@@ -42,11 +51,9 @@ async function main() {
     process.env.BASE44_ADMIN_EMAIL,
     process.env.BASE44_ADMIN_PASSWORD
   );
-  await initDb();
   for (const name of ENTITY_NAMES) {
     await migrateOne(name);
   }
-  await pool.end();
 }
 
 main().catch((err) => {
