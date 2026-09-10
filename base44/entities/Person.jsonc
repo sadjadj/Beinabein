@@ -1,0 +1,62 @@
+{
+  "name": "Person",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "title": "\u0646\u0627\u0645 \u0648 \u0646\u0627\u0645 \u062e\u0627\u0646\u0648\u0627\u062f\u06af\u06cc"
+    },
+    "phone": {
+      "type": "string",
+      "title": "\u0634\u0645\u0627\u0631\u0647 \u062a\u0644\u0641\u0646"
+    },
+    "how_met": {
+      "type": "string",
+      "enum": [
+        "instagram",
+        "telegram",
+        "referral",
+        "friends",
+        "facilitator",
+        "event",
+        "introduction",
+        "other"
+      ],
+      "title": "\u0646\u062d\u0648\u0647 \u0622\u0634\u0646\u0627\u06cc\u06cc"
+    },
+    "age": {
+      "type": "number",
+      "title": "\u0633\u0646"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "male",
+        "female"
+      ],
+      "title": "\u062c\u0646\u0633\u06cc\u062a"
+    },
+    "first_usage": {
+      "type": "string",
+      "format": "date",
+      "title": "\u0627\u0648\u0644\u06cc\u0646 \u0627\u0633\u062a\u0641\u0627\u062f\u0647"
+    },
+    "notes": {
+      "type": "string",
+      "title": "\u06cc\u0627\u062f\u062f\u0627\u0634\u062a"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "title": "\u062a\u06af\u200c\u0647\u0627"
+    },
+    "social_id": {
+      "type": "string",
+      "title": "\u0622\u06cc\u062f\u06cc \u0634\u0628\u06a9\u0647 \u0627\u062c\u062a\u0645\u0627\u0639\u06cc"
+    }
+  },
+  "required": []
+}

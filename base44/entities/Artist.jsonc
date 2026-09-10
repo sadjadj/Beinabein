@@ -1,0 +1,29 @@
+{
+  "name": "Artist",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "title": "\u0646\u0627\u0645 \u0648 \u0646\u0627\u0645 \u062e\u0627\u0646\u0648\u0627\u062f\u06af\u06cc"
+    },
+    "phone": {
+      "type": "string",
+      "title": "\u0634\u0645\u0627\u0631\u0647 \u062a\u0645\u0627\u0633"
+    },
+    "social_id": {
+      "type": "string",
+      "title": "\u0622\u06cc\u062f\u06cc \u0634\u0628\u06a9\u0647 \u0627\u062c\u062a\u0645\u0627\u0639\u06cc"
+    },
+    "brand_name": {
+      "type": "string",
+      "title": "\u0646\u0627\u0645 \u0628\u0631\u0646\u062f"
+    },
+    "description": {
+      "type": "string",
+      "title": "\u062a\u0648\u0636\u06cc\u062d\u0627\u062a \u0648 \u0645\u0639\u0631\u0641\u06cc"
+    }
+  },
+  "required": [
+    "full_name"
+  ]
+}
