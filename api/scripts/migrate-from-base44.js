@@ -19,7 +19,10 @@ const { ENTITY_NAMES } = require('../src/schemas');
 
 const base44 = createClient({
   appId: process.env.BASE44_APP_ID,
-  serverUrl: '',
+  // serverUrl: '' only works in a browser (the Base44 Vite plugin proxies
+  // relative /api requests to appBaseUrl there) — this is plain Node, so it
+  // needs the real base URL to build absolute request URLs from.
+  serverUrl: process.env.BASE44_APP_BASE_URL,
   requiresAuth: false,
   appBaseUrl: process.env.BASE44_APP_BASE_URL,
 });
