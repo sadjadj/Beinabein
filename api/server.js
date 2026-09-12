@@ -33,7 +33,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
-app.use(express.json());
+// Default 100kb is too small for bulk-importing a few hundred records at
+// once (hit this for real: Person/649 rows and WorkshopPurchase/611 rows
+// both 500'd on the default limit during migration).
+app.use(express.json({ limit: '10mb' }));
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
