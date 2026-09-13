@@ -6,14 +6,14 @@
 // Admin auth is still HTTP Basic under the hood (same server-side check as
 // before), but the dashboard now has its own Login page instead of relying on
 // the browser's native Basic Auth popup — see auth.login() below. The
-// credential lives in sessionStorage (cleared when the tab closes, same
-// session-scoped feel as a login) and gets attached to every request.
-
+// credential lives in localStorage (persists across browser restarts, so
+// admins aren't asked to log in every visit) and gets attached to every
+// request; logout() is the only thing that clears it.
 const API_BASE = '/api';
-const CREDENTIAL_KEY = 'beinabein_admin_credential'; // sessionStorage: base64("user:pass")
+const CREDENTIAL_KEY = 'beinabein_admin_credential'; // localStorage: base64("user:pass")
 
 function getStoredCredential() {
-  try { return sessionStorage.getItem(CREDENTIAL_KEY); } catch { return null; }
+  try { return localStorage.getItem(CREDENTIAL_KEY); } catch { return null; }
 }
 
 async function request(method, path, body) {
@@ -101,12 +101,12 @@ export const base44 = {
         err.status = res.status;
         throw err;
       }
-      sessionStorage.setItem(CREDENTIAL_KEY, credential);
+      localStorage.setItem(CREDENTIAL_KEY, credential);
       const { user } = await res.json();
       return { role: 'admin', email: user };
     },
     logout() {
-      try { sessionStorage.removeItem(CREDENTIAL_KEY); } catch { /* ignore */ }
+      try { localStorage.removeItem(CREDENTIAL_KEY); } catch { /* ignore */ }
     },
     // Base44-template auth flows, not supported by this backend — nothing
     // calls these anymore now that Register/ForgotPassword/OAuthConsent pages

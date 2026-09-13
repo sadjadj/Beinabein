@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText, Layers, ShoppingBag } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText, Layers, ShoppingBag, LogOut } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
 
 const standaloneItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
@@ -23,8 +24,15 @@ const bottomItems = [
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState({});
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
@@ -103,6 +111,19 @@ export default function Layout() {
     </nav>
   );
 
+  const renderUserFooter = () => (
+    <div className="p-3 border-t border-border flex items-center justify-between gap-2 flex-shrink-0">
+      <span className="text-sm text-muted-foreground truncate">{user?.email}</span>
+      <button
+        onClick={handleLogout}
+        className="flex items-center gap-1.5 text-sm font-medium text-[#B74B40] hover:bg-[#FDF2F1] px-2 py-1 rounded-lg flex-shrink-0"
+      >
+        <LogOut className="w-4 h-4" />
+        خروج
+      </button>
+    </div>
+  );
+
   return (
     <div className="flex bg-muted/30">
       {/* Desktop sidebar */}
@@ -113,6 +134,7 @@ export default function Layout() {
         <div className="flex-1 overflow-y-auto">
           {renderNav()}
         </div>
+        {renderUserFooter()}
       </aside>
 
       {/* Mobile top bar */}
@@ -146,6 +168,7 @@ export default function Layout() {
           <div className="flex-1 overflow-y-auto">
             {renderNav()}
           </div>
+          {renderUserFooter()}
         </div>
       </div>
 
