@@ -3,16 +3,27 @@
 // (base44.entities.X.list/get/create/..., base44.auth.*) — so this file is the
 // only thing that changed, no page needed to change with it.
 //
-// Admin auth is HTTP Basic Auth, handled entirely by the browser: a 401 with
-// WWW-Authenticate triggers the browser's native prompt and it caches the
-// credential for this origin. Nothing here stores a token.
+// Admin auth is still HTTP Basic under the hood (same server-side check as
+// before), but the dashboard now has its own Login page instead of relying on
+// the browser's native Basic Auth popup — see auth.login() below. The
+// credential lives in sessionStorage (cleared when the tab closes, same
+// session-scoped feel as a login) and gets attached to every request.
 
 const API_BASE = '/api';
+const CREDENTIAL_KEY = 'beinabein_admin_credential'; // sessionStorage: base64("user:pass")
+
+function getStoredCredential() {
+  try { return sessionStorage.getItem(CREDENTIAL_KEY); } catch { return null; }
+}
 
 async function request(method, path, body) {
+  const credential = getStoredCredential();
+  const headers = body !== undefined ? { 'Content-Type': 'application/json' } : {};
+  if (credential) headers.Authorization = `Basic ${credential}`;
+
   const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (res.status === 204) return null;
@@ -77,14 +88,30 @@ export const base44 = {
         return false;
       }
     },
-    // Basic Auth has no client-side logout — the browser caches the credential
-    // for this origin until the browser/tab is closed. This just clears local
-    // app state; ceiling noted in implementation_plan.md risk #5.
-    logout() {},
-    // Base44-template auth flows, not supported by Basic Auth — nothing calls
-    // these anymore now that Login/Register/ForgotPassword/OAuthConsent pages
+    // Tests a candidate username/password against the real backend (does NOT
+    // use the stored credential — that's the point, there isn't one yet) and,
+    // on success, stores it so every future request() call sends it. Ceiling:
+    // no server-side session, so there's no "log out everywhere" — logout()
+    // just forgets the credential on this device.
+    async login(username, password) {
+      const credential = btoa(`${username}:${password}`);
+      const res = await fetch(`${API_BASE}/me`, { headers: { Authorization: `Basic ${credential}` } });
+      if (!res.ok) {
+        const err = new Error('نام کاربری یا رمز عبور اشتباه است');
+        err.status = res.status;
+        throw err;
+      }
+      sessionStorage.setItem(CREDENTIAL_KEY, credential);
+      const { user } = await res.json();
+      return { role: 'admin', email: user };
+    },
+    logout() {
+      try { sessionStorage.removeItem(CREDENTIAL_KEY); } catch { /* ignore */ }
+    },
+    // Base44-template auth flows, not supported by this backend — nothing
+    // calls these anymore now that Register/ForgotPassword/OAuthConsent pages
     // are gone, kept only so a stray call fails loudly instead of silently.
-    loginViaEmailPassword() { throw new Error('unsupported: sign in via the browser\'s Basic Auth prompt'); },
+    loginViaEmailPassword() { throw new Error('unsupported: use auth.login(username, password)'); },
     loginWithProvider() { throw new Error('unsupported'); },
     register() { throw new Error('unsupported'); },
     resendOtp() { throw new Error('unsupported'); },

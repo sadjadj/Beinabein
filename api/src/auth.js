@@ -26,8 +26,15 @@ function timingSafeEqual(a, b) {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-// Sets req.adminUser on success, else 401s with a Basic-Auth challenge (browser
-// shows its native login prompt — no login page needed).
+// Sets req.adminUser on success, else 401s. Auth mechanism is still HTTP
+// Basic (send an Authorization: Basic <base64(user:pass)> header) — the
+// dashboard's own Login page collects credentials and attaches this header
+// itself now, rather than relying on the browser's native Basic Auth popup.
+// Deliberately does NOT send a WWW-Authenticate challenge header: that header
+// is what makes browsers show their native login dialog on any 401 — since
+// the dashboard has its own login page instead, that popup would just be
+// confusing and would fire on every background auth check, not just real
+// logins.
 function requireAdmin(req, res, next) {
   const header = req.headers.authorization || '';
   const [scheme, encoded] = header.split(' ');
@@ -39,7 +46,6 @@ function requireAdmin(req, res, next) {
       return next();
     }
   }
-  res.set('WWW-Authenticate', 'Basic realm="Beinabein Admin"');
   return res.status(401).json({ error: 'unauthorized' });
 }
 

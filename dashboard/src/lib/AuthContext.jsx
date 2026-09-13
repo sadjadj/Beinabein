@@ -2,9 +2,9 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { base44 } from '@/api/base44Client';
 
 // Simplified for Basic Auth: no Base44 "app public settings" step, no token
-// bootstrap, no separate login page. GET /api/me either succeeds (browser has
-// a cached admin credential for this origin) or 401s — the browser's native
-// prompt is what actually gates access; this just tracks the result for the UI.
+// bootstrap. GET /api/me either succeeds (a credential is stored from a
+// previous login) or 401s — Login.jsx + ProtectedRoute below are the actual
+// gate; this just tracks the result for the UI.
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -32,6 +32,12 @@ export const AuthProvider = ({ children }) => {
     checkUserAuth();
   }, [checkUserAuth]);
 
+  const login = async (username, password) => {
+    const loggedInUser = await base44.auth.login(username, password); // throws on bad credentials
+    setUser(loggedInUser);
+    setIsAuthenticated(true);
+  };
+
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
@@ -44,6 +50,7 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       isLoadingAuth,
       authChecked,
+      login,
       logout,
       checkUserAuth,
     }}>

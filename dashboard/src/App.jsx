@@ -3,8 +3,10 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { AuthProvider } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Login from '@/pages/Login';
 // Add page imports here
 import Layout from '@/components/Layout';
 import Dashboard from '@/pages/Dashboard';
@@ -42,37 +44,11 @@ import EventItemsPage from '@/pages/EventItemsPage';
 import EventCategoriesPage from '@/pages/EventCategoriesPage';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isAuthenticated, checkUserAuth } = useAuth();
-
-  if (isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // The real gate is server-side (every admin API route requires Basic Auth
-  // independently) — this is just so a cancelled/failed browser auth prompt
-  // shows a retry instead of a dashboard full of failed fetches.
-  if (!isAuthenticated) {
-    return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center gap-4">
-        <p className="text-slate-600">Admin sign-in required.</p>
-        <button
-          onClick={checkUserAuth}
-          className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
-        >
-          Try again
-        </button>
-      </div>
-    );
-  }
-
-  // Render the main app
   return (
     <Routes>
+    <Route path="/login" element={<Login />} />
     {/* Add your page Route elements here */}
+    <Route element={<ProtectedRoute />}>
     <Route element={<Layout />}>
       <Route path="/" element={<Dashboard />} />
       <Route path="/people" element={<PeopleHubPage />} />
@@ -108,6 +84,7 @@ const AuthenticatedApp = () => {
       <Route path="/daily-report" element={<DailyReport />} />
       <Route path="/financial-report" element={<FinancialReport />} />
       </Route>
+    </Route>
     <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
