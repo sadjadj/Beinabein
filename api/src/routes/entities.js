@@ -47,7 +47,8 @@ router.get('/:name', publicOr('list'), async (req, res, next) => {
 // POST /api/entities/:name/filter  body: mongo-style equality/$in filter object
 router.post('/:name/filter', publicOr('filter'), async (req, res, next) => {
   try {
-    const { clause, params } = buildWhere(req.body);
+    // startIndex 2: $1 is already taken by collection = $1 below.
+    const { clause, params } = buildWhere(req.body, 2);
     const { rows } = await pool.query(
       `SELECT id, data FROM entities WHERE collection = $1 AND (${clause})`,
       [req.params.name, ...params]
@@ -78,7 +79,10 @@ router.post('/:name/bulk', publicOr('bulkCreate'), async (req, res, next) => {
 // PATCH /api/entities/:name/many  body: { filter, set }
 router.patch('/:name/many', publicOr('updateMany'), async (req, res, next) => {
   try {
-    const { clause, params } = buildWhere(req.body.filter);
+    // startIndex 2: $1 is collection, and the SET value goes after params
+    // (params.length + 2 below already assumed this offset — only buildWhere
+    // itself was still defaulting to 1).
+    const { clause, params } = buildWhere(req.body.filter, 2);
     const setParam = buildSetParam(req.body.set);
     const { rowCount } = await pool.query(
       `UPDATE entities SET data = data || $${params.length + 2}::jsonb WHERE collection = $1 AND (${clause})`,
@@ -91,7 +95,8 @@ router.patch('/:name/many', publicOr('updateMany'), async (req, res, next) => {
 // DELETE /api/entities/:name/many  body: filter
 router.delete('/:name/many', publicOr('deleteMany'), async (req, res, next) => {
   try {
-    const { clause, params } = buildWhere(req.body);
+    // startIndex 2: $1 is already taken by collection = $1 below.
+    const { clause, params } = buildWhere(req.body, 2);
     const { rowCount } = await pool.query(
       `DELETE FROM entities WHERE collection = $1 AND (${clause})`,
       [req.params.name, ...params]

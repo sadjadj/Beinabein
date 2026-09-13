@@ -32,6 +32,17 @@ const { buildWhere, buildSetParam, parseSort } = require('./queryBuilder');
   assert.deepStrictEqual(params, []);
 }
 
+// startIndex — routes/entities.js's filter/updateMany/deleteMany all put
+// `collection = $1` before the WHERE clause built here, so they MUST call
+// buildWhere(x, 2) or every filtered query 500s (Postgres rejects a $1 used
+// for two different bound values). Hit this for real in production — a
+// filter() call on Person crashed until the three call sites passed 2.
+{
+  const { clause, params } = buildWhere({ phone: '0912' }, 2);
+  assert.strictEqual(clause, `data->>'phone' = $2`);
+  assert.deepStrictEqual(params, ['0912']);
+}
+
 // sort parsing
 {
   assert.deepStrictEqual(parseSort('-created_date'), { column: `data->>'created_date'`, direction: 'DESC' });
