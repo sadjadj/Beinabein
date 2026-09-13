@@ -1,10 +1,13 @@
 import { Outlet } from 'react-router-dom';
 
-// Chrome shared by every page (navbar + decorative stars) — <Outlet/> is
-// where react-router drops in whichever page matched the current URL.
+// Chrome for the workshops/registration flow (navbar + decorative stars) —
+// <Outlet/> is where react-router drops in whichever page matched the
+// current URL. `.phone-shell` caps this at mobile width — deliberately not
+// applied globally, so other routes (e.g. the coming-soon page) can use the
+// full viewport instead.
 export default function Layout() {
   return (
-    <div className="w-full h-full bg-[#F5F1EA]">
+    <div className="phone-shell w-full bg-[#F5F1EA]">
       <div className="fixed top-0 inset-x-0 z-30 mx-auto max-w-[480px] w-full h-20 bg-[#E9E4DC] px-6 py-4 flex items-end">
         <img src="/images/logotype.svg" className="h-12" alt="بینابین" />
       </div>

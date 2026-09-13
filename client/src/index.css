@@ -27,11 +27,19 @@
 html, body, #root { height: 100%; }
 
 body {
-  max-width: 480px;
-  margin: 0 auto;
   font-family: 'Ray', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* The phone-shaped shell for the workshops/registration flow — NOT applied
+   globally on body, so other routes (e.g. the coming-soon page) can use the
+   full viewport instead of being capped to mobile width with blank space
+   around them on desktop. */
+.phone-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  height: 100%;
 }
 
 .no-scrollbar { scrollbar-width: none; }
