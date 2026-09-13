@@ -44,6 +44,11 @@ export const AuthProvider = ({ children }) => {
     base44.auth.logout();
   };
 
+  const changePassword = async (newPassword) => {
+    await base44.auth.changePassword(newPassword); // throws on failure (e.g. too short)
+    setUser((u) => ({ ...u, mustChangePassword: false }));
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -52,6 +57,7 @@ export const AuthProvider = ({ children }) => {
       authChecked,
       login,
       logout,
+      changePassword,
       checkUserAuth,
     }}>
       {children}

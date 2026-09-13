@@ -17,6 +17,20 @@ async function initDb() {
       PRIMARY KEY (collection, id)
     )
   `);
+
+  // Separate from `entities` on purpose — this is auth infrastructure, not
+  // business data. Replaces the old ADMIN_USERS env var (plaintext passwords
+  // in Hamravesh's UI); passwords here are bcrypt hashes. Rows are only ever
+  // written by scripts/upsert-admin.js or the change-password route, never
+  // through the generic entity API.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admins (
+      username              TEXT PRIMARY KEY,
+      password_hash         TEXT NOT NULL,
+      must_change_password  BOOLEAN NOT NULL DEFAULT true,
+      created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
 }
 
 module.exports = { pool, initDb };

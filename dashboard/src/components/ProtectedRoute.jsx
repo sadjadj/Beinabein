@@ -12,7 +12,7 @@ const LoadingSpinner = () => (
 // credential is valid — otherwise it redirects to /login, remembering where
 // the admin was headed so Login.jsx can send them back after signing in.
 export default function ProtectedRoute() {
-  const { isAuthenticated, isLoadingAuth, authChecked } = useAuth();
+  const { user, isAuthenticated, isLoadingAuth, authChecked } = useAuth();
   const location = useLocation();
 
   if (isLoadingAuth || !authChecked) {
@@ -21,6 +21,13 @@ export default function ProtectedRoute() {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
+
+  // Forced password change (new admin's first login, or a reset) — blocks
+  // every other route until they set their own password. /change-password
+  // itself must stay reachable, or this would redirect-loop.
+  if (user?.mustChangePassword && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
   }
 
   return <Outlet />;

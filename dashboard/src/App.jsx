@@ -7,6 +7,7 @@ import { AuthProvider } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Login from '@/pages/Login';
+import ChangePassword from '@/pages/ChangePassword';
 // Add page imports here
 import Layout from '@/components/Layout';
 import Dashboard from '@/pages/Dashboard';
@@ -49,6 +50,7 @@ const AuthenticatedApp = () => {
     <Route path="/login" element={<Login />} />
     {/* Add your page Route elements here */}
     <Route element={<ProtectedRoute />}>
+    <Route path="/change-password" element={<ChangePassword />} />
     <Route element={<Layout />}>
       <Route path="/" element={<Dashboard />} />
       <Route path="/people" element={<PeopleHubPage />} />

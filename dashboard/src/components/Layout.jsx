@@ -113,7 +113,12 @@ export default function Layout() {
 
   const renderUserFooter = () => (
     <div className="p-3 border-t border-border flex items-center justify-between gap-2 flex-shrink-0">
-      <span className="text-sm text-muted-foreground truncate">{user?.email}</span>
+      <div className="min-w-0">
+        <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
+        <Link to="/change-password" className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+          تغییر رمز عبور
+        </Link>
+      </div>
       <button
         onClick={handleLogout}
         className="flex items-center gap-1.5 text-sm font-medium text-[#B74B40] hover:bg-[#FDF2F1] px-2 py-1 rounded-lg flex-shrink-0"

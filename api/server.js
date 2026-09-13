@@ -4,7 +4,8 @@
 //
 //  Generic entity CRUD, one route per action, entity name is the collection.
 //  PUBLIC (no auth): GET Workshop (list/get), POST Person, POST WorkshopPurchase.
-//  Everything else needs HTTP Basic Auth against ADMIN_USERS ("user:pass,...").
+//  Everything else needs HTTP Basic Auth against the `admins` table
+//  (bcrypt-hashed passwords — see scripts/upsert-admin.js to create/reset one).
 //
 //  GET    /api/entities/:name?sort=-created_date&limit=500
 //  GET    /api/entities/:name/:id
@@ -15,7 +16,8 @@
 //  PATCH  /api/entities/:name/many         body: { filter, set }
 //  DELETE /api/entities/:name/:id
 //  DELETE /api/entities/:name/many         body: filter
-//  GET    /api/me                          admin only, echoes the matched username
+//  GET    /api/me                          admin only — { user, mustChangePassword }
+//  PATCH  /api/admin/password              admin only — body: { newPassword }
 //
 //  Everything else serves the two static frontend builds the Dockerfile bakes
 //  into public/ and public/dashboard/ (client and dashboard respectively) —
@@ -25,8 +27,9 @@
 
 const path = require('node:path');
 const express = require('express');
-const { initDb } = require('./src/db');
-const { requireAdmin } = require('./src/auth');
+const bcrypt = require('bcryptjs');
+const { pool, initDb } = require('./src/db');
+const { requireAdmin, MIN_PASSWORD_LENGTH } = require('./src/auth');
 const entitiesRouter = require('./src/routes/entities');
 
 const app = express();
@@ -40,7 +43,27 @@ app.use(express.json({ limit: '10mb' }));
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
-app.get('/api/me', requireAdmin, (req, res) => res.json({ user: req.adminUser }));
+app.get('/api/me', requireAdmin, (req, res) => {
+  res.json({ user: req.adminUser, mustChangePassword: req.adminMustChangePassword });
+});
+
+// No separate "current password" field: HTTP Basic sends the real password
+// with every request, already verified by requireAdmin before this handler
+// runs — asking for it again in the body would be redundant, not safer.
+app.patch('/api/admin/password', requireAdmin, async (req, res, next) => {
+  try {
+    const { newPassword } = req.body || {};
+    if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ error: `رمز عبور باید حداقل ${MIN_PASSWORD_LENGTH} کاراکتر باشد` });
+    }
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      'UPDATE admins SET password_hash = $1, must_change_password = false WHERE username = $2',
+      [hash, req.adminUser]
+    );
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
 
 app.use('/api/entities', entitiesRouter);
 

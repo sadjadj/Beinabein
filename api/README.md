@@ -6,12 +6,25 @@ entity types (`base44-entities/*.jsonc`) — see `server.js` for the full route 
 ## Run locally
 
 ```bash
-cp .env.example .env   # fill in DATABASE_URL (a local/dev Postgres) and ADMIN_USERS
+cp .env.example .env   # fill in DATABASE_URL (a local/dev Postgres)
 npm install
 npm start
 ```
 
 Listens on `:3000` by default — matches `../dashboard`'s dev proxy.
+
+## Admins
+
+No signup — admins are created/reset one at a time:
+
+```bash
+DATABASE_URL=... node scripts/upsert-admin.js sadjad
+# admin 'sadjad' ready. Temporary password: password
+# They will be required to set their own password on first login.
+```
+
+Pass a password as a second argument to set a specific one instead of the shared default.
+Same command works for a forgotten password — it always forces a change on next login.
 
 ## Test
 

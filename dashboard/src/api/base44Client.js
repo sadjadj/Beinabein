@@ -77,8 +77,8 @@ export const base44 = {
   entities,
   auth: {
     async me() {
-      const { user } = await request('GET', '/me');
-      return { role: 'admin', email: user };
+      const { user, mustChangePassword } = await request('GET', '/me');
+      return { role: 'admin', email: user, mustChangePassword };
     },
     async isAuthenticated() {
       try {
@@ -102,11 +102,22 @@ export const base44 = {
         throw err;
       }
       localStorage.setItem(CREDENTIAL_KEY, credential);
-      const { user } = await res.json();
-      return { role: 'admin', email: user };
+      const { user, mustChangePassword } = await res.json();
+      return { role: 'admin', email: user, mustChangePassword };
     },
     logout() {
       try { localStorage.removeItem(CREDENTIAL_KEY); } catch { /* ignore */ }
+    },
+    // No "current password" field needed — HTTP Basic sends the real
+    // password with every request, already verified server-side before this
+    // call is even made. On success, re-derives the stored credential with
+    // the new password so this device stays logged in (otherwise the very
+    // next request would 401 against the now-stale stored one).
+    async changePassword(newPassword) {
+      await request('PATCH', '/admin/password', { newPassword });
+      const credential = getStoredCredential();
+      const username = credential ? atob(credential).split(':')[0] : null;
+      if (username) localStorage.setItem(CREDENTIAL_KEY, btoa(`${username}:${newPassword}`));
     },
     // Base44-template auth flows, not supported by this backend — nothing
     // calls these anymore now that Register/ForgotPassword/OAuthConsent pages
