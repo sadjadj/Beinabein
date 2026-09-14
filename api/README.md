@@ -48,8 +48,18 @@ npm test
 ```
 
 Runs the filter/sort/update translation self-check (`src/queryBuilder.test.js`) — pure logic, no
-DB needed. Live-DB behavior has been verified manually against real Postgres containers, not as
-an automated test — see `../../task.md`.
+DB needed.
+
+For live-DB correctness — every entity's full create/get/list/filter/update/updateMany/bulk/delete
+lifecycle, plus the public/admin route boundary — run the smoke test against a real running
+instance instead of clicking through the dashboard by hand:
+
+```bash
+API_BASE_URL=http://localhost:3000 ADMIN_USER=... ADMIN_PASSWORD=... node scripts/smoke-test.js
+```
+
+Prints a pass/fail line per entity. Only ever run this against a local/test instance — it writes
+and deletes real records (cleans up after itself, but still, never point it at production).
 
 ## Migrate existing Base44 data
 

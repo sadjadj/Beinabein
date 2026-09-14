@@ -17,7 +17,7 @@ export default function CafeInventoryTab({ items, categories, onItemSubmit, onDe
 
   const confirmDelete = async () => {
     if (deleteTarget) {
-      await onDeleteItem(deleteTarget);
+      await onDeleteItem(deleteTarget.id);
       setDeleteTarget(null);
     }
   };
