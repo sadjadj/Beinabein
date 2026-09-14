@@ -17,7 +17,7 @@
 //  DELETE /api/entities/:name/:id
 //  DELETE /api/entities/:name/many         body: filter
 //  GET    /api/me                          admin only — { user, mustChangePassword }
-//  PATCH  /api/admin/password              admin only — body: { newPassword }
+//  PATCH  /api/admin/password              admin only — body: { currentPassword, newPassword }
 //
 //  Everything else serves the two static frontend builds the Dockerfile bakes
 //  into public/ and public/dashboard/ (client and dashboard respectively) —
@@ -47,14 +47,24 @@ app.get('/api/me', requireAdmin, (req, res) => {
   res.json({ user: req.adminUser, mustChangePassword: req.adminMustChangePassword });
 });
 
-// No separate "current password" field: HTTP Basic sends the real password
-// with every request, already verified by requireAdmin before this handler
-// runs — asking for it again in the body would be redundant, not safer.
+// Requires currentPassword explicitly, checked independently against the
+// stored hash — not just trusting that requireAdmin already validated the
+// Basic Auth header on this same request. That distinction matters: the
+// stored credential in localStorage auto-attaches to every request, so on an
+// already-unlocked/logged-in device, whoever's sitting there could otherwise
+// change the password without ever knowing it. Re-checking it here closes
+// that gap (the standard "re-enter your password" pattern for sensitive
+// actions, even mid-session).
 app.patch('/api/admin/password', requireAdmin, async (req, res, next) => {
   try {
-    const { newPassword } = req.body || {};
+    const { currentPassword, newPassword } = req.body || {};
     if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
       return res.status(400).json({ error: `رمز عبور باید حداقل ${MIN_PASSWORD_LENGTH} کاراکتر باشد` });
+    }
+    const { rows } = await pool.query('SELECT password_hash FROM admins WHERE username = $1', [req.adminUser]);
+    const currentOk = rows[0] && (await bcrypt.compare(currentPassword || '', rows[0].password_hash));
+    if (!currentOk) {
+      return res.status(400).json({ error: 'رمز عبور فعلی اشتباه است' });
     }
     const hash = await bcrypt.hash(newPassword, 10);
     await pool.query(

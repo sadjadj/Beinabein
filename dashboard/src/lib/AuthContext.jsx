@@ -44,8 +44,8 @@ export const AuthProvider = ({ children }) => {
     base44.auth.logout();
   };
 
-  const changePassword = async (newPassword) => {
-    await base44.auth.changePassword(newPassword); // throws on failure (e.g. too short)
+  const changePassword = async (currentPassword, newPassword) => {
+    await base44.auth.changePassword(currentPassword, newPassword); // throws on failure (e.g. wrong current password, too short)
     setUser((u) => ({ ...u, mustChangePassword: false }));
   };
 

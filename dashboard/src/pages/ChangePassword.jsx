@@ -12,6 +12,7 @@ const MIN_LENGTH = 8;
 export default function ChangePassword() {
   const { user, changePassword } = useAuth();
   const navigate = useNavigate();
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState(null);
@@ -32,7 +33,7 @@ export default function ChangePassword() {
 
     setIsSubmitting(true);
     try {
-      await changePassword(newPassword);
+      await changePassword(currentPassword, newPassword);
       navigate('/', { replace: true });
     } catch (err) {
       setError(err.message || 'تغییر رمز عبور ناموفق بود');
@@ -55,13 +56,23 @@ export default function ChangePassword() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="currentPassword">رمز عبور فعلی</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="newPassword">رمز عبور جدید</Label>
               <Input
                 id="newPassword"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                autoFocus
                 required
               />
             </div>

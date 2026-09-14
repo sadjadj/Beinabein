@@ -108,13 +108,14 @@ export const base44 = {
     logout() {
       try { localStorage.removeItem(CREDENTIAL_KEY); } catch { /* ignore */ }
     },
-    // No "current password" field needed — HTTP Basic sends the real
-    // password with every request, already verified server-side before this
-    // call is even made. On success, re-derives the stored credential with
-    // the new password so this device stays logged in (otherwise the very
-    // next request would 401 against the now-stale stored one).
-    async changePassword(newPassword) {
-      await request('PATCH', '/admin/password', { newPassword });
+    // currentPassword is checked server-side independently of the stored
+    // credential — closes the gap where an already-unlocked/logged-in device
+    // could otherwise change the password without whoever's using it knowing
+    // it. On success, re-derives the stored credential with the new password
+    // so this device stays logged in (otherwise the very next request would
+    // 401 against the now-stale stored one).
+    async changePassword(currentPassword, newPassword) {
+      await request('PATCH', '/admin/password', { currentPassword, newPassword });
       const credential = getStoredCredential();
       const username = credential ? atob(credential).split(':')[0] : null;
       if (username) localStorage.setItem(CREDENTIAL_KEY, btoa(`${username}:${newPassword}`));
