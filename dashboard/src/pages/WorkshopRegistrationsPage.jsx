@@ -249,8 +249,8 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام *</label>
-            <select value={form.plan_id} onClick={() => { if (!form.workshop_id) setFormError('انتخاب کارگاه الزامی است'); }} onChange={(e) => { if (!form.workshop_id) { setFormError('انتخاب کارگاه الزامی است'); return; } setFormError(''); const plan = plans.find(p => p.id === e.target.value); setForm(prev => ({ ...prev, plan_id: e.target.value, price: plan ? getPlanBounds(plan).min : '', payment_method: isFreePlan(plan) ? 'free' : 'card_to_card' })); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required>
-              <option value="">انتخاب مدل...</option>
+            <select disabled={!form.workshop_id} value={form.plan_id} onClick={() => { if (!form.workshop_id) setFormError('انتخاب کارگاه الزامی است'); }} onChange={(e) => { if (!form.workshop_id) { setFormError('انتخاب کارگاه الزامی است'); return; } setFormError(''); const plan = plans.find(p => p.id === e.target.value); setForm(prev => ({ ...prev, plan_id: e.target.value, price: plan ? getPlanBounds(plan).min : '', payment_method: isFreePlan(plan) ? 'free' : 'card_to_card' })); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm disabled:opacity-50 disabled:cursor-not-allowed" required>
+              <option value="">{form.workshop_id ? 'انتخاب مدل...' : 'ابتدا کارگاه را از لیست انتخاب کنید'}</option>
               {plans.filter(p => p.workshop_id === form.workshop_id).map(p => <option key={p.id} value={p.id}>{p.name} — {formatPlanRange(p)}</option>)}
             </select>
           </div>
