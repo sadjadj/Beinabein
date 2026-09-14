@@ -21,13 +21,14 @@ function parseJsonc(text) {
   return JSON.parse(stripped);
 }
 
-function loadEntityNames() {
+function loadEntitySchemas() {
   return fs
     .readdirSync(ENTITIES_DIR)
     .filter((f) => f.endsWith('.jsonc'))
-    .map((f) => parseJsonc(fs.readFileSync(path.join(ENTITIES_DIR, f), 'utf8')).name);
+    .map((f) => parseJsonc(fs.readFileSync(path.join(ENTITIES_DIR, f), 'utf8')));
 }
 
-const ENTITY_NAMES = loadEntityNames();
+const ENTITY_SCHEMAS = loadEntitySchemas();
+const ENTITY_NAMES = ENTITY_SCHEMAS.map((s) => s.name);
 
-module.exports = { ENTITY_NAMES };
+module.exports = { ENTITY_NAMES, ENTITY_SCHEMAS };
