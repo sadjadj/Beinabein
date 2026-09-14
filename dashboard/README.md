@@ -22,5 +22,25 @@ npm run build
 ```
 
 Outputs to `dist/`, served at the `/dashboard/` path in production (see `vite.config.js`'s
-`base`). Admin auth is HTTP Basic Auth, handled by `../api` — the browser prompts for credentials
-on first admin-only request.
+`base`). Sign-in is `/login` — no signup, an admin account must already exist (see below).
+
+## Admins
+
+No signup — an admin account is created or reset one at a time by running `scripts/upsert-admin.js`
+in `../api` (same command for a new admin or a forgotten password; always forces a password change
+on next login).
+
+**Locally:**
+```bash
+DATABASE_URL=... node scripts/upsert-admin.js sadjad
+# admin 'sadjad' ready. Temporary password: password
+```
+(`DATABASE_URL` must point at the target Postgres — for the live one on Hamravesh, temporarily
+enable its "آدرس خارجی" to get a connection string reachable from outside.)
+
+**On Hamravesh:** open a Terminal on the **`beinabein`** app itself (not the Postgres app) — it
+already has the right `DATABASE_URL` set:
+```bash
+cd /app
+node scripts/upsert-admin.js sadjad
+```
