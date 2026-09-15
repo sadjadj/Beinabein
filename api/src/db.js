@@ -31,6 +31,21 @@ async function initDb() {
       created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
+
+  // Audit trail for admin-triggered writes — debugging aid, not user-facing
+  // (no route reads this; query it directly, see scripts/view-logs.js).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_logs (
+      id              BIGSERIAL PRIMARY KEY,
+      admin_username  TEXT NOT NULL,
+      method          TEXT NOT NULL,
+      entity          TEXT,
+      entity_id       TEXT,
+      status_code     INTEGER NOT NULL,
+      error_message   TEXT,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
 }
 
 module.exports = { pool, initDb };
