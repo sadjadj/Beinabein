@@ -35,7 +35,8 @@ async function main() {
   for (const r of rows) {
     const target = [r.entity, r.entity_id].filter(Boolean).join('/');
     const err = r.error_message ? ` — ${r.error_message}` : '';
-    console.log(`${r.created_at.toISOString()}  ${r.admin_username.padEnd(12)} ${r.method.padEnd(6)} ${target.padEnd(40)} ${r.status_code}${err}`);
+    const time = r.created_at.toLocaleString('sv-SE', { timeZone: 'Asia/Tehran' });
+    console.log(`${time}  ${r.admin_username.padEnd(12)} ${r.method.padEnd(6)} ${target.padEnd(40)} ${r.status_code}${err}`);
     if (r.request_body) console.log(`  body: ${JSON.stringify(r.request_body)}`);
   }
 }
