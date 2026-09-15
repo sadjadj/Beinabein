@@ -28,10 +28,10 @@ router.param('name', (req, res, next, name) => {
 });
 
 // Audit log for admin-triggered requests — skips the public signup actions
-// (no adminUser set for those). Captures the response body only on error
-// (>=400) so this stays useful for "why did this fail" debugging without
-// bloating the table with every list response. Query admin_logs directly
-// (see scripts/view-logs.js) — no route exposes this.
+// (no adminUser set for those). Captures the request body (what the admin
+// actually sent) and, on error (>=400), the response body too, so this stays
+// useful for "what did they send and why did it fail" debugging. Query
+// admin_logs directly (see scripts/view-logs.js) — no route exposes this.
 router.use((req, res, next) => {
   const originalJson = res.json.bind(res);
   res.json = (body) => {
@@ -40,11 +40,12 @@ router.use((req, res, next) => {
   };
   res.on('finish', () => {
     if (!req.adminUser) return;
+    const hasBody = req.body && Object.keys(req.body).length > 0;
     const errorMessage = res.statusCode >= 400 ? JSON.stringify(res.locals.responseBody) : null;
     pool.query(
-      `INSERT INTO admin_logs (admin_username, method, entity, entity_id, status_code, error_message)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [req.adminUser, req.method, req.params.name || null, req.params.id || null, res.statusCode, errorMessage]
+      `INSERT INTO admin_logs (admin_username, method, entity, entity_id, status_code, request_body, error_message)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [req.adminUser, req.method, req.params.name || null, req.params.id || null, res.statusCode, hasBody ? JSON.stringify(req.body) : null, errorMessage]
     ).catch((err) => console.error('admin_logs insert failed', err));
   });
   next();

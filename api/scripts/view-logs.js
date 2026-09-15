@@ -23,7 +23,7 @@ async function main() {
   const limit = Math.min(Number(args.limit) || 50, 1000);
 
   const { rows } = await pool.query(
-    `SELECT created_at, admin_username, method, entity, entity_id, status_code, error_message
+    `SELECT created_at, admin_username, method, entity, entity_id, status_code, request_body, error_message
      FROM admin_logs
      ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
      ORDER BY created_at DESC
@@ -36,6 +36,7 @@ async function main() {
     const target = [r.entity, r.entity_id].filter(Boolean).join('/');
     const err = r.error_message ? ` — ${r.error_message}` : '';
     console.log(`${r.created_at.toISOString()}  ${r.admin_username.padEnd(12)} ${r.method.padEnd(6)} ${target.padEnd(40)} ${r.status_code}${err}`);
+    if (r.request_body) console.log(`  body: ${JSON.stringify(r.request_body)}`);
   }
 }
 

@@ -42,6 +42,7 @@ async function initDb() {
       entity          TEXT,
       entity_id       TEXT,
       status_code     INTEGER NOT NULL,
+      request_body    JSONB,
       error_message   TEXT,
       created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
     )
