@@ -24,8 +24,8 @@ Pass a password as a second argument to set a specific one instead of the shared
 ### Locally
 
 ```bash
-DATABASE_URL=... node scripts/upsert-admin.js sadjad
-# admin 'sadjad' ready. Temporary password: password
+DATABASE_URL=... node scripts/upsert-admin.js <username>
+# admin '<username>' ready. Temporary password: password
 ```
 
 `DATABASE_URL` must point at the target Postgres — for the live one on Hamravesh, temporarily
@@ -38,7 +38,7 @@ with the correct `DATABASE_URL` set, so no connection string needed:
 
 ```bash
 cd /app
-node scripts/upsert-admin.js sadjad
+node scripts/upsert-admin.js <username>
 ```
 
 ## Test
