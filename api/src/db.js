@@ -42,11 +42,13 @@ async function initDb() {
       entity          TEXT,
       entity_id       TEXT,
       status_code     INTEGER NOT NULL,
-      request_body    JSONB,
       error_message   TEXT,
       created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
+  // Added after admin_logs already existed in prod — CREATE TABLE IF NOT
+  // EXISTS above is a no-op there, so the column needs its own backfill.
+  await pool.query(`ALTER TABLE admin_logs ADD COLUMN IF NOT EXISTS request_body JSONB`);
 }
 
 module.exports = { pool, initDb };

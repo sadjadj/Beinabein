@@ -39,6 +39,7 @@ export default function WorkshopProfile() {
   const [plans, setPlans] = useState([]);
   const [regSessionTab, setRegSessionTab] = useState(null);
   const [deleteRegId, setDeleteRegId] = useState(null);
+  const [saveError, setSaveError] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -111,6 +112,7 @@ export default function WorkshopProfile() {
 
   const handleSaveEdit = async (form, submittedPlans) => {
     setSubmitting(true);
+    setSaveError('');
     try {
       const payload = {
         ...form,
@@ -176,6 +178,8 @@ export default function WorkshopProfile() {
 
       setEditing(false);
       fetchData();
+    } catch (err) {
+      setSaveError(err.message || 'ذخیره تغییرات ناموفق بود');
     } finally { setSubmitting(false); }
   };
 
@@ -329,6 +333,10 @@ export default function WorkshopProfile() {
       </button>
 
       {editing ? (
+        <>
+        {saveError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">{saveError}</div>
+        )}
         <WorkshopForm
           initialForm={buildInitialForm()}
           initialPlans={plans}
@@ -343,6 +351,7 @@ export default function WorkshopProfile() {
           showDelete={isAdmin}
           onDelete={handleDelete}
         />
+        </>
       ) : (
         <>
           <div className="bg-white rounded-xl border border-border p-6">
