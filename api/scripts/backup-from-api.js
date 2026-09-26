@@ -7,6 +7,9 @@
 // Usage:
 //   API_BASE_URL=https://beinabein-space.ir ADMIN_USER=... ADMIN_PASSWORD=... node scripts/backup-from-api.js
 //
+// After a fully successful run it deletes the api-* backup folders older than
+// KEEP_DAYS (7) — only folders this script made, never the manual ones.
+//
 // Exits non-zero if any entity fails or hits the API's row cap (5000, then
 // rows would be silently cut off) so a cron wrapper can notice.
 'use strict';
@@ -21,11 +24,13 @@ if (!API_BASE_URL || !ADMIN_USER || !ADMIN_PASSWORD) {
   process.exit(1);
 }
 const AUTH = 'Basic ' + Buffer.from(`${ADMIN_USER}:${ADMIN_PASSWORD}`).toString('base64');
+const KEEP_DAYS = 7;
 const LIMIT = 5000; // the API's hard cap, see routes/entities.js
 
 async function main() {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const outDir = path.join(__dirname, '..', 'backups', stamp);
+  const backupsDir = path.join(__dirname, '..', 'backups');
+  const outDir = path.join(backupsDir, `api-${stamp}`);
   fs.mkdirSync(outDir, { recursive: true });
 
   let failed = 0;
@@ -43,7 +48,16 @@ async function main() {
     }
   }
   console.log(`\nBackup written to ${outDir}${failed ? ` (${failed} entities FAILED)` : ''}`);
-  if (failed) process.exit(1);
+  if (failed) process.exit(1); // keep old backups if this one is incomplete
+
+  const cutoff = Date.now() - KEEP_DAYS * 24 * 3600 * 1000;
+  for (const d of fs.readdirSync(backupsDir)) {
+    const dir = path.join(backupsDir, d);
+    if (d.startsWith('api-') && fs.statSync(dir).mtimeMs < cutoff) {
+      fs.rmSync(dir, { recursive: true });
+      console.log(`deleted old backup ${d}`);
+    }
+  }
 }
 
 main().catch((err) => {
