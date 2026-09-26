@@ -46,21 +46,21 @@ export default function WorkshopProfile() {
     try {
       const [w, purchs, sess, facs, spcs, ppl, planList] = await Promise.all([
         base44.entities.Workshop.get(id),
-        base44.entities.WorkshopPurchase.list('-purchase_date', 500),
-        base44.entities.WorkshopSession.list('-session_number', 500),
+        base44.entities.WorkshopPurchase.filter({ workshop_id: id }),
+        base44.entities.WorkshopSession.filter({ workshop_id: id }),
         base44.entities.Facilitator.list('-created_date', 500),
         base44.entities.Space.list('-created_date', 100),
         base44.entities.Person.list('-created_date', 500),
-        base44.entities.WorkshopPlan.list('-created_date', 500)
+        base44.entities.WorkshopPlan.filter({ workshop_id: id })
       ]);
       setWorkshop(w);
-      setPurchases(purchs.filter(p => p.workshop_id === id));
-      setSessions(sess.filter(s => s.workshop_id === id).sort((a, b) => (a.session_number || 0) - (b.session_number || 0)));
+      setPurchases(purchs);
+      setSessions([...sess].sort((a, b) => (a.session_number || 0) - (b.session_number || 0)));
       setFacilitators(facs);
       setSpaces(spcs);
       setPersons(ppl);
-      setPlans(planList.filter(p => p.workshop_id === id));
-      const wsSess = sess.filter(s => s.workshop_id === id).sort((a, b) => (a.session_number || 0) - (b.session_number || 0));
+      setPlans(planList);
+      const wsSess = [...sess].sort((a, b) => (a.session_number || 0) - (b.session_number || 0));
       const today = todayGregorian();
       const pastSessions = wsSess.filter(s => s.session_date && s.session_date <= today);
       if (pastSessions.length > 0) {
