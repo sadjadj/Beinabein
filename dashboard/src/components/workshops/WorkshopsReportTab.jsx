@@ -22,8 +22,8 @@ export default function WorkshopsReportTab() {
     (async () => {
       try {
         const [ws, purchs] = await Promise.all([
-          base44.entities.Workshop.list('-start_date', 500),
-          base44.entities.WorkshopPurchase.list('-purchase_date', 1000)
+          base44.entities.Workshop.list('-start_date'),
+          base44.entities.WorkshopPurchase.list('-purchase_date')
         ]);
         setWorkshops(ws);
         setPurchases(purchs);

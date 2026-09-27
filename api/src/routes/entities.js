@@ -55,11 +55,14 @@ function toRecord(row) {
   return { id: row.id, ...row.data };
 }
 
-// GET /api/entities/:name?sort=-created_date&limit=500
+// GET /api/entities/:name?sort=-created_date[&limit=N]
+// No limit = every row. A default cap here silently truncated whole-table
+// reads (dashboard counts/totals came out low once a collection passed 500
+// rows), so a limit only applies when a caller explicitly asks for one.
 router.get('/:name', publicOr('list'), async (req, res, next) => {
   try {
     const { column, direction } = parseSort(req.query.sort);
-    const limit = Math.min(Number(req.query.limit) || 500, 5000);
+    const limit = Number(req.query.limit) || null; // LIMIT NULL = no limit
     const { rows } = await pool.query(
       `SELECT id, data FROM entities WHERE collection = $1 ORDER BY ${column} ${direction} LIMIT $2`,
       [req.params.name, limit]
@@ -68,7 +71,7 @@ router.get('/:name', publicOr('list'), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/entities/:name/filter  body: mongo-style equality/$in filter object
+// POST /api/entities/:name/filter  body: mongo-style equality/$in/$gte/$lte filter object
 router.post('/:name/filter', publicOr('filter'), async (req, res, next) => {
   try {
     // startIndex 2: $1 is already taken by collection = $1 below.

@@ -38,10 +38,10 @@ export default function GroupRegistrationsPage({ embedded = false }) {
       setLoading(true);
       try {
         const [gs, plns, purchs, ppl] = await Promise.all([
-          base44.entities.Group.list('-start_date', 500),
-          base44.entities.GroupPlan.list('-created_date', 1000),
-          base44.entities.GroupPurchase.list('-purchase_date', 1000),
-          base44.entities.Person.list('-created_date', 500)
+          base44.entities.Group.list('-start_date'),
+          base44.entities.GroupPlan.list('-created_date'),
+          base44.entities.GroupPurchase.list('-purchase_date'),
+          base44.entities.Person.list('-created_date')
         ]);
         setGroups(gs);
         setPlans(plns);

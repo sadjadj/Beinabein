@@ -33,7 +33,7 @@ export default function EventSection() {
   const [selectedEventId, setSelectedEventId] = useState('');
 
   const fetchEvents = async () => {
-    const evs = await base44.entities.SalesEvent.list('-start_date', 500);
+    const evs = await base44.entities.SalesEvent.list('-start_date');
     setEvents(evs);
     return evs;
   };
@@ -42,8 +42,8 @@ export default function EventSection() {
     setLoading(true);
     try {
       const [evs, pur] = await Promise.all([
-        base44.entities.SalesEvent.list('-start_date', 500),
-        base44.entities.SalesEventPurchase.list('-purchase_date', 1000),
+        base44.entities.SalesEvent.list('-start_date'),
+        base44.entities.SalesEventPurchase.list('-purchase_date'),
       ]);
       setEvents(evs);
       setPurchases(pur);

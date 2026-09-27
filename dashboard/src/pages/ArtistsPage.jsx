@@ -19,7 +19,7 @@ export default function ArtistsPage({ embedded = false }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Artist.list('-created_date', 500);
+      const data = await base44.entities.Artist.list('-created_date');
       setRecords(data);
     } finally { setLoading(false); }
   };

@@ -29,8 +29,8 @@ export default function GroupAttendancePage() {
     try {
       const [g, purchs, sess] = await Promise.all([
         base44.entities.Group.get(groupId),
-        base44.entities.GroupPurchase.list('-purchase_date', 1000),
-        base44.entities.GroupSession.list('-created_date', 1000)
+        base44.entities.GroupPurchase.list('-purchase_date'),
+        base44.entities.GroupSession.list('-created_date')
       ]);
       setGroup(g);
       setPurchases(purchs.filter(p => p.group_id === groupId));

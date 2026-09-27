@@ -89,9 +89,9 @@ export default function WorkspacePage() {
     setError('');
     try {
       const results = await Promise.allSettled([
-        base44.entities.WorkspaceOrder.list('-purchase_date', 500),
-        base44.entities.WorkspaceSubscription.list('-created_date', 100),
-        base44.entities.Space.list('-created_date', 100)
+        base44.entities.WorkspaceOrder.list('-purchase_date'),
+        base44.entities.WorkspaceSubscription.list('-created_date'),
+        base44.entities.Space.list('-created_date')
       ]);
       const failed = results.filter(r => r.status === 'rejected');
       if (failed.length === results.length) {

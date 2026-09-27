@@ -28,9 +28,9 @@ export default function StorePage() {
     const fetchGroups = async () => {
       try {
         const [store, greenhouse, salesEvent] = await Promise.all([
-          base44.entities.StorePurchase.list('-purchase_date', 1000),
-          base44.entities.GreenhousePurchase.list('-purchase_date', 1000),
-          base44.entities.SalesEventPurchase.list('-purchase_date', 1000),
+          base44.entities.StorePurchase.list('-purchase_date'),
+          base44.entities.GreenhousePurchase.list('-purchase_date'),
+          base44.entities.SalesEventPurchase.list('-purchase_date'),
         ]);
         if (!cancelled) setGroups(buildStoreInvoiceGroups(store, greenhouse, salesEvent));
       } finally { if (!cancelled) setHistoryLoading(false); }

@@ -51,12 +51,12 @@ export default function GroupProfile() {
     try {
       const [g, purchs, sess, facs, spcs, ppl, plns] = await Promise.all([
         base44.entities.Group.get(id),
-        base44.entities.GroupPurchase.list('-purchase_date', 1000),
-        base44.entities.GroupSession.list('-created_date', 1000),
-        base44.entities.Facilitator.list('-created_date', 500),
-        base44.entities.Space.list('-created_date', 100),
-        base44.entities.Person.list('-created_date', 500),
-        base44.entities.GroupPlan.list('-created_date', 500)
+        base44.entities.GroupPurchase.list('-purchase_date'),
+        base44.entities.GroupSession.list('-created_date'),
+        base44.entities.Facilitator.list('-created_date'),
+        base44.entities.Space.list('-created_date'),
+        base44.entities.Person.list('-created_date'),
+        base44.entities.GroupPlan.list('-created_date')
       ]);
       setGroup(g);
       setPurchases(purchs.filter(p => p.group_id === id));

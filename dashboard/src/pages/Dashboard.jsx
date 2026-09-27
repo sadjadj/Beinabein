@@ -38,9 +38,9 @@ export default function Dashboard() {
       setLoading(true);
       try {
         const [workspaceOrders, itemPurchases, workshopPurchases] = await Promise.all([
-          base44.entities.WorkspaceOrder.list('-created_date', 1000),
-          base44.entities.ItemPurchase.list('-created_date', 1000),
-          base44.entities.WorkshopPurchase.list('-created_date', 1000),
+          base44.entities.WorkspaceOrder.list('-created_date'),
+          base44.entities.ItemPurchase.list('-created_date'),
+          base44.entities.WorkshopPurchase.list('-created_date'),
         ]);
         setData({ workspaceOrders, itemPurchases, workshopPurchases });
       } finally { setLoading(false); }

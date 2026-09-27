@@ -23,8 +23,8 @@ export default function GroupsReportTab() {
     (async () => {
       try {
         const [grps, purchs] = await Promise.all([
-          base44.entities.Group.list('-start_date', 500),
-          base44.entities.GroupPurchase.list('-purchase_date', 1000)
+          base44.entities.Group.list('-start_date'),
+          base44.entities.GroupPurchase.list('-purchase_date')
         ]);
         setGroups(grps);
         setPurchases(purchs);

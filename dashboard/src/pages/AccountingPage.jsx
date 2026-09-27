@@ -45,16 +45,16 @@ export default function AccountingPage({ embedded = false }) {
     setLoading(true);
     try {
       const [ws, items, wp, wsList, ci, gp, ep, sp, gh, se] = await Promise.all([
-        base44.entities.WorkspaceOrder.list('-purchase_date', 1000),
-        base44.entities.ItemPurchase.list('-purchase_date', 1000),
-        base44.entities.WorkshopPurchase.list('-purchase_date', 1000),
-        base44.entities.Workshop.list('-start_date', 500),
-        base44.entities.CustomIncome.list('-purchase_date', 1000),
-        base44.entities.GroupPurchase.list('-purchase_date', 1000),
-        base44.entities.EventPurchase.list('-purchase_date', 1000),
-        base44.entities.StorePurchase.list('-purchase_date', 1000),
-        base44.entities.GreenhousePurchase.list('-purchase_date', 1000),
-        base44.entities.SalesEventPurchase.list('-purchase_date', 1000)
+        base44.entities.WorkspaceOrder.list('-purchase_date'),
+        base44.entities.ItemPurchase.list('-purchase_date'),
+        base44.entities.WorkshopPurchase.list('-purchase_date'),
+        base44.entities.Workshop.list('-start_date'),
+        base44.entities.CustomIncome.list('-purchase_date'),
+        base44.entities.GroupPurchase.list('-purchase_date'),
+        base44.entities.EventPurchase.list('-purchase_date'),
+        base44.entities.StorePurchase.list('-purchase_date'),
+        base44.entities.GreenhousePurchase.list('-purchase_date'),
+        base44.entities.SalesEventPurchase.list('-purchase_date')
       ]);
       setWorkspaceOrders(ws);
       setItemPurchases(items);
@@ -104,7 +104,7 @@ export default function AccountingPage({ embedded = false }) {
         is_paid: customForm.is_paid,
         description: customForm.description || ''
       });
-      setCustomIncomes(await base44.entities.CustomIncome.list('-purchase_date', 1000));
+      setCustomIncomes(await base44.entities.CustomIncome.list('-purchase_date'));
       setCustomForm({ title: '', person_name: '', person_phone: '', amount: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: 'other', is_paid: false, description: '' });
       setShowCustomForm(false);
     } finally { setCustomSubmitting(false); }
@@ -112,7 +112,7 @@ export default function AccountingPage({ embedded = false }) {
 
   const toggleFacilitatorPaid = async (w) => {
     await base44.entities.Workshop.update(w.id, { facilitator_paid: !w.facilitator_paid });
-    setWorkshops(await base44.entities.Workshop.list('-start_date', 500));
+    setWorkshops(await base44.entities.Workshop.list('-start_date'));
   };
 
   // Monthly P&L

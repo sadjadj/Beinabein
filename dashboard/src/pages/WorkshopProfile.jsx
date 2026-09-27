@@ -48,9 +48,9 @@ export default function WorkshopProfile() {
         base44.entities.Workshop.get(id),
         base44.entities.WorkshopPurchase.filter({ workshop_id: id }),
         base44.entities.WorkshopSession.filter({ workshop_id: id }),
-        base44.entities.Facilitator.list('-created_date', 500),
-        base44.entities.Space.list('-created_date', 100),
-        base44.entities.Person.list('-created_date', 500),
+        base44.entities.Facilitator.list('-created_date'),
+        base44.entities.Space.list('-created_date'),
+        base44.entities.Person.list('-created_date'),
         base44.entities.WorkshopPlan.filter({ workshop_id: id })
       ]);
       setWorkshop(w);
@@ -152,7 +152,7 @@ export default function WorkshopProfile() {
       }
 
       // Re-number all sessions sequentially by date order
-      const updatedSessions = await base44.entities.WorkshopSession.list('-session_date', 500);
+      const updatedSessions = await base44.entities.WorkshopSession.list('-session_date');
       const wsSessions = updatedSessions.filter(s => s.workshop_id === id)
         .sort((a, b) => (a.session_date || '').localeCompare(b.session_date || ''));
       if (wsSessions.length > 0) {

@@ -20,7 +20,7 @@ export default function BrandProfile() {
     try {
       const [b, brands] = await Promise.all([
         base44.entities.Brand.get(id),
-        base44.entities.Brand.list('-created_date', 500)
+        base44.entities.Brand.list('-created_date')
       ]);
       setBrand(b);
       const tagSet = new Set();

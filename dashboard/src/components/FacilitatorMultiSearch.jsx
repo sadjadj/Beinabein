@@ -9,7 +9,7 @@ export default function FacilitatorMultiSearch({ selectedIds = [], onChange }) {
   const ref = useRef(null);
 
   useEffect(() => {
-    base44.entities.Facilitator.list('-created_date', 500).then(setFacilitators);
+    base44.entities.Facilitator.list('-created_date').then(setFacilitators);
   }, []);
 
   useEffect(() => {

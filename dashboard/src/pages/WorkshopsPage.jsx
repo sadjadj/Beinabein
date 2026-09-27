@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import StatCard from '@/components/StatCard';
 import { GraduationCap, Users, Plus, Wallet, Archive, Calendar, Clock, MapPin, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { computeWorkshopRevenue, toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
+import { toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { todayGregorian, formatJalaliShort } from '@/lib/jalali';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
@@ -17,7 +17,8 @@ export default function WorkshopsPage({ embedded = false }) {
   const isAdmin = user?.role === 'admin';
   const [searchParams, setSearchParams] = useSearchParams();
   const [workshops, setWorkshops] = useState([]);
-  const [purchases, setPurchases] = useState([]);
+  const [regStats, setRegStats] = useState({}); // workshop_id -> { purchase_count, total_amount, paid_amount }
+  const [monthPurchases, setMonthPurchases] = useState([]);
   const [facilitators, setFacilitators] = useState([]);
   const [spaces, setSpaces] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,17 +42,22 @@ export default function WorkshopsPage({ embedded = false }) {
     }, { replace: true });
   }, [nameFilter, facilitatorFilter, spaceFilter, sortBy, setSearchParams]);
 
+  // Current Jalali month — the month stat cards only need this month's registrations
+  const monthRange = getDateRange('month', null, null);
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [ws, purchs, facs, spcs] = await Promise.all([
-        base44.entities.Workshop.list('-start_date', 500),
-        base44.entities.WorkshopPurchase.list('-purchase_date', 500),
-        base44.entities.Facilitator.list('-created_date', 500),
-        base44.entities.Space.list('-created_date', 100)
+      const [ws, stats, monthPurchs, facs, spcs] = await Promise.all([
+        base44.entities.Workshop.list('-start_date'),
+        base44.stats.workshopRegistrations(),
+        base44.entities.WorkshopPurchase.filter({ purchase_date: { $gte: monthRange.start, $lte: monthRange.end } }),
+        base44.entities.Facilitator.list('-created_date'),
+        base44.entities.Space.list('-created_date')
       ]);
       setWorkshops(ws);
-      setPurchases(purchs);
+      setRegStats(Object.fromEntries(stats.map(r => [r.workshop_id, r])));
+      setMonthPurchases(monthPurchs);
       setFacilitators(facs);
       setSpaces(spcs);
     } finally { setLoading(false); }
@@ -103,11 +109,8 @@ export default function WorkshopsPage({ embedded = false }) {
     start_date: '', end_date: '', facilitator_percentage: '', capacity: '', session_dates: []
   };
 
-  // Monthly stats (current Jalali month)
-  const monthRange = getDateRange('month', null, null);
-  const inMonth = (date) => !!(date && (!monthRange || (date >= monthRange.start && date <= monthRange.end)));
+  const inMonth = (date) => !!(date && date >= monthRange.start && date <= monthRange.end);
   const monthWorkshops = workshops.filter(w => inMonth(w.start_date));
-  const monthPurchases = purchases.filter(p => inMonth(p.purchase_date));
   const monthUniquePhones = new Set(monthPurchases.map(p => p.person_phone));
   const monthRevenue = monthPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
 
@@ -192,10 +195,7 @@ export default function WorkshopsPage({ embedded = false }) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeWorkshops.map(w => {
-              const wsPurchases = purchases.filter(p => p.workshop_id === w.id);
-              const rev = computeWorkshopRevenue(w, wsPurchases);
-              const totalAmount = wsPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
-              const paidAmount = wsPurchases.filter(p => p.is_paid).reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
+              const { purchase_count = 0, total_amount = 0, paid_amount = 0 } = regStats[w.id] || {};
               const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
               return (
                 <Link key={w.id} to={`/workshops/${w.id}`} className="bg-white rounded-xl border border-border p-5 hover:shadow-md hover:border-[#B74B40]/30 transition-all flex flex-col">
@@ -213,8 +213,8 @@ export default function WorkshopsPage({ embedded = false }) {
                   </div>
                   {facNames && <p className="text-xs text-muted-foreground mt-2 truncate">{facNames}</p>}
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
-                    <span className="text-sm font-medium">{toPersianNum(rev.purchaseCount)} ثبت‌نام{w.capacity ? ` از ${toPersianNum(w.capacity)}` : ''}</span>
-                    <span className="text-sm font-bold text-[#B74B40]">{formatCurrency(paidAmount)} از {formatCurrency(totalAmount)}</span>
+                    <span className="text-sm font-medium">{toPersianNum(purchase_count)} ثبت‌نام{w.capacity ? ` از ${toPersianNum(w.capacity)}` : ''}</span>
+                    <span className="text-sm font-bold text-[#B74B40]">{formatCurrency(paid_amount)} از {formatCurrency(total_amount)}</span>
                   </div>
                 </Link>
               );
@@ -243,7 +243,6 @@ export default function WorkshopsPage({ embedded = false }) {
               </thead>
               <tbody>
                 {paginatedArchived.map(w => {
-                  const rev = computeWorkshopRevenue(w, purchases.filter(p => p.workshop_id === w.id));
                   const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
                   return (
                     <tr key={w.id} className="border-t border-border hover:bg-muted/30">
@@ -255,7 +254,7 @@ export default function WorkshopsPage({ embedded = false }) {
                       <td className="p-3 text-xs">{w.day_of_week ? (dayLabels[w.day_of_week] || w.day_of_week) : '-'}</td>
                       <td className="p-3 text-xs whitespace-nowrap">{w.start_date ? formatJalaliShort(w.start_date) : '-'}</td>
                       <td className="p-3 text-xs">{w.space || '-'}</td>
-                      <td className="p-3 text-center font-medium">{toPersianNum(rev.purchaseCount)}</td>
+                      <td className="p-3 text-center font-medium">{toPersianNum(regStats[w.id]?.purchase_count || 0)}</td>
                     </tr>
                   );
                 })}

@@ -60,8 +60,8 @@ export default function WorkshopHistoryTab() {
     (async () => {
       try {
         const [purchs, ws] = await Promise.all([
-          base44.entities.WorkshopPurchase.list('-purchase_date', 2000),
-          base44.entities.Workshop.list('-start_date', 500)
+          base44.entities.WorkshopPurchase.list('-purchase_date'),
+          base44.entities.Workshop.list('-start_date')
         ]);
         setPurchases(purchs);
         setWorkshops(ws);

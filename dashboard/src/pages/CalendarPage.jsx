@@ -27,11 +27,11 @@ export default function CalendarPage() {
       setLoading(true);
       try {
         const [ws, gs, evs, ses, spcs] = await Promise.all([
-          base44.entities.Workshop.list('-start_date', 500),
-          base44.entities.Group.list('-start_date', 500),
-          base44.entities.Event.list('-start_date', 500),
-          base44.entities.SalesEvent.list('-start_date', 500),
-          base44.entities.Space.list('-created_date', 100)
+          base44.entities.Workshop.list('-start_date'),
+          base44.entities.Group.list('-start_date'),
+          base44.entities.Event.list('-start_date'),
+          base44.entities.SalesEvent.list('-start_date'),
+          base44.entities.Space.list('-created_date')
         ]);
         setWorkshops(ws);
         setGroups(gs);
@@ -138,7 +138,7 @@ export default function CalendarPage() {
       }
       await base44.entities.EventPlan.create({ event_id: created.id, name: 'رایگان', price_min: 0, price_max: 0, is_active: false });
       setShowEventForm(false);
-      const evs = await base44.entities.Event.list('-start_date', 500);
+      const evs = await base44.entities.Event.list('-start_date');
       setEvents(evs);
     } finally { setSubmitting(false); }
   };

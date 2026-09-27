@@ -22,7 +22,7 @@ export default function PersonSearch({ personName, personPhone, onNameChange, on
     }
     const timer = setTimeout(async () => {
       try {
-        const all = await base44.entities.Person.list('-created_date', 500);
+        const all = await base44.entities.Person.list('-created_date');
         const matches = all
           .filter(p => p.full_name && p.full_name.toLowerCase().includes(displayName.trim().toLowerCase()))
           .slice(0, 6);

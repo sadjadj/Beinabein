@@ -98,7 +98,7 @@ export async function findOrCreatePerson(phone, name) {
 
 export async function bulkCreatePersons(phones) {
   if (!phones || phones.length === 0) return;
-  const existing = await base44.entities.Person.list('-created_date', 500);
+  const existing = await base44.entities.Person.list('-created_date');
   const existingPhones = new Set(existing.map(p => p.phone));
   const newPhones = phones.filter(p => p && !existingPhones.has(p));
   if (newPhones.length > 0) {

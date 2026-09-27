@@ -38,6 +38,8 @@ async function request(method, path, body) {
 
 function makeEntityClient(name) {
   return {
+    // No limit = every row (the server no longer caps silently). Pass one only
+    // when you genuinely want "the latest N", never as a stand-in for "all".
     list: (sort, limit) => {
       const params = new URLSearchParams();
       if (sort) params.set('sort', sort);
@@ -79,6 +81,10 @@ for (const name of ENTITY_NAMES) entities[name] = makeEntityClient(name);
 
 export const base44 = {
   entities,
+  stats: {
+    // [{ workshop_id, purchase_count, total_amount, paid_amount }]
+    workshopRegistrations: () => request('GET', '/stats/workshop-registrations'),
+  },
   auth: {
     async me() {
       const { user, mustChangePassword } = await request('GET', '/me');

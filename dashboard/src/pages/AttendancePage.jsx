@@ -19,9 +19,9 @@ export default function AttendancePage({ embedded = false }) {
       setLoading(true);
       try {
         const [ws, purchs, sess] = await Promise.all([
-          base44.entities.Workshop.list('-start_date', 500),
-          base44.entities.WorkshopPurchase.list('-purchase_date', 500),
-          base44.entities.WorkshopSession.list('-created_date', 500)
+          base44.entities.Workshop.list('-start_date'),
+          base44.entities.WorkshopPurchase.list('-purchase_date'),
+          base44.entities.WorkshopSession.list('-created_date')
         ]);
         setWorkshops(ws);
         setPurchases(purchs);

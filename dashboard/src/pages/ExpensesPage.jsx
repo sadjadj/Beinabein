@@ -49,8 +49,8 @@ export default function ExpensesPage({ embedded = false }) {
     setLoading(true);
     try {
       const [exps, facs] = await Promise.all([
-        base44.entities.Expense.list('-date', 500),
-        base44.entities.Facilitator.list('-created_date', 500)
+        base44.entities.Expense.list('-date'),
+        base44.entities.Facilitator.list('-created_date')
       ]);
       setExpenses(exps);
       setFacilitators(facs);

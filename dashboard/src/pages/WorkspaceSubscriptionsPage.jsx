@@ -18,7 +18,7 @@ export default function WorkspaceSubscriptionsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const subs = await base44.entities.WorkspaceSubscription.list('-created_date', 100);
+      const subs = await base44.entities.WorkspaceSubscription.list('-created_date');
       setSubscriptions(subs);
     } finally { setLoading(false); }
   };

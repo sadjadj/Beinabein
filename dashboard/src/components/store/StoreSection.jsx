@@ -22,9 +22,9 @@ export default function StoreSection({ itemEntity, purchaseEntity, categoryEntit
     setLoading(true);
     try {
       const [it, pur, cats] = await Promise.all([
-        Item.list('-created_date', 500),
-        Purchase.list('-purchase_date', 1000),
-        Category.list('-created_date', 100)
+        Item.list('-created_date'),
+        Purchase.list('-purchase_date'),
+        Category.list('-created_date')
       ]);
       setItems(it); setPurchases(pur); setCategories(cats);
     } finally { setLoading(false); }

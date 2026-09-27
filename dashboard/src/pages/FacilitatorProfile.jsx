@@ -24,8 +24,8 @@ export default function FacilitatorProfile() {
     try {
       const [f, allWs, allPurchs] = await Promise.all([
         base44.entities.Facilitator.get(id),
-        base44.entities.Workshop.list('-start_date', 500),
-        base44.entities.WorkshopPurchase.list('-purchase_date', 500)
+        base44.entities.Workshop.list('-start_date'),
+        base44.entities.WorkshopPurchase.list('-purchase_date')
       ]);
       setFacilitator(f);
       setWorkshops(allWs.filter(w => (w.facilitator_ids || []).includes(id)));

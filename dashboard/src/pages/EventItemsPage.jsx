@@ -23,7 +23,7 @@ export default function EventItemsPage() {
           base44.entities.SalesEvent.get(id),
           base44.entities.SalesEventItem.filter({ event_id: id }),
           base44.entities.SalesEventCategory.filter({ event_id: id }),
-          base44.entities.Brand.list('-created_date', 500),
+          base44.entities.Brand.list('-created_date'),
         ]);
         if (cancelled) return;
         if (results[0].status === 'fulfilled') setEvent(results[0].value);

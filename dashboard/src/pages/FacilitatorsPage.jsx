@@ -23,8 +23,8 @@ export default function FacilitatorsPage({ embedded = false }) {
     setLoading(true);
     try {
       const [facs, ws] = await Promise.all([
-        base44.entities.Facilitator.list('-created_date', 500),
-        base44.entities.Workshop.list('-start_date', 500)
+        base44.entities.Facilitator.list('-created_date'),
+        base44.entities.Workshop.list('-start_date')
       ]);
       setFacilitators(facs);
       setWorkshops(ws);

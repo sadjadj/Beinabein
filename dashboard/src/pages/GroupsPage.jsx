@@ -33,10 +33,10 @@ export default function GroupsPage({ embedded = false }) {
     setLoading(true);
     try {
       const [gs, purchs, facs, spcs] = await Promise.all([
-        base44.entities.Group.list('-start_date', 500),
-        base44.entities.GroupPurchase.list('-purchase_date', 1000),
-        base44.entities.Facilitator.list('-created_date', 500),
-        base44.entities.Space.list('-created_date', 100)
+        base44.entities.Group.list('-start_date'),
+        base44.entities.GroupPurchase.list('-purchase_date'),
+        base44.entities.Facilitator.list('-created_date'),
+        base44.entities.Space.list('-created_date')
       ]);
       setGroups(gs);
       setPurchases(purchs);

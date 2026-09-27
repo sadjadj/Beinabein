@@ -20,8 +20,8 @@ export default function WorkshopAttendancePage() {
     try {
       const [w, purchs, sess] = await Promise.all([
         base44.entities.Workshop.get(workshopId),
-        base44.entities.WorkshopPurchase.list('-purchase_date', 500),
-        base44.entities.WorkshopSession.list('-session_number', 500)
+        base44.entities.WorkshopPurchase.list('-purchase_date'),
+        base44.entities.WorkshopSession.list('-session_number')
       ]);
       setWorkshop(w);
       setPurchases(purchs.filter(p => p.workshop_id === workshopId));

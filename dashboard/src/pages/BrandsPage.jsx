@@ -21,7 +21,7 @@ export default function BrandsPage({ embedded = false }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Brand.list('-created_date', 500);
+      const data = await base44.entities.Brand.list('-created_date');
       setRecords(data);
       const tagSet = new Set();
       data.forEach(r => (r.collaboration_tags || []).forEach(t => tagSet.add(t)));

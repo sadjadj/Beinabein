@@ -14,7 +14,7 @@ export default function SpacesPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Space.list('-created_date', 100);
+      const data = await base44.entities.Space.list('-created_date');
       setSpaces(data);
     } finally { setLoading(false); }
   };

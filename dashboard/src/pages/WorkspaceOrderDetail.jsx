@@ -30,9 +30,9 @@ export default function WorkspaceOrderDetail() {
     try {
       const [o, subs, orders, sps] = await Promise.all([
         base44.entities.WorkspaceOrder.get(id),
-        base44.entities.WorkspaceSubscription.list('-created_date', 100),
-        base44.entities.WorkspaceOrder.list('-purchase_date', 500),
-        base44.entities.Space.list('-created_date', 100)
+        base44.entities.WorkspaceSubscription.list('-created_date'),
+        base44.entities.WorkspaceOrder.list('-purchase_date'),
+        base44.entities.Space.list('-created_date')
       ]);
       setOrder(o);
       setSubscriptions(subs);

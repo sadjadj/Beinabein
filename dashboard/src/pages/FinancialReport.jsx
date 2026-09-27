@@ -30,13 +30,13 @@ export default function FinancialReport({ embedded = false }) {
       setLoading(true);
       try {
         const [wo, ip, wp, exp, ws, facs, ppl] = await Promise.all([
-          base44.entities.WorkspaceOrder.list('-purchase_date', 1000),
-          base44.entities.ItemPurchase.list('-purchase_date', 1000),
-          base44.entities.WorkshopPurchase.list('-purchase_date', 1000),
-          base44.entities.Expense.list('-date', 1000),
-          base44.entities.Workshop.list('-start_date', 500),
-          base44.entities.Facilitator.list('-created_date', 500),
-          base44.entities.Person.list('-created_date', 1000)
+          base44.entities.WorkspaceOrder.list('-purchase_date'),
+          base44.entities.ItemPurchase.list('-purchase_date'),
+          base44.entities.WorkshopPurchase.list('-purchase_date'),
+          base44.entities.Expense.list('-date'),
+          base44.entities.Workshop.list('-start_date'),
+          base44.entities.Facilitator.list('-created_date'),
+          base44.entities.Person.list('-created_date')
         ]);
         setData({ workspaceOrders: wo, itemPurchases: ip, workshopPurchases: wp, expenses: exp, workshops: ws, facilitators: facs, people: ppl });
       } finally { setLoading(false); }

@@ -51,6 +51,19 @@ const { buildWhere, buildSetParam, parseSort } = require('./queryBuilder');
   assert.deepStrictEqual(parseSort(undefined), { column: `data->>'created_date'`, direction: 'DESC' });
 }
 
+// date range — each bound takes its own param slot
+{
+  const { clause, params } = buildWhere({ purchase_date: { $gte: '2026-09-23', $lte: '2026-10-22' }, workshop_id: 'w' }, 2);
+  assert.strictEqual(clause, `data->>'purchase_date' COLLATE "C" >= $2 AND data->>'purchase_date' COLLATE "C" <= $3 AND data->>'workshop_id' = $4`);
+  assert.deepStrictEqual(params, ['2026-09-23', '2026-10-22', 'w']);
+}
+
+// field names are interpolated into SQL — anything but a plain identifier must throw
+{
+  assert.throws(() => parseSort("-x'; DROP TABLE entities; --"), /invalid field name/);
+  assert.throws(() => buildWhere({ "a' OR '1'='1": 'x' }), /invalid field name/);
+}
+
 // set param is just JSON — merge semantics live in the SQL (`data || $n::jsonb`)
 {
   assert.strictEqual(buildSetParam({ is_paid: true }), '{"is_paid":true}');

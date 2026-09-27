@@ -60,8 +60,8 @@ export default function GroupHistoryTab() {
     (async () => {
       try {
         const [purchs, gs] = await Promise.all([
-          base44.entities.GroupPurchase.list('-purchase_date', 2000),
-          base44.entities.Group.list('-start_date', 500)
+          base44.entities.GroupPurchase.list('-purchase_date'),
+          base44.entities.Group.list('-start_date')
         ]);
         setPurchases(purchs);
         setGroups(gs);

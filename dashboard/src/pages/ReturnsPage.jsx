@@ -21,7 +21,7 @@ export default function ReturnsPage({ embedded = false }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Returns.list('-return_date', 500);
+      const data = await base44.entities.Returns.list('-return_date');
       setReturns(data);
     } finally { setLoading(false); }
   };

@@ -20,10 +20,10 @@ export default function DailyReport() {
       setLoading(true);
       try {
         const [wo, ip, wp, ppl] = await Promise.all([
-          base44.entities.WorkspaceOrder.list('-purchase_date', 1000),
-          base44.entities.ItemPurchase.list('-purchase_date', 1000),
-          base44.entities.WorkshopPurchase.list('-purchase_date', 1000),
-          base44.entities.Person.list('-created_date', 1000)
+          base44.entities.WorkspaceOrder.list('-purchase_date'),
+          base44.entities.ItemPurchase.list('-purchase_date'),
+          base44.entities.WorkshopPurchase.list('-purchase_date'),
+          base44.entities.Person.list('-created_date')
         ]);
         setData({
           workspaceOrders: wo.filter(o => o.purchase_date === date),

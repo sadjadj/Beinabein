@@ -32,8 +32,8 @@ export default function EventManagementTab({ spaces }) {
     setLoading(true);
     try {
       const [evs, plns] = await Promise.all([
-        base44.entities.Event.list('-start_date', 500),
-        base44.entities.EventPlan.list('-created_date', 1000)
+        base44.entities.Event.list('-start_date'),
+        base44.entities.EventPlan.list('-created_date')
       ]);
       setEvents(evs);
       setPlans(plns);

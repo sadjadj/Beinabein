@@ -7,16 +7,17 @@
 //  Everything else needs HTTP Basic Auth against the `admins` table
 //  (bcrypt-hashed passwords — see scripts/upsert-admin.js to create/reset one).
 //
-//  GET    /api/entities/:name?sort=-created_date&limit=500
+//  GET    /api/entities/:name?sort=-created_date[&limit=N]   no limit = all rows
 //  GET    /api/entities/:name/:id
 //  POST   /api/entities/:name              body: record fields
 //  POST   /api/entities/:name/bulk         body: array of records
-//  POST   /api/entities/:name/filter       body: { field: value | { $in: [...] } }
+//  POST   /api/entities/:name/filter       body: { field: value | { $in: [...] } | { $gte, $lte } }
 //  PUT    /api/entities/:name/:id          body: partial patch (shallow merge)
 //  PATCH  /api/entities/:name/many         body: { filter, set }
 //  DELETE /api/entities/:name/:id
 //  DELETE /api/entities/:name/many         body: filter
 //  GET    /api/me                          admin only — { user, mustChangePassword }
+//  GET    /api/stats/workshop-registrations  admin only — per-workshop count/totals
 //  PATCH  /api/admin/password              admin only — body: { currentPassword, newPassword }
 //
 //  Everything else serves the two static frontend builds the Dockerfile bakes
@@ -75,6 +76,25 @@ app.patch('/api/admin/password', requireAdmin, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Per-workshop registration count and money totals, aggregated in SQL so the
+// workshops list doesn't have to download every registration just to count.
+// Amount = price * quantity + donation, same formula as the dashboard's
+// computeWorkshopRevenue / WorkshopProfile totals.
+app.get('/api/stats/workshop-registrations', requireAdmin, async (req, res, next) => {
+  try {
+    const amount = `COALESCE((data->>'price')::numeric, 0) * COALESCE(NULLIF((data->>'quantity')::numeric, 0), 1) + COALESCE((data->>'donation')::numeric, 0)`;
+    const { rows } = await pool.query(
+      `SELECT data->>'workshop_id' AS workshop_id,
+              COUNT(*)::int AS purchase_count,
+              COALESCE(SUM(${amount}), 0)::float8 AS total_amount,
+              COALESCE(SUM(${amount}) FILTER (WHERE (data->>'is_paid')::boolean), 0)::float8 AS paid_amount
+         FROM entities WHERE collection = 'WorkshopPurchase'
+        GROUP BY 1`
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
 app.use('/api/entities', entitiesRouter);
 
 // Anything else under /api is a bad route — 404 as JSON, not the client's
@@ -90,6 +110,8 @@ app.use(express.static(PUBLIC_DIR));
 app.get('*', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
 app.use((err, req, res, next) => {
+  // err.status = a deliberate client error (e.g. queryBuilder's bad field name)
+  if (err.status && err.status < 500) return res.status(err.status).json({ error: err.message });
   console.error(err);
   res.status(500).json({ error: 'internal error' });
 });

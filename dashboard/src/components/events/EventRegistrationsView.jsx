@@ -25,7 +25,7 @@ export default function EventRegistrationsView({ event, plans }) {
   const fetchPurchases = async () => {
     setLoading(true);
     try {
-      const all = await base44.entities.EventPurchase.list('-purchase_date', 1000);
+      const all = await base44.entities.EventPurchase.list('-purchase_date');
       setPurchases(all.filter(p => p.event_id === event.id));
     } finally { setLoading(false); }
   };
