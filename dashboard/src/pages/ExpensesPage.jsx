@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Wallet, Plus, Trash2, Wrench, ShoppingCart, Coffee, UtensilsCrossed, User, Search, PartyPopper } from 'lucide-react';
+import { Wallet, Plus, Trash2, Wrench, ShoppingCart, Coffee, UtensilsCrossed, User, Search, PartyPopper, Pencil } from 'lucide-react';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
 import { formatJalaliShort, todayGregorian, toJalaliStr } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
@@ -35,6 +35,50 @@ const categoryColors = {
   kitchen_purchase: 'teal',
   leisure: 'ochre',
 };
+
+function ExpenseForm({ form, setForm, facilitators, onSubmit, onCancel, submitting, submitLabel = 'ثبت' }) {
+  return (
+    <form onSubmit={onSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div>
+        <label className="text-xs text-muted-foreground block mb-1">عنوان هزینه *</label>
+        <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground block mb-1">مبلغ (تومان) *</label>
+        <PriceInput value={form.amount} onChange={v => setForm({ ...form, amount: v })} required />
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground block mb-1">دسته‌بندی</label>
+        <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+          {Object.entries(categoryLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground block mb-1">تاریخ *</label>
+        <JalaliDateInput value={form.date} onChange={v => setForm({ ...form, date: v })} />
+      </div>
+      {form.category === 'facilitator_payment' && (
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">تسهیلگر</label>
+          <select value={form.facilitator_id} onChange={e => setForm({ ...form, facilitator_id: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+            <option value="">انتخاب...</option>
+            {facilitators.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
+          </select>
+        </div>
+      )}
+      <div className="sm:col-span-2 lg:col-span-3">
+        <label className="text-xs text-muted-foreground block mb-1">توضیحات</label>
+        <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+      </div>
+      <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
+        <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+          {submitting ? 'در حال ذخیره...' : submitLabel}
+        </button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
+      </div>
+    </form>
+  );
+}
 
 export default function ExpensesPage({ embedded = false }) {
   const [expenses, setExpenses] = useState([]);
@@ -77,6 +121,28 @@ export default function ExpensesPage({ embedded = false }) {
       setShowForm(false);
       fetchData();
     } finally { setSubmitting(false); }
+  };
+
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const startEdit = (e) => {
+    setEditId(e.id);
+    setEditForm({ title: e.title || '', amount: e.amount ?? '', category: e.category || 'daily', date: e.date || '', description: e.description || '', facilitator_id: e.facilitator_id || '' });
+  };
+
+  const saveEdit = async (ev) => {
+    ev.preventDefault();
+    if (!editForm.title || !editForm.amount || !editForm.date) return;
+    setSavingEdit(true);
+    try {
+      const fac = facilitators.find(f => f.id === editForm.facilitator_id);
+      const data = { ...editForm, amount: Number(editForm.amount) || 0, facilitator_name: fac?.full_name || '' };
+      await base44.entities.Expense.update(editId, data);
+      setExpenses(prev => prev.map(x => x.id === editId ? { ...x, ...data } : x));
+      setEditId(null);
+    } finally { setSavingEdit(false); }
   };
 
   const handleDelete = async (id) => {
@@ -145,45 +211,7 @@ export default function ExpensesPage({ embedded = false }) {
 
       {showForm && (
         <div className="bg-white rounded-xl border border-border p-5">
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1">عنوان هزینه *</label>
-              <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1">مبلغ (تومان) *</label>
-              <PriceInput value={form.amount} onChange={v => setForm({ ...form, amount: v })} required />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1">دسته‌بندی</label>
-              <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                {Object.entries(categoryLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1">تاریخ *</label>
-              <JalaliDateInput value={form.date} onChange={v => setForm({ ...form, date: v })} />
-            </div>
-            {form.category === 'facilitator_payment' && (
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">تسهیلگر</label>
-                <select value={form.facilitator_id} onChange={e => setForm({ ...form, facilitator_id: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                  <option value="">انتخاب...</option>
-                  {facilitators.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
-                </select>
-              </div>
-            )}
-            <div className="sm:col-span-2 lg:col-span-3">
-              <label className="text-xs text-muted-foreground block mb-1">توضیحات</label>
-              <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-            </div>
-            <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
-              <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
-                {submitting ? 'در حال ثبت...' : 'ثبت'}
-              </button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
-            </div>
-          </form>
+          <ExpenseForm form={form} setForm={setForm} facilitators={facilitators} onSubmit={handleSubmit} onCancel={() => setShowForm(false)} submitting={submitting} />
         </div>
       )}
 
@@ -236,7 +264,8 @@ export default function ExpensesPage({ embedded = false }) {
                 {filtered.map(e => {
                   const Icon = categoryIcons[e.category] || Wallet;
                   return (
-                    <tr key={e.id} className="border-t border-border hover:bg-muted/30">
+                    <React.Fragment key={e.id}>
+                    <tr className="border-t border-border hover:bg-muted/30">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-lg bg-[#FDF2F1] flex items-center justify-center flex-shrink-0">
@@ -253,9 +282,20 @@ export default function ExpensesPage({ embedded = false }) {
                       <td className="p-3 text-xs text-muted-foreground">{formatJalaliShort(e.date)}</td>
                       <td className="p-3 text-center font-medium">{formatCurrency(e.amount)}</td>
                       <td className="p-3 text-center">
-                        <button onClick={() => handleDelete(e.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => editId === e.id ? setEditId(null) : startEdit(e)} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleDelete(e.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </div>
                       </td>
                     </tr>
+                    {editId === e.id && (
+                      <tr className="border-t border-border">
+                        <td colSpan={5} className="p-3 bg-muted/20">
+                          <ExpenseForm form={editForm} setForm={setEditForm} facilitators={facilitators} onSubmit={saveEdit} onCancel={() => setEditId(null)} submitting={savingEdit} submitLabel="ذخیره" />
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
