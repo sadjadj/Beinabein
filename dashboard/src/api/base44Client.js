@@ -67,7 +67,7 @@ function makeEntityClient(name) {
 // runtime. Re-sync both lists if entities are added/removed.
 const ENTITY_NAMES = [
   'Artist', 'Brand', 'CafeTag', 'Category', 'CustomIncome', 'Event',
-  'EventPlan', 'EventPurchase', 'Expense', 'Facilitator', 'GreenhouseCategory',
+  'EventPlan', 'EventPurchase', 'Expense', 'ExpenseCategory', 'Facilitator', 'GreenhouseCategory',
   'GreenhouseItem', 'GreenhousePurchase', 'Group', 'GroupPlan', 'GroupPurchase',
   'GroupSession', 'InventoryItem', 'ItemPurchase', 'Person', 'Returns',
   'SalesEvent', 'SalesEventCategory', 'SalesEventItem', 'SalesEventPurchase',

@@ -21,7 +21,7 @@ const presets = [
 
 export default function FinancialReport({ embedded = false }) {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], expenses: [], workshops: [], facilitators: [], people: [] });
+  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], expenses: [], expenseCategories: [], workshops: [], facilitators: [], people: [] });
   const [preset, setPreset] = useState('month');
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -29,16 +29,17 @@ export default function FinancialReport({ embedded = false }) {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [wo, ip, wp, exp, ws, facs, ppl] = await Promise.all([
+        const [wo, ip, wp, exp, ws, facs, ppl, expCats] = await Promise.all([
           base44.entities.WorkspaceOrder.list('-purchase_date'),
           base44.entities.ItemPurchase.list('-purchase_date'),
           base44.entities.WorkshopPurchase.list('-purchase_date'),
           base44.entities.Expense.list('-date'),
           base44.entities.Workshop.list('-start_date'),
           base44.entities.Facilitator.list('-created_date'),
-          base44.entities.Person.list('-created_date')
+          base44.entities.Person.list('-created_date'),
+          base44.entities.ExpenseCategory.list()
         ]);
-        setData({ workspaceOrders: wo, itemPurchases: ip, workshopPurchases: wp, expenses: exp, workshops: ws, facilitators: facs, people: ppl });
+        setData({ workspaceOrders: wo, itemPurchases: ip, workshopPurchases: wp, expenses: exp, expenseCategories: expCats, workshops: ws, facilitators: facs, people: ppl });
       } finally { setLoading(false); }
     };
     fetchAll();
@@ -241,7 +242,7 @@ export default function FinancialReport({ embedded = false }) {
               <p className="text-sm text-muted-foreground">هزینه‌ای در این دوره ثبت نشده</p>
             ) : (
               Object.entries(exp.reduce((m, e) => { const c = e.category || 'daily'; m[c] = (m[c] || 0) + (e.amount || 0); return m; }, {})).sort((a, b) => b[1] - a[1]).map(([c, v]) => (
-                <div key={c} className="flex items-center justify-between text-sm"><span>{c}</span><span className="font-medium">{formatCurrency(v)}</span></div>
+                <div key={c} className="flex items-center justify-between text-sm"><span>{data.expenseCategories.find(x => x.id === c)?.name || c}</span><span className="font-medium">{formatCurrency(v)}</span></div>
               ))
             )}
           </div>

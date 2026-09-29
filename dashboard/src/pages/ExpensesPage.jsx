@@ -8,16 +8,10 @@ import JalaliDateInput from '@/components/JalaliDateInput';
 import PriceInput from '@/components/PriceInput';
 import ExportButton from '@/components/ExportButton';
 import { TableSkeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
+import ExpenseCategoryTab from '@/components/expenses/ExpenseCategoryTab';
 
-const categoryLabels = {
-  repairs: 'تعمیرات',
-  daily: 'هزینه روزمره',
-  facilitator_payment: 'پرداختی به تسهیلگر',
-  cafe_purchase: 'خرید برای کافه',
-  kitchen_purchase: 'خرید برای آشپزخانه',
-  leisure: 'هزینه تفریح',
-};
-
+// Categories themselves live in the ExpenseCategory entity; these only style
+// the built-in ones (seeded with these ids), new ones fall back to defaults.
 const categoryIcons = {
   repairs: Wrench,
   daily: Wallet,
@@ -36,7 +30,7 @@ const categoryColors = {
   leisure: 'ochre',
 };
 
-function ExpenseForm({ form, setForm, facilitators, onSubmit, onCancel, submitting, submitLabel = 'ثبت' }) {
+function ExpenseForm({ form, setForm, categories, facilitators, onSubmit, onCancel, submitting, submitLabel = 'ثبت', onEditCategories }) {
   return (
     <form onSubmit={onSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <div>
@@ -48,9 +42,16 @@ function ExpenseForm({ form, setForm, facilitators, onSubmit, onCancel, submitti
         <PriceInput value={form.amount} onChange={v => setForm({ ...form, amount: v })} required />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">دسته‌بندی</label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-xs text-muted-foreground">دسته‌بندی</label>
+          {onEditCategories && (
+            <button type="button" onClick={onEditCategories} className="flex items-center gap-1 text-xs text-[#B74B40] hover:underline">
+              <Pencil className="w-3 h-3" /> ویرایش
+            </button>
+          )}
+        </div>
         <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
-          {Object.entries(categoryLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
       <div>
@@ -83,6 +84,8 @@ function ExpenseForm({ form, setForm, facilitators, onSubmit, onCancel, submitti
 export default function ExpensesPage({ embedded = false }) {
   const [expenses, setExpenses] = useState([]);
   const [facilitators, setFacilitators] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [showCategories, setShowCategories] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -95,12 +98,14 @@ export default function ExpensesPage({ embedded = false }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [exps, facs] = await Promise.all([
+      const [exps, facs, cats] = await Promise.all([
         base44.entities.Expense.list('-date'),
-        base44.entities.Facilitator.list('-created_date')
+        base44.entities.Facilitator.list('-created_date'),
+        base44.entities.ExpenseCategory.list('created_date')
       ]);
       setExpenses(exps);
       setFacilitators(facs);
+      setCategories(cats);
     } finally { setLoading(false); }
   };
 
@@ -114,6 +119,7 @@ export default function ExpensesPage({ embedded = false }) {
       const fac = facilitators.find(f => f.id === form.facilitator_id);
       await base44.entities.Expense.create({
         ...form,
+        category: categories.some(c => c.id === form.category) ? form.category : categories[0]?.id,
         amount: Number(form.amount) || 0,
         facilitator_name: fac?.full_name || ''
       });
@@ -145,10 +151,31 @@ export default function ExpensesPage({ embedded = false }) {
     } finally { setSavingEdit(false); }
   };
 
+  const handleCategorySubmit = async (name) => {
+    const created = await base44.entities.ExpenseCategory.create({ name });
+    setCategories(prev => [...prev, created]);
+  };
+
+  const renameCategory = async (id, name) => {
+    await base44.entities.ExpenseCategory.update(id, { name });
+    setCategories(prev => prev.map(c => c.id === id ? { ...c, name } : c));
+  };
+
+  const deleteCategory = async (id) => {
+    try {
+      await base44.entities.ExpenseCategory.delete(id);
+      setCategories(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      alert(err.status === 409 ? 'این دسته‌بندی در هزینه‌ها استفاده شده و قابل حذف نیست' : 'حذف انجام نشد');
+    }
+  };
+
   const handleDelete = async (id) => {
     await base44.entities.Expense.delete(id);
     fetchData();
   };
+
+  const categoryLabels = Object.fromEntries(categories.map(c => [c.id, c.name]));
 
   const filtered = expenses.filter(e => {
     if (filterCategory && e.category !== filterCategory) return false;
@@ -177,8 +204,10 @@ export default function ExpensesPage({ embedded = false }) {
   }));
 
   const categoryTotals = {};
+  const categoryTotalsCount = {};
   expenses.forEach(e => {
     categoryTotals[e.category] = (categoryTotals[e.category] || 0) + (e.amount || 0);
+    categoryTotalsCount[e.category] = (categoryTotalsCount[e.category] || 0) + 1;
   });
 
   return (
@@ -202,17 +231,20 @@ export default function ExpensesPage({ embedded = false }) {
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard label="کل هزینه‌ها" value={formatCurrency(totalAmount)} icon={Wallet} color="terracotta" sublabel={`${toPersianNum(filtered.length)} مورد`} info="مجموع مبالغ هزینه‌ها در بازه و دسته‌بندی فیلترشده" />
-          {Object.entries(categoryLabels).slice(0, 3).map(([key, label]) => {
-            const Icon = categoryIcons[key];
-            return <StatCard key={key} label={label} value={formatCurrency(categoryTotals[key] || 0)} icon={Icon} color={categoryColors[key]} info={`مجموع هزینه‌های دسته «${label}» (بدون فیلتر بازه)`} />;
-          })}
+          {categories.slice(0, 3).map(({ id, name }) => (
+            <StatCard key={id} label={name} value={formatCurrency(categoryTotals[id] || 0)} icon={categoryIcons[id] || Wallet} color={categoryColors[id] || 'dark'} info={`مجموع هزینه‌های دسته «${name}» (بدون فیلتر بازه)`} />
+          ))}
         </div>
       )}
 
       {showForm && (
         <div className="bg-white rounded-xl border border-border p-5">
-          <ExpenseForm form={form} setForm={setForm} facilitators={facilitators} onSubmit={handleSubmit} onCancel={() => setShowForm(false)} submitting={submitting} />
+          <ExpenseForm form={form} setForm={setForm} categories={categories} facilitators={facilitators} onEditCategories={() => setShowCategories(!showCategories)} onSubmit={handleSubmit} onCancel={() => setShowForm(false)} submitting={submitting} />
         </div>
+      )}
+
+      {showForm && showCategories && (
+        <ExpenseCategoryTab categories={categories} usage={categoryTotalsCount} onCategorySubmit={handleCategorySubmit} onRenameCategory={renameCategory} onDeleteCategory={deleteCategory} />
       )}
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
@@ -238,8 +270,8 @@ export default function ExpensesPage({ embedded = false }) {
           {expenses.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => setFilterCategory('')} className={`px-2.5 py-1 rounded-full text-xs font-medium ${!filterCategory ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>همه</button>
-              {Object.entries(categoryLabels).map(([k, v]) => (
-                <button key={k} onClick={() => setFilterCategory(filterCategory === k ? '' : k)} className={`px-2.5 py-1 rounded-full text-xs font-medium ${filterCategory === k ? 'bg-[#B74B40] text-white' : 'bg-[#FDF2F1] text-[#B74B40] hover:bg-[#FDF2F1]/70'}`}>{v}</button>
+              {categories.map(({ id, name }) => (
+                <button key={id} onClick={() => setFilterCategory(filterCategory === id ? '' : id)} className={`px-2.5 py-1 rounded-full text-xs font-medium ${filterCategory === id ? 'bg-[#B74B40] text-white' : 'bg-[#FDF2F1] text-[#B74B40] hover:bg-[#FDF2F1]/70'}`}>{name}</button>
               ))}
             </div>
           )}
@@ -291,7 +323,7 @@ export default function ExpensesPage({ embedded = false }) {
                     {editId === e.id && (
                       <tr className="border-t border-border">
                         <td colSpan={5} className="p-3 bg-muted/20">
-                          <ExpenseForm form={editForm} setForm={setEditForm} facilitators={facilitators} onSubmit={saveEdit} onCancel={() => setEditId(null)} submitting={savingEdit} submitLabel="ذخیره" />
+                          <ExpenseForm form={editForm} setForm={setEditForm} categories={categories} facilitators={facilitators} onSubmit={saveEdit} onCancel={() => setEditId(null)} submitting={savingEdit} submitLabel="ذخیره" />
                         </td>
                       </tr>
                     )}

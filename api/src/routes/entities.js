@@ -122,6 +122,8 @@ router.patch('/:name/many', publicOr('updateMany'), async (req, res, next) => {
 // DELETE /api/entities/:name/many  body: filter
 router.delete('/:name/many', publicOr('deleteMany'), async (req, res, next) => {
   try {
+    // Bulk delete would skip the in-use check below; nothing needs it for categories.
+    if (req.params.name === 'ExpenseCategory') return res.status(400).json({ error: 'delete expense categories one at a time' });
     // startIndex 2: $1 is already taken by collection = $1 below.
     const { clause, params } = buildWhere(req.body, 2);
     const { rowCount } = await pool.query(
@@ -166,6 +168,15 @@ router.put('/:name/:id', publicOr('update'), async (req, res, next) => {
 // DELETE /api/entities/:name/:id
 router.delete('/:name/:id', publicOr('delete'), async (req, res, next) => {
   try {
+    if (req.params.name === 'ExpenseCategory') {
+      // facilitator_payment drives the facilitator picker on the expense form.
+      if (req.params.id === 'facilitator_payment') return res.status(409).json({ error: 'this category is built-in and cannot be deleted' });
+      const { rows } = await pool.query(
+        `SELECT count(*)::int AS n FROM entities WHERE collection = 'Expense' AND data->>'category' = $1`,
+        [req.params.id]
+      );
+      if (rows[0].n) return res.status(409).json({ error: `category is used by ${rows[0].n} expenses` });
+    }
     const { rowCount } = await pool.query('DELETE FROM entities WHERE collection = $1 AND id = $2', [req.params.name, req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'not found' });
     res.status(204).end();

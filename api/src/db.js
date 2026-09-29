@@ -49,6 +49,28 @@ async function initDb() {
   // Added after admin_logs already existed in prod — CREATE TABLE IF NOT
   // EXISTS above is a no-op there, so the column needs its own backfill.
   await pool.query(`ALTER TABLE admin_logs ADD COLUMN IF NOT EXISTS request_body JSONB`);
+
+  // Expense categories used to be a hardcoded enum; existing Expense rows
+  // store these keys in `category`, so the seed reuses them as ids. Only runs
+  // on an empty collection — otherwise a category an admin deleted would come
+  // back on every boot.
+  const { rowCount } = await pool.query(`SELECT 1 FROM entities WHERE collection = 'ExpenseCategory' LIMIT 1`);
+  if (!rowCount) {
+    const seed = [
+      ['repairs', 'تعمیرات'],
+      ['daily', 'هزینه روزمره'],
+      ['facilitator_payment', 'پرداختی به تسهیلگر'],
+      ['cafe_purchase', 'خرید برای کافه'],
+      ['kitchen_purchase', 'خرید برای آشپزخانه'],
+      ['leisure', 'هزینه تفریح'],
+    ];
+    const base = Date.now();
+    for (const [i, [id, name]] of seed.entries()) {
+      // staggered created_date keeps the old display order when sorted by it
+      const data = { name, created_date: new Date(base + i * 1000).toISOString() };
+      await pool.query(`INSERT INTO entities (collection, id, data) VALUES ('ExpenseCategory', $1, $2) ON CONFLICT DO NOTHING`, [id, data]);
+    }
+  }
 }
 
 module.exports = { pool, initDb };

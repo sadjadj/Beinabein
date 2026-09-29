@@ -170,11 +170,19 @@ api.createPerson({ full_name, phone })
 |---|---|---|---|---|
 | `title` | string | yes | عنوان هزینه |  |
 | `amount` | number | yes | مبلغ | default: 0 |
-| `category` | string |  | دسته‌بندی | enum: repairs, daily, facilitator_payment, cafe_purchase, kitchen_purchase, leisure; default: "daily" |
+| `category` | string |  | دسته‌بندی | id of an `ExpenseCategory` row; default: "daily" |
 | `date` | string | yes | تاریخ | format: date |
 | `description` | string |  | توضیحات |  |
 | `facilitator_id` | string |  | تسهیلگر |  |
 | `facilitator_name` | string |  | نام تسهیلگر |  |
+
+### ExpenseCategory
+
+| Field | Type | Required | Title (fa) | Notes |
+|---|---|---|---|---|
+| `name` | string | yes | نام دسته‌بندی |  |
+
+Seeded on first boot with the old enum keys as ids (`repairs`, `daily`, `facilitator_payment`, `cafe_purchase`, `kitchen_purchase`, `leisure`). `DELETE` returns 409 while any `Expense` uses the category, and always for `facilitator_payment`.
 
 ### Facilitator
 
