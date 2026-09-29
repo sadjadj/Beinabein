@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FolderPlus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 
 // Same layout as CafeCategoryTab, plus rename and an in-use guard: expenses
 // store the category id, so a used category can't be deleted (the API
@@ -28,6 +29,7 @@ export default function ExpenseCategoryTab({ categories, usage, onCategorySubmit
   };
 
   return (
+    <TooltipProvider delayDuration={0}>
     <div className="bg-white rounded-xl border border-border overflow-hidden">
       <div className="p-4 border-b border-border">
         <form onSubmit={handleSubmit} className="flex items-end gap-3">
@@ -74,12 +76,21 @@ export default function ExpenseCategoryTab({ categories, usage, onCategorySubmit
                         ) : (
                           <>
                             <button onClick={() => { setEditId(c.id); setEditName(c.name); }} className="text-muted-foreground hover:text-[#B74B40]"><Pencil className="w-4 h-4" /></button>
-                            <button
-                              onClick={() => onDeleteCategory(c.id)}
-                              disabled={locked}
-                              title={locked ? (count ? 'این دسته‌بندی در هزینه‌ها استفاده شده و قابل حذف نیست' : 'این دسته‌بندی پیش‌فرض است و قابل حذف نیست') : undefined}
-                              className="text-muted-foreground hover:text-red-600 disabled:opacity-30 disabled:hover:text-muted-foreground disabled:cursor-not-allowed"
-                            ><Trash2 className="w-4 h-4" /></button>
+                            {locked ? (
+                              // Disabled buttons swallow hover events, so the tooltip hangs off a wrapper.
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex cursor-not-allowed" tabIndex={0}>
+                                    <button disabled className="text-muted-foreground opacity-30 pointer-events-none"><Trash2 className="w-4 h-4" /></button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {count ? `در ${toPersianNum(count)} هزینه استفاده شده و قابل حذف نیست` : 'دسته‌بندی پیش‌فرض است و قابل حذف نیست'}
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <button onClick={() => onDeleteCategory(c.id)} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            )}
                           </>
                         )}
                       </div>
@@ -92,5 +103,6 @@ export default function ExpenseCategoryTab({ categories, usage, onCategorySubmit
         </div>
       )}
     </div>
+    </TooltipProvider>
   );
 }
