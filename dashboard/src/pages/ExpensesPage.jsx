@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Wallet, Plus, Trash2, Wrench, ShoppingCart, Coffee, UtensilsCrossed, User, Search } from 'lucide-react';
+import { Wallet, Plus, Trash2, Wrench, ShoppingCart, Coffee, UtensilsCrossed, User, Search, PartyPopper } from 'lucide-react';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
 import { formatJalaliShort, todayGregorian, toJalaliStr } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
@@ -15,6 +15,7 @@ const categoryLabels = {
   facilitator_payment: 'پرداختی به تسهیلگر',
   cafe_purchase: 'خرید برای کافه',
   kitchen_purchase: 'خرید برای آشپزخانه',
+  leisure: 'هزینه تفریح',
 };
 
 const categoryIcons = {
@@ -23,6 +24,7 @@ const categoryIcons = {
   facilitator_payment: User,
   cafe_purchase: Coffee,
   kitchen_purchase: UtensilsCrossed,
+  leisure: PartyPopper,
 };
 
 const categoryColors = {
@@ -31,6 +33,7 @@ const categoryColors = {
   facilitator_payment: 'terracotta',
   cafe_purchase: 'pink',
   kitchen_purchase: 'teal',
+  leisure: 'ochre',
 };
 
 export default function ExpensesPage({ embedded = false }) {

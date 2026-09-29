@@ -170,7 +170,7 @@ api.createPerson({ full_name, phone })
 |---|---|---|---|---|
 | `title` | string | yes | عنوان هزینه |  |
 | `amount` | number | yes | مبلغ | default: 0 |
-| `category` | string |  | دسته‌بندی | enum: repairs, daily, facilitator_payment, cafe_purchase, kitchen_purchase; default: "daily" |
+| `category` | string |  | دسته‌بندی | enum: repairs, daily, facilitator_payment, cafe_purchase, kitchen_purchase, leisure; default: "daily" |
 | `date` | string | yes | تاریخ | format: date |
 | `description` | string |  | توضیحات |  |
 | `facilitator_id` | string |  | تسهیلگر |  |
