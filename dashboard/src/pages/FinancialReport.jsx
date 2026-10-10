@@ -7,6 +7,7 @@ import { getDateRange, toPersianNum, formatCurrency, formatPercent } from '@/lib
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { getJalaliParts, jalaliToGregorianStr, jalaliDaysInMonth } from '@/lib/jalali';
 import { StatCardSkeleton } from '@/components/SkeletonPatterns';
+import { workshopIncomeRows } from '@/lib/installments';
 
 const COLORS = ['#B74B40', '#D4A574', '#E8B4B0', '#D98B94', '#8CB9C0'];
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
@@ -49,7 +50,9 @@ export default function FinancialReport({ embedded = false }) {
   const inRange = (d) => !range || (d && d >= range.start && d <= range.end);
   const wo = data.workspaceOrders.filter(o => inRange(o.purchase_date));
   const ip = data.itemPurchases.filter(p => inRange(p.purchase_date));
-  const wp = data.workshopPurchases.filter(p => inRange(p.purchase_date));
+  // Instalment registrations count on the day each instalment is paid
+  const workshopIncome = workshopIncomeRows(data.workshopPurchases);
+  const wp = workshopIncome.filter(p => inRange(p.purchase_date));
   const exp = data.expenses.filter(e => inRange(e.date));
 
   const wsRev = wo.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
@@ -99,7 +102,7 @@ export default function FinancialReport({ embedded = false }) {
     const r = (d) => d && d >= start && d <= end;
     const wr = data.workspaceOrders.filter(o => r(o.purchase_date)).reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
     const cr = data.itemPurchases.filter(p => r(p.purchase_date)).reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
-    const wpr = data.workshopPurchases.filter(w => r(w.purchase_date)).reduce((s, w) => s + (w.price || 0) * (w.quantity || 1) + (w.donation || 0), 0);
+    const wpr = workshopIncome.filter(w => r(w.purchase_date)).reduce((s, w) => s + (w.price || 0) * (w.quantity || 1) + (w.donation || 0), 0);
     const ex = data.expenses.filter(e => r(e.date)).reduce((s, e) => s + (e.amount || 0), 0);
     return { label: jMonths[m - 1], درآمد: wr + cr + wpr, هزینه: ex };
   });

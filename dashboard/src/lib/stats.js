@@ -1,5 +1,6 @@
 import { base44 } from '@/api/base44Client';
 import { getJalaliParts, jalaliToGregorianStr, jalaliDaysInMonth } from '@/lib/jalali';
+import { workshopIncomeRows } from '@/lib/installments';
 
 // ─── Date helpers ───
 export function formatDate(d) {
@@ -172,7 +173,9 @@ export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurc
 
   const workspaceRevenue = orders.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
   const cafeRevenue = items.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
-  const workshopRevenue = wp.reduce((s, w) => s + (w.price || 0) * (w.quantity || 1) + (w.donation || 0), 0);
+  // Instalment registrations count on the day each instalment is paid
+  const workshopRevenue = filterByDate(workshopIncomeRows(workshopPurchases), 'purchase_date', range)
+    .reduce((s, w) => s + (w.price || 0) * (w.quantity || 1) + (w.donation || 0), 0);
   const totalRevenue = workspaceRevenue + cafeRevenue + workshopRevenue;
 
   return { uniqueCount, returnRate, diversityRate, totalRevenue, workspaceRevenue, cafeRevenue, workshopRevenue, totalPeople };

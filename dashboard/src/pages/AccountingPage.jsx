@@ -14,6 +14,8 @@ import PersianNumberInput from '@/components/PersianNumberInput';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 import ExportButton from '@/components/ExportButton';
+import { InstallmentPill } from '@/components/workshops/InstallmentChips';
+import { isInstallment, workshopIncomeRows } from '@/lib/installments';
 
 export default function AccountingPage({ embedded = false }) {
   const navigate = useNavigate();
@@ -119,7 +121,8 @@ export default function AccountingPage({ embedded = false }) {
   const currentMonth = currentJalaliMonthKey();
   const monthWs = workspaceOrders.filter(o => gregorianToJalaliMonthKey(o.purchase_date) === currentMonth);
   const monthItems = itemPurchases.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
-  const monthWp = workshopPurchases.filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
+  // Instalment registrations count on the day each instalment is paid
+  const monthWp = workshopIncomeRows(workshopPurchases).filter(p => gregorianToJalaliMonthKey(p.purchase_date) === currentMonth);
 
   const wsRevenue = monthWs.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
   const cafeRevenue = monthItems.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
@@ -151,7 +154,8 @@ export default function AccountingPage({ embedded = false }) {
   const invoiceGroups = buildStoreInvoiceGroups(storePurchases, greenhousePurchases, salesEventPurchases);
   const unpaidWs = workspaceOrders.filter(o => !o.is_paid && o.payment_method !== 'free');
   const unpaidItems = itemPurchases.filter(p => !p.is_paid && p.payment_method !== 'free');
-  const unpaidWp = workshopPurchases.filter(p => !p.is_paid && p.payment_method !== 'free');
+  // Instalment registrations are followed up in the اقساط tab, not counted as unpaid here
+  const unpaidWp = workshopPurchases.filter(p => !p.is_paid && p.payment_method !== 'free' && !isInstallment(p));
   const unpaidCi = customIncomes.filter(p => !p.is_paid && p.payment_method !== 'free');
   const unpaidGp = groupPurchases.filter(p => !p.is_paid);
   const unpaidEp = eventPurchases.filter(p => !p.is_paid);
@@ -188,7 +192,7 @@ export default function AccountingPage({ embedded = false }) {
 
   const filtered = allTransactions.filter(t => {
     if (filter === 'paid') return t.is_paid;
-    if (filter === 'unpaid') return !t.is_paid && t.payment_method !== 'free';
+    if (filter === 'unpaid') return !t.is_paid && t.payment_method !== 'free' && !isInstallment(t);
     return true;
   }).filter(t => {
     if (typeFilter && t.type !== typeFilter) return false;
@@ -226,7 +230,7 @@ export default function AccountingPage({ embedded = false }) {
     phone: t.person_phone || '',
     method: paymentMethodLabels[t.payment_method] || t.payment_method || '',
     amount: t.amount || 0,
-    status: t.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده',
+    status: t.is_paid ? 'پرداخت شده' : isInstallment(t) ? 'قسطی' : 'پرداخت‌نشده',
   }));
 
   if (loading) return (
@@ -426,6 +430,7 @@ export default function AccountingPage({ embedded = false }) {
                     <td className="p-3 text-xs whitespace-nowrap">{paymentMethodLabels[t.payment_method] || t.payment_method}</td>
                     <td className="p-3 font-medium whitespace-nowrap text-left" dir="ltr">{formatCurrency(t.amount)}</td>
                     <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      {isInstallment(t) ? <InstallmentPill purchase={t} /> : (
                       <button onClick={() => togglePaid(t)} className="inline-flex items-center gap-1 text-xs whitespace-nowrap">
                         {t.is_paid ? (
                           <span className="inline-flex items-center gap-1 text-green-600"><CheckCircle className="w-3.5 h-3.5" /> پرداخت شده</span>
@@ -433,6 +438,7 @@ export default function AccountingPage({ embedded = false }) {
                           <span className="inline-flex items-center gap-1 text-[#B9834B]"><AlertCircle className="w-3.5 h-3.5" /> پرداخت‌نشده</span>
                         )}
                       </button>
+                      )}
                     </td>
                   </tr>
                 ))}

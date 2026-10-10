@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { todayGregorian, formatJalaliShort } from '@/lib/jalali';
+import { isInstallment, workshopIncomeRows } from '@/lib/installments';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 import WorkshopForm from '@/components/WorkshopForm';
 
@@ -19,6 +20,7 @@ export default function WorkshopsPage({ embedded = false }) {
   const [workshops, setWorkshops] = useState([]);
   const [regStats, setRegStats] = useState({}); // workshop_id -> { purchase_count, total_amount, paid_amount }
   const [monthPurchases, setMonthPurchases] = useState([]);
+  const [installmentPurchases, setInstallmentPurchases] = useState([]);
   const [facilitators, setFacilitators] = useState([]);
   const [spaces, setSpaces] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,13 +50,16 @@ export default function WorkshopsPage({ embedded = false }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [ws, stats, monthPurchs, facs, spcs] = await Promise.all([
+      const [ws, stats, monthPurchs, facs, spcs, instPurchs] = await Promise.all([
         base44.entities.Workshop.list('-start_date'),
         base44.stats.workshopRegistrations(),
         base44.entities.WorkshopPurchase.filter({ purchase_date: { $gte: monthRange.start, $lte: monthRange.end } }),
         base44.entities.Facilitator.list('-created_date'),
-        base44.entities.Space.list('-created_date')
+        base44.entities.Space.list('-created_date'),
+        // instalments paid this month may belong to registrations from earlier months
+        base44.entities.WorkshopPurchase.filter({ is_installment: true })
       ]);
+      setInstallmentPurchases(instPurchs);
       setWorkshops(ws);
       setRegStats(Object.fromEntries(stats.map(r => [r.workshop_id, r])));
       setMonthPurchases(monthPurchs);
@@ -106,13 +111,16 @@ export default function WorkshopsPage({ embedded = false }) {
   const blankForm = {
     title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '',
     facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: '',
-    start_date: '', end_date: '', facilitator_percentage: '', capacity: '', session_dates: []
+    start_date: '', end_date: '', facilitator_percentage: '', capacity: '', session_dates: [],
+    allow_installments: false
   };
 
   const inMonth = (date) => !!(date && date >= monthRange.start && date <= monthRange.end);
   const monthWorkshops = workshops.filter(w => inMonth(w.start_date));
   const monthUniquePhones = new Set(monthPurchases.map(p => p.person_phone));
-  const monthRevenue = monthPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
+  const monthRevenue = workshopIncomeRows([...monthPurchases.filter(p => !isInstallment(p)), ...installmentPurchases])
+    .filter(p => p.purchase_date >= monthRange.start && p.purchase_date <= monthRange.end)
+    .reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
 
   const filteredWorkshops = workshops.filter(w => {
     if (facilitatorFilter && !(w.facilitator_ids || []).includes(facilitatorFilter)) return false;

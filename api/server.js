@@ -79,15 +79,20 @@ app.patch('/api/admin/password', requireAdmin, async (req, res, next) => {
 // Per-workshop registration count and money totals, aggregated in SQL so the
 // workshops list doesn't have to download every registration just to count.
 // Amount = price * quantity + donation, same formula as the dashboard's
-// computeWorkshopRevenue / WorkshopProfile totals.
+// computeWorkshopRevenue / WorkshopProfile totals. paid_amount = full amount
+// of paid registrations + the paid instalments of instalment registrations
+// still in progress — mirrors purchasePaidAmount in dashboard/src/lib/installments.js.
 app.get('/api/stats/workshop-registrations', requireAdmin, async (req, res, next) => {
   try {
     const amount = `COALESCE((data->>'price')::numeric, 0) * COALESCE(NULLIF((data->>'quantity')::numeric, 0), 1) + COALESCE((data->>'donation')::numeric, 0)`;
+    const paidInstallments = `(SELECT COALESCE(SUM((i->>'amount')::numeric), 0)
+         FROM jsonb_array_elements(CASE WHEN jsonb_typeof(data->'installments') = 'array' THEN data->'installments' ELSE '[]'::jsonb END) AS i
+        WHERE COALESCE(i->>'paid_date', '') <> '')`;
     const { rows } = await pool.query(
       `SELECT data->>'workshop_id' AS workshop_id,
               COUNT(*)::int AS purchase_count,
               COALESCE(SUM(${amount}), 0)::float8 AS total_amount,
-              COALESCE(SUM(${amount}) FILTER (WHERE (data->>'is_paid')::boolean), 0)::float8 AS paid_amount
+              COALESCE(SUM(CASE WHEN (data->>'is_paid')::boolean THEN ${amount} ELSE ${paidInstallments} END), 0)::float8 AS paid_amount
          FROM entities WHERE collection = 'WorkshopPurchase'
         GROUP BY 1`
     );

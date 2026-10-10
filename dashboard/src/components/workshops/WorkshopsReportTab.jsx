@@ -9,6 +9,7 @@ import { todayGregorian, getJalaliParts } from '@/lib/jalali';
 import { formatCurrency, toPersianNum, currentJalaliMonthKey, gregorianToJalaliMonthKey } from '@/lib/stats';
 import ChartTooltip from '@/components/ChartTooltip';
 import { getRangeStart, buildDateRange, makeTickFormatter } from '@/lib/reportUtils';
+import { isInstallment, workshopIncomeRows } from '@/lib/installments';
 
 export default function WorkshopsReportTab() {
   const [workshops, setWorkshops] = useState([]);
@@ -43,8 +44,11 @@ export default function WorkshopsReportTab() {
 
   const totalReg = rangePurchases.length;
   const uniquePeople = new Set(rangePurchases.map(p => p.person_phone)).size;
-  const totalRevenue = rangePurchases.reduce((s, p) => s + (Number(p.price) || 0) * (Number(p.quantity) || 1) + (Number(p.donation) || 0), 0);
-  const unpaidCount = rangePurchases.filter(p => !p.is_paid && p.payment_method !== 'free').length;
+  // Revenue: instalment registrations count on the day each instalment is paid
+  const incomeRows = useMemo(() => workshopIncomeRows(purchases), [purchases]);
+  const totalRevenue = incomeRows.filter(p => p.purchase_date && p.purchase_date >= startDate && p.purchase_date <= endDate)
+    .reduce((s, p) => s + (Number(p.price) || 0) * (Number(p.quantity) || 1) + (Number(p.donation) || 0), 0);
+  const unpaidCount = rangePurchases.filter(p => !p.is_paid && p.payment_method !== 'free' && !isInstallment(p)).length;
 
   // Current Jalali month
   const currentMonthKey = currentJalaliMonthKey();
@@ -56,8 +60,7 @@ export default function WorkshopsReportTab() {
 
   // Today's metrics
   const todayStr = todayGregorian();
-  const todayPurchases = purchases.filter(p => p.purchase_date === todayStr);
-  const todayRevenue = todayPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
+  const todayRevenue = incomeRows.filter(p => p.purchase_date === todayStr).reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
   const todayHeldWorkshops = workshops.filter(w => (w.session_dates || []).includes(todayStr));
   const todayParticipants = todayHeldWorkshops.reduce((s, w) => {
     return s + purchases.filter(p => p.workshop_id === w.id).reduce((ss, p) => ss + (p.quantity || 1), 0);
@@ -68,8 +71,7 @@ export default function WorkshopsReportTab() {
   const chartData = useMemo(() => {
     const dates = buildDateRange(startDate, endDate);
     return dates.map(date => {
-      const dayPurchases = purchases.filter(p => p.purchase_date === date);
-      const revenue = dayPurchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
+      const revenue = incomeRows.filter(p => p.purchase_date === date).reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
       const heldWorkshops = workshops.filter(w => (w.session_dates || []).includes(date));
       const participants = heldWorkshops.reduce((s, w) => {
         return s + purchases.filter(p => p.workshop_id === w.id).reduce((ss, p) => ss + (p.quantity || 1), 0);
@@ -77,7 +79,7 @@ export default function WorkshopsReportTab() {
       const workshopCount = heldWorkshops.length;
       return { date, revenue, participants, workshopCount };
     });
-  }, [purchases, workshops, startDate, endDate]);
+  }, [purchases, incomeRows, workshops, startDate, endDate]);
 
   const tickFormatter = makeTickFormatter(chartData);
 

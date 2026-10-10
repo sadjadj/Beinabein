@@ -7,6 +7,7 @@ import { toPersianNum, formatCurrency } from '@/lib/stats';
 import { howMetLabels, howMetColors, paymentMethodLabels } from '@/lib/labels';
 import { todayGregorian, formatJalali } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
+import { workshopIncomeRows } from '@/lib/installments';
 import { StatCardSkeleton } from '@/components/SkeletonPatterns';
 
 export default function DailyReport() {
@@ -28,7 +29,7 @@ export default function DailyReport() {
         setData({
           workspaceOrders: wo.filter(o => o.purchase_date === date),
           itemPurchases: ip.filter(p => p.purchase_date === date),
-          workshopPurchases: wp.filter(p => p.purchase_date === date),
+          workshopPurchases: workshopIncomeRows(wp).filter(p => p.purchase_date === date),
           people: ppl
         });
       } finally { setLoading(false); }
