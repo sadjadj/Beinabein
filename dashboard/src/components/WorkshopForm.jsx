@@ -3,6 +3,7 @@ import { Trash2, Check, X, Plus } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { formatPlanRange } from '@/lib/planPricing';
 import { toJalaliStr } from '@/lib/jalali';
+import { sessionDayLabel, workshopTimeOn, normalizeSchedule } from '@/lib/workshopSchedule';
 import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import FacilitatorMultiSearch from '@/components/FacilitatorMultiSearch';
@@ -34,11 +35,19 @@ export default function WorkshopForm({
   const [newPlan, setNewPlan] = useState({ name: '', price_min: '', price_max: '' });
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [perSessionTimes, setPerSessionTimes] = useState((initialForm.schedule || []).length > 0);
 
   const handleDatesChange = (dates) => {
     const computed = computeWorkshopFieldsFromDates(dates);
     setForm(prev => ({ ...prev, ...computed }));
   };
+
+  // Per-session times, offered once there is more than one session
+  const sessionDates = [...(form.session_dates || [])].sort();
+  const updateSessionTime = (date, field, value) => setForm(prev => ({
+    ...prev,
+    schedule: sessionDates.map(d => ({ date: d, ...workshopTimeOn(prev, d), ...(d === date ? { [field]: value } : {}) }))
+  }));
 
   const handleAddPlan = () => {
     if (!newPlan.name || newPlan.price_min === '' || newPlan.price_min === null || newPlan.price_max === '' || newPlan.price_max === null) {
@@ -61,7 +70,7 @@ export default function WorkshopForm({
     if (!form.start_time || !form.end_time) { setError('ساعت شروع و پایان الزامی است'); return; }
     if (plans.length === 0) { setError('افزودن حداقل یک مدل ثبت‌نام الزامی است'); return; }
     setError('');
-    onSubmit(form, plans);
+    onSubmit({ ...form, schedule: normalizeSchedule(form) }, plans);
   };
 
   return (
@@ -130,6 +139,34 @@ export default function WorkshopForm({
             </div>
           </div>
         </div>
+        {sessionDates.length > 1 && (
+          <div>
+            <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={perSessionTimes} onChange={e => { setPerSessionTimes(e.target.checked); if (!e.target.checked) setForm(prev => ({ ...prev, schedule: [] })); }} className="w-4 h-4 accent-[#B74B40]" />
+              ساعت بعضی جلسات متفاوت است
+            </label>
+            {perSessionTimes && (
+            <div className="mt-2 border border-border rounded-lg divide-y divide-border">
+              {sessionDates.map(date => {
+                const time = workshopTimeOn(form, date);
+                return (
+                  <div key={date} className="flex flex-wrap items-center gap-3 p-2.5">
+                    <span className="px-3 py-1.5 rounded-lg text-sm font-medium bg-[#B74B40] text-white min-w-32 text-center">{sessionDayLabel(date)}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">از</span>
+                      <input type="time" value={time.start_time} onChange={e => updateSessionTime(date, 'start_time', e.target.value)} className="px-2 py-1.5 rounded-lg border border-input bg-background text-sm" />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">تا</span>
+                      <input type="time" value={time.end_time} onChange={e => updateSessionTime(date, 'end_time', e.target.value)} className="px-2 py-1.5 rounded-lg border border-input bg-background text-sm" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            )}
+          </div>
+        )}
         <textarea placeholder="توضیحات کارگاه" value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
         <div>
           <label className="text-xs text-muted-foreground block mb-2">تسهیلگران:</label>

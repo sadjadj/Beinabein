@@ -5,6 +5,7 @@ import { ArrowRight, Check, X, Calendar as CalendarIcon, Users } from 'lucide-re
 import { toPersianNum } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
+import { workshopTimeLabel } from '@/lib/workshopSchedule';
 
 export default function WorkshopAttendancePage() {
   const { workshopId } = useParams();
@@ -80,7 +81,7 @@ export default function WorkshopAttendancePage() {
             <Link to={`/workshops/${workshop.id}`} className="text-xl font-bold hover:text-[#B74B40] transition-colors">{workshop.title}</Link>
             <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
               {workshop.day_of_week && <span className="flex items-center gap-1"><CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[workshop.day_of_week] || workshop.day_of_week}</span>}
-              {(workshop.start_time || workshop.end_time) && <span>{workshop.start_time || ''}{workshop.end_time ? ` تا ${workshop.end_time}` : ''}</span>}
+              {(workshop.start_time || workshop.end_time) && <span>{workshopTimeLabel(workshop, ' تا ')}</span>}
               <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {toPersianNum(purchases.length)} ثبت‌نامی</span>
             </div>
           </div>

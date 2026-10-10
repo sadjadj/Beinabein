@@ -5,6 +5,7 @@ import { ClipboardCheck, ArrowRight, Calendar as CalendarIcon, MapPin, Users, Se
 import { computeWorkshopRevenue, toPersianNum } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { CardGridSkeleton } from '@/components/SkeletonPatterns';
+import { workshopTimeLabel } from '@/lib/workshopSchedule';
 
 export default function AttendancePage({ embedded = false }) {
   const navigate = useNavigate();
@@ -35,8 +36,9 @@ export default function AttendancePage({ embedded = false }) {
 
   const toggleEnded = async (e, w) => {
     e.stopPropagation();
-    await base44.entities.Workshop.update(w.id, { is_ended: !w.is_ended });
-    setWorkshops(prev => prev.map(x => x.id === w.id ? { ...x, is_ended: !x.is_ended } : x));
+    const patch = { is_ended: !w.is_ended, ended_at: w.is_ended ? '' : new Date().toISOString() };
+    await base44.entities.Workshop.update(w.id, patch);
+    setWorkshops(prev => prev.map(x => x.id === w.id ? { ...x, ...patch } : x));
   };
 
   const filtered = workshops.filter(w => {
@@ -69,7 +71,7 @@ export default function AttendancePage({ embedded = false }) {
         <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
           {w.day_of_week && (
             <p className="flex items-center gap-1.5">
-              <CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[w.day_of_week]} {(w.start_time || w.end_time) && `• ${w.start_time || ''}${w.end_time ? ' تا ' + w.end_time : ''}`}
+              <CalendarIcon className="w-3.5 h-3.5" /> {dayLabels[w.day_of_week]} {(w.start_time || w.end_time) && `• ${workshopTimeLabel(w, ' تا ')}`}
             </p>
           )}
           {w.space && (

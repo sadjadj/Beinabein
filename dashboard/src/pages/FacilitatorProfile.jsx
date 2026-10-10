@@ -7,6 +7,7 @@ import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, formatJalaliShort } from '@/lib/jalali';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
+import { workshopTimeLabel } from '@/lib/workshopSchedule';
 
 export default function FacilitatorProfile() {
   const { id } = useParams();
@@ -149,8 +150,12 @@ export default function FacilitatorProfile() {
                     <Link to={`/workshops/${w.id}`} className="font-medium text-sm text-[#B74B40] hover:underline">{w.title}</Link>
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                       {w.day_of_week && <span>{dayLabels[w.day_of_week]}</span>}
-                      {w.start_time && <span>شروع: {w.start_time}</span>}
-                      {w.end_time && <span>پایان: {w.end_time}</span>}
+                      {(w.schedule || []).length > 0 ? <span>ساعت: {workshopTimeLabel(w, ' تا ')}</span> : (
+                        <>
+                          {w.start_time && <span>شروع: {w.start_time}</span>}
+                          {w.end_time && <span>پایان: {w.end_time}</span>}
+                        </>
+                      )}
                       <span>{toPersianNum(rev.participantCount)} ثبت‌نام</span>
                       <span>درصد: {toPersianNum(w.facilitator_percentage || 0)}٪</span>
                     </div>

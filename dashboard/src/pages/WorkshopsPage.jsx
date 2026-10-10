@@ -3,12 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import StatCard from '@/components/StatCard';
-import { GraduationCap, Users, Plus, Wallet, Archive, Calendar, Clock, MapPin, ChevronRight, ChevronLeft } from 'lucide-react';
+import { GraduationCap, Users, Plus, Wallet, Archive, Calendar, Clock, MapPin, ChevronRight, ChevronLeft, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { todayGregorian, formatJalaliShort } from '@/lib/jalali';
 import { isInstallment, workshopIncomeRows } from '@/lib/installments';
+import { workshopTimeLabel } from '@/lib/workshopSchedule';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 import WorkshopForm from '@/components/WorkshopForm';
 
@@ -31,6 +32,7 @@ export default function WorkshopsPage({ embedded = false }) {
   const [spaceFilter, setSpaceFilter] = useState(searchParams.get('space') || '');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'date_desc');
   const [archivedPage, setArchivedPage] = useState(1);
+  const [archivedSearch, setArchivedSearch] = useState('');
 
   // Persist filters to URL (preserve other params such as the hub `tab`)
   useEffect(() => {
@@ -112,7 +114,7 @@ export default function WorkshopsPage({ embedded = false }) {
     title: '', price: '', session_count: '', is_permanent: false, description: '', tags: '',
     facilitator_ids: [], space: '', start_time: '', end_time: '', day_of_week: '',
     start_date: '', end_date: '', facilitator_percentage: '', capacity: '', session_dates: [],
-    allow_installments: false
+    allow_installments: false, schedule: []
   };
 
   const inMonth = (date) => !!(date && date >= monthRange.start && date <= monthRange.end);
@@ -137,7 +139,13 @@ export default function WorkshopsPage({ embedded = false }) {
   });
 
   const activeWorkshops = sortedWorkshops.filter(w => !w.is_ended);
-  const archivedWorkshops = sortedWorkshops.filter(w => w.is_ended).sort((a, b) => (b.updated_date || '').localeCompare(a.updated_date || ''));
+  // Most recently archived first. ended_at is set when a workshop is archived;
+  // ones archived before that field existed fall back to their last update.
+  const archivedAt = (w) => w.ended_at || w.updated_date || w.end_date || '';
+  const facilitatorNames = (w) => (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
+  const allArchived = sortedWorkshops.filter(w => w.is_ended).sort((a, b) => archivedAt(b).localeCompare(archivedAt(a)));
+  const archivedQuery = archivedSearch.trim().toLowerCase();
+  const archivedWorkshops = allArchived.filter(w => !archivedQuery || `${w.title || ''} ${w.tags || ''} ${facilitatorNames(w)}`.toLowerCase().includes(archivedQuery));
   const ARCHIVED_PAGE_SIZE = 10;
   const archivedTotalPages = Math.max(1, Math.ceil(archivedWorkshops.length / ARCHIVED_PAGE_SIZE));
   const currentPage = Math.min(archivedPage, archivedTotalPages);
@@ -216,7 +224,7 @@ export default function WorkshopsPage({ embedded = false }) {
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3 text-xs text-muted-foreground">
                     {w.day_of_week && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {dayLabels[w.day_of_week] || w.day_of_week}</span>}
-                    {(w.start_time || w.end_time) && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {w.start_time}{w.end_time ? ` - ${w.end_time}` : ''}</span>}
+                    {(w.start_time || w.end_time) && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {workshopTimeLabel(w)}</span>}
                     {w.space && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {w.space}</span>}
                   </div>
                   {facNames && <p className="text-xs text-muted-foreground mt-2 truncate">{facNames}</p>}
@@ -232,11 +240,18 @@ export default function WorkshopsPage({ embedded = false }) {
       </div>
 
       {/* Archived workshops — table */}
-      {archivedWorkshops.length > 0 && (
+      {allArchived.length > 0 && (
         <div className="bg-white rounded-xl border border-border overflow-hidden">
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-border flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-semibold flex items-center gap-2"><Archive className="w-4 h-4 text-muted-foreground" /> کارگاه‌های آرشیو شده ({toPersianNum(archivedWorkshops.length)})</h3>
+            <div className="relative flex-1 sm:flex-none min-w-[140px]">
+              <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+              <input type="text" placeholder="جستجوی نام کارگاه / تسهیلگر..." value={archivedSearch} onChange={e => { setArchivedSearch(e.target.value); setArchivedPage(1); }} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-64" />
+            </div>
           </div>
+          {archivedWorkshops.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">نتیجه‌ای یافت نشد</div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
@@ -251,7 +266,7 @@ export default function WorkshopsPage({ embedded = false }) {
               </thead>
               <tbody>
                 {paginatedArchived.map(w => {
-                  const facNames = (w.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean).join('، ');
+                  const facNames = facilitatorNames(w);
                   return (
                     <tr key={w.id} className="border-t border-border hover:bg-muted/30">
                       <td className="p-3">
@@ -269,6 +284,7 @@ export default function WorkshopsPage({ embedded = false }) {
               </tbody>
             </table>
           </div>
+          )}
           {archivedTotalPages > 1 && (
             <div className="flex items-center justify-center gap-2 p-3 border-t border-border">
               <button onClick={() => setArchivedPage(Math.max(1, currentPage - 1))} disabled={currentPage <= 1} className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">

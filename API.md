@@ -458,6 +458,8 @@ Seeded on first boot with the old enum keys as ids (`repairs`, `daily`, `facilit
 | `facilitator_paid` | boolean |  | پرداخت تسهیلگر | default: false |
 | `capacity` | number |  | ظرفیت |  |
 | `is_ended` | boolean |  | پایان یافته | default: false |
+| `schedule` | array<object> |  | ساعت هر جلسه | default: []. Items `{ date, start_time, end_time }`, one per session date; filled only when some session's time differs from `start_time`/`end_time` |
+| `ended_at` | string |  | زمان آرشیو | format: date-time. Set when the workshop is archived (`is_ended`), cleared when reactivated |
 | `allow_installments` | boolean |  | امکان پرداخت قسطی | default: false. When true, registrations of this workshop may be paid in instalments |
 
 ### WorkshopPlan

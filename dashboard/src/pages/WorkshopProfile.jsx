@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/SkeletonPatterns';
 import WorkshopForm from '@/components/WorkshopForm';
 import PlanOverflowDialog from '@/components/PlanOverflowDialog';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
+import { workshopTimeLabel } from '@/lib/workshopSchedule';
 import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
 import InstallmentFields, { lastSessionDate } from '@/components/workshops/InstallmentFields';
 import InstallmentChips, { InstallmentPayForm } from '@/components/workshops/InstallmentChips';
@@ -104,7 +105,8 @@ export default function WorkshopProfile() {
       facilitator_percentage: workshop.facilitator_percentage || '',
       capacity: workshop.capacity || '',
       session_dates: existingDates,
-      allow_installments: workshop.allow_installments || false
+      allow_installments: workshop.allow_installments || false,
+      schedule: workshop.schedule || []
     };
   };
 
@@ -199,7 +201,7 @@ export default function WorkshopProfile() {
   };
 
   const toggleWorkshopActive = async () => {
-    await base44.entities.Workshop.update(id, { is_ended: !workshop.is_ended });
+    await base44.entities.Workshop.update(id, { is_ended: !workshop.is_ended, ended_at: workshop.is_ended ? '' : new Date().toISOString() });
     fetchData();
   };
 
@@ -431,7 +433,7 @@ export default function WorkshopProfile() {
                 {workshop.tags && <p className="text-sm text-muted-foreground mt-1">{workshop.tags}</p>}
                 <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
                   {workshop.day_of_week && <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {dayLabels[workshop.day_of_week] || workshop.day_of_week}</span>}
-                  {(workshop.start_time || workshop.end_time) && <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {workshop.start_time}{workshop.end_time ? ` - ${workshop.end_time}` : ''}</span>}
+                  {(workshop.start_time || workshop.end_time) && <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {workshopTimeLabel(workshop)}</span>}
                   {workshop.space && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {workshop.space}</span>}
                 </div>
                 <div className="flex flex-wrap gap-4 mt-2 text-sm">

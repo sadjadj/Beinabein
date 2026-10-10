@@ -9,6 +9,7 @@ import { computeGroupSessions, getCurrentWeekRange } from '@/lib/groupSessions';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 import EventForm from '@/components/EventForm';
 import EventManagementTab from '@/components/events/EventManagementTab';
+import { workshopTimeOn } from '@/lib/workshopSchedule';
 
 export default function CalendarPage() {
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ export default function CalendarPage() {
       if (w.end_date && w.end_date < week.start) return;
       (w.session_dates || []).forEach(d => {
         if (d >= week.start && d <= week.end) {
-          entries.push({ date: d, day: jsDayKey(d), start_time: w.start_time || '', end_time: w.end_time || '', space: w.space || '', title: w.title, type: 'workshop', id: w.id, link: `/workshops/${w.id}` });
+          entries.push({ date: d, day: jsDayKey(d), ...workshopTimeOn(w, d), space: w.space || '', title: w.title, type: 'workshop', id: w.id, link: `/workshops/${w.id}` });
         }
       });
     });

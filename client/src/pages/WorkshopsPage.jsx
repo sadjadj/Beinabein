@@ -9,6 +9,17 @@ import { api } from '@/api/client';
 // - instructor name: Workshop only stores facilitator_ids, and Facilitator
 //   isn't a public route (signup flow is anonymous) — omitted for now rather
 //   than show a raw id.
+const shortDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { day: 'numeric', month: 'long' });
+
+// Day(s) and time of a workshop as display parts. Sessions whose time differs
+// from the usual one (workshop.schedule) are listed after it with their date.
+function workshopWhen(workshop) {
+  const others = (workshop.schedule || [])
+    .filter(s => s.start_time !== workshop.start_time || s.end_time !== workshop.end_time)
+    .map(s => `${shortDate.format(new Date(s.date + 'T00:00:00'))} ${s.start_time} تا ${s.end_time}`);
+  return [workshop.day_of_week, workshop.start_time && workshop.end_time ? `${workshop.start_time} تا ${workshop.end_time}` : null, ...others];
+}
+
 function WorkshopCard({ workshop, onOpen }) {
   return (
     <div
@@ -29,7 +40,7 @@ function WorkshopCard({ workshop, onOpen }) {
       <div className="w-full flex flex-wrap justify-center">
         <p className="w-full font-display text-center text-[22px] text-[#F5F1EA]">{workshop.title}</p>
         <p className="w-full font-body text-sm text-center text-[#F5F1EA] opacity-75 my-2">
-          {[workshop.day_of_week, workshop.start_time && workshop.end_time ? `${workshop.start_time} تا ${workshop.end_time}` : null]
+          {workshopWhen(workshop)
             .filter(Boolean)
             .join(' | ')}
         </p>
@@ -71,7 +82,7 @@ function BottomSheet({ workshop, onClose, onRegister }) {
               <h2 className="font-display text-[28px] text-[#211E1F] leading-tight">{workshop.title}</h2>
               <p className="font-body text-sm text-[#211E1F] opacity-80 leading-7 mt-4">{workshop.description}</p>
               <p className="font-body text-sm font-bold text-[#211E1F] text-center mt-6">
-                {[workshop.day_of_week, workshop.start_time && workshop.end_time ? `${workshop.start_time} تا ${workshop.end_time}` : null, workshop.space]
+                {[...workshopWhen(workshop), workshop.space]
                   .filter(Boolean)
                   .join('  ★  ')}
               </p>
