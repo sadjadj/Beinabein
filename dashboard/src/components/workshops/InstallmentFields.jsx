@@ -25,18 +25,24 @@ export default function InstallmentFields({ value, onChange, total, workshop, me
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  if (!workshop?.allow_installments) return null;
-
   const amount = Number(total) || 0;
   const { rows } = value;
+
+  // The total changed after the dates were picked: the old amounts can no
+  // longer add up, so split the new total across the same dates.
+  useEffect(() => {
+    if (rows.length > 0) setDates(rows.map(r => r.due_date));
+  }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!workshop?.allow_installments) return null;
   const sum = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
   const paidNow = value.firstPaid && rows[0] ? Number(rows[0].amount) || 0 : 0;
 
   // The picked dates are the instalments: one row per date, split evenly
-  const setDates = (dates) => {
+  function setDates(dates) {
     const parts = splitEvenly(amount, dates.length);
     onChange({ ...value, rows: dates.map((d, i) => ({ due_date: d, amount: parts[i] })) });
-  };
+  }
   const setAmount = (i, v) => onChange({ ...value, rows: rows.map((r, idx) => (idx === i ? { ...r, amount: v } : r)) });
 
   return (

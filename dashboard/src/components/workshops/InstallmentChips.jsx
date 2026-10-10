@@ -18,8 +18,9 @@ const chipStyles = {
 // registration would otherwise have the paid/unpaid toggle, so is_paid can't be
 // flipped by hand out of sync with the instalments.
 export function InstallmentPill({ purchase }) {
+  const settled = paidCount(purchase) === purchase.installments.length;
   return (
-    <Link to="/finance?tab=installments" onClick={e => e.stopPropagation()} className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#FBF3EC] border border-[#E8D5C0] text-[#7A4F1F] text-xs font-medium whitespace-nowrap hover:bg-[#F6E9DC]">
+    <Link to="/finance?tab=installments" onClick={e => e.stopPropagation()} className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-medium whitespace-nowrap ${settled ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' : 'bg-[#FBF3EC] border-[#E8D5C0] text-[#7A4F1F] hover:bg-[#F6E9DC]'}`}>
       قسطی — {toPersianNum(paidCount(purchase))} از {toPersianNum(purchase.installments.length)} پرداخت شده
     </Link>
   );

@@ -469,27 +469,47 @@ export default function WorkshopProfile() {
                 </button>
               </div>
               {showAddReg && (
-                <div className="mb-3 p-3 bg-muted/30 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm(prev => ({ ...prev, person_name: v }))} onPhoneChange={v => setRegForm(prev => ({ ...prev, person_phone: v }))} />
+                <div className="mb-4 p-4 bg-muted/30 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                   <div>
-                    <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام *</label>
-                    <select required value={regForm.plan_id} onChange={(e) => { setRegError(''); const plan = plans.find(p => p.id === e.target.value); setRegForm(prev => ({ ...prev, plan_id: e.target.value, price: plan ? getPlanBounds(plan).min : '', payment_method: isFreePlan(plan) ? 'free' : 'cash' })); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                      <option value="" disabled>انتخاب مدل ثبت‌نام...</option>
-                      {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {formatPlanRange(p)}</option>)}
+                    <label className="text-xs text-muted-foreground block mb-1">نام مشتری *</label>
+                    <PersonSearch personName={regForm.person_name} personPhone={regForm.person_phone} onNameChange={v => setRegForm(prev => ({ ...prev, person_name: v }))} onPhoneChange={v => setRegForm(prev => ({ ...prev, person_phone: v }))} />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام *</label>
+                      <select required value={regForm.plan_id} onChange={(e) => { setRegError(''); const plan = plans.find(p => p.id === e.target.value); setRegForm(prev => ({ ...prev, plan_id: e.target.value, price: plan ? getPlanBounds(plan).min : '', payment_method: isFreePlan(plan) ? 'free' : 'cash' })); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                        <option value="" disabled>انتخاب مدل ثبت‌نام...</option>
+                        {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {formatPlanRange(p)}</option>)}
+                      </select>
+                    </div>
+                    <div className="[&>input]:w-full">
+                      <label className="text-xs text-muted-foreground block mb-1">مبلغ (تومان)</label>
+                      <PriceInput value={regForm.price} onChange={v => setRegForm({ ...regForm, price: v })} />
+                    </div>
+                  </div>
+                  <div className="[&>input]:w-full">
+                    <label className="text-xs text-muted-foreground block mb-1">دونیشین (تومان)</label>
+                    <PriceInput value={regForm.donation} onChange={v => setRegForm({ ...regForm, donation: v })} placeholder="اختیاری" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">تاریخ ثبت</label>
+                    <JalaliDateInput value={regForm.purchase_date} onChange={v => setRegForm({ ...regForm, purchase_date: v })} />
+                  </div>
+                  {!computedPaid && !inst.on && (
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>
+                    <select value={regForm.payment_method} onChange={e => setRegForm({ ...regForm, payment_method: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                      {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                     </select>
                   </div>
-                  <PriceInput value={regForm.price} onChange={v => setRegForm({ ...regForm, price: v })} />
-                  <PriceInput value={regForm.donation} onChange={v => setRegForm({ ...regForm, donation: v })} placeholder="دونیشین (اختیاری)" />
-                  <JalaliDateInput value={regForm.purchase_date} onChange={v => setRegForm({ ...regForm, purchase_date: v })} />
-                  {!computedPaid && !inst.on && (
-                  <select value={regForm.payment_method} onChange={e => setRegForm({ ...regForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                    {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
                   )}
-                  <select value={regForm.how_met} onChange={e => setRegForm({ ...regForm, how_met: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
-                    <option value="">نحوه آشنایی...</option>
-                    {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">نحوه آشنایی</label>
+                    <select value={regForm.how_met} onChange={e => setRegForm({ ...regForm, how_met: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                      <option value="">انتخاب...</option>
+                      {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </div>
                   {(workshop.session_dates?.length || workshop.session_count || 0) > 0 && (
                     <div className="sm:col-span-2 p-3 bg-white rounded-lg border border-border">
                       <label className="text-xs text-muted-foreground block mb-2">جلسات *</label>
@@ -518,11 +538,11 @@ export default function WorkshopProfile() {
                     </div>
                   )}
                   {inst.on ? (
-                    <span className="self-center text-xs font-medium px-2 py-1 rounded text-[#7A4F1F] bg-[#FBF3EC]">
+                    <span className="sm:col-span-2 justify-self-start text-xs font-medium px-2.5 py-1 rounded-full text-[#7A4F1F] bg-[#FBF3EC]">
                       قسطی — {toPersianNum(inst.firstPaid && inst.rows.length ? 1 : 0)} از {toPersianNum(inst.rows.length)} قسط پرداخت شده
                     </span>
                   ) : (
-                  <span className={`self-center text-xs font-medium px-2 py-1 rounded ${computedPaid ? 'text-green-600 bg-green-50' : 'text-[#B9834B] bg-[#FBF3EC]'}`}>
+                  <span className={`sm:col-span-2 justify-self-start text-xs font-medium px-2.5 py-1 rounded-full ${computedPaid ? 'text-green-600 bg-green-50' : 'text-[#B9834B] bg-[#FBF3EC]'}`}>
                     {computedPaid ? 'پرداخت شده' : 'پرداخت نشده'}
                   </span>
                   )}
@@ -545,11 +565,11 @@ export default function WorkshopProfile() {
                       <button onClick={() => setCapacityWarning('')} className="px-2 py-1 rounded-lg border border-border text-xs whitespace-nowrap">انصراف</button>
                     </div>
                   )}
-                  <div className="sm:col-span-2 flex gap-2">
-                    <button onClick={addRegistration} disabled={submitting} className="px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
+                  <div className="sm:col-span-2 flex gap-2 pt-1">
+                    <button onClick={addRegistration} disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
                       {submitting ? 'در حال ثبت...' : 'ثبت'}
                     </button>
-                    <button onClick={() => setShowAddReg(false)} className="px-3 py-1.5 rounded-lg border border-border text-sm">انصراف</button>
+                    <button onClick={() => setShowAddReg(false)} className="px-4 py-2 rounded-lg border border-border bg-white text-sm">انصراف</button>
                   </div>
                 </div>
               )}
