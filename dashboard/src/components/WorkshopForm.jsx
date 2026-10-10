@@ -135,6 +135,13 @@ export default function WorkshopForm({
           <label className="text-xs text-muted-foreground block mb-2">تسهیلگران:</label>
           <FacilitatorMultiSearch selectedIds={form.facilitator_ids || []} onChange={ids => setForm({ ...form, facilitator_ids: ids })} />
         </div>
+        <label className={`flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer ${form.allow_installments ? 'border-[#B74B40] bg-[#FDF2F1]' : 'border-border'}`}>
+          <input type="checkbox" checked={!!form.allow_installments} onChange={e => setForm({ ...form, allow_installments: e.target.checked })} className="w-4 h-4 mt-1 accent-[#B74B40]" />
+          <span>
+            <span className={`block text-sm font-bold ${form.allow_installments ? 'text-[#8F342B]' : ''}`}>امکان پرداخت قسطی</span>
+            <span className="block text-xs text-muted-foreground mt-0.5">با فعال بودن این گزینه، ادمین هنگام ثبت‌نام هر نفر می‌تواند تعداد، مبلغ و سررسید اقساط همان شخص را وارد کند. سررسیدها حداکثر تا آخرین جلسه کارگاه.</span>
+          </span>
+        </label>
         {/* Plans section */}
         <div>
           <label className="text-xs text-muted-foreground block mb-2">مدل‌های ثبت‌نام (حداقل یک مدل الزامی است)</label>

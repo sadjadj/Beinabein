@@ -458,6 +458,7 @@ Seeded on first boot with the old enum keys as ids (`repairs`, `daily`, `facilit
 | `facilitator_paid` | boolean |  | پرداخت تسهیلگر | default: false |
 | `capacity` | number |  | ظرفیت |  |
 | `is_ended` | boolean |  | پایان یافته | default: false |
+| `allow_installments` | boolean |  | امکان پرداخت قسطی | default: false. When true, registrations of this workshop may be paid in instalments |
 
 ### WorkshopPlan
 
@@ -485,6 +486,7 @@ Seeded on first boot with the old enum keys as ids (`repairs`, `daily`, `facilit
 | `payment_method` | string |  | مدل پرداخت | enum: online, card_to_card, cash, azno; default: "cash" |
 | `how_met` | string |  | نحوه آشنایی | enum: instagram, telegram, referral, friends, facilitator, event, introduction, other; default: "other" |
 | `is_installment` | boolean |  | خرید قسطی | default: false |
+| `installments` | array<object> |  | اقساط | items: `{ amount, due_date, paid_date, payment_method }`; `paid_date` null until paid. `is_paid` turns true when every instalment is paid |
 | `is_paid` | boolean |  | پرداخت شده | default: false |
 | `registered_sessions` | number |  | تعداد جلسات ثبت‌نامی |  |
 | `description` | string |  | توضیحات |  |
