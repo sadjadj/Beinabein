@@ -1,22 +1,27 @@
 import React from 'react';
 import { useUrlTab } from '@/hooks/useUrlTab';
-import { Wallet, BarChart3, RotateCcw, Receipt } from 'lucide-react';
+import { Wallet, BarChart3, RotateCcw, Receipt, CalendarClock } from 'lucide-react';
+import { useInstallmentDueCount } from '@/hooks/useInstallmentDueCount';
+import { toPersianNum } from '@/lib/stats';
 import AccountingPage from '@/pages/AccountingPage';
 import FinancialReport from '@/pages/FinancialReport';
 import ReturnsPage from '@/pages/ReturnsPage';
 import ExpensesPage from '@/pages/ExpensesPage';
+import InstallmentsPage from '@/pages/InstallmentsPage';
 
 const tabs = [
   { key: 'income', label: 'درآمدها', icon: Wallet, Component: AccountingPage },
   { key: 'financial-report', label: 'گزارش مالی', icon: BarChart3, Component: FinancialReport },
   { key: 'returns', label: 'مرجوعی', icon: RotateCcw, Component: ReturnsPage },
   { key: 'expenses', label: 'هزینه‌کرد', icon: Receipt, Component: ExpensesPage },
+  { key: 'installments', label: 'اقساط', icon: CalendarClock, Component: InstallmentsPage },
 ];
 
 export default function FinanceHubPage() {
   const [tab, setTab] = useUrlTab('tab', 'income', tabs.map(t => t.key));
   const active = tabs.find(t => t.key === tab) || tabs[0];
   const ActiveComponent = active.Component;
+  const dueCount = useInstallmentDueCount();
 
   return (
     <div>
@@ -41,6 +46,9 @@ export default function FinanceHubPage() {
                 >
                   <t.icon className="w-4 h-4 flex-shrink-0" />
                   {t.label}
+                  {t.key === 'installments' && dueCount > 0 && (
+                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-[#B74B40] text-white text-xs font-bold inline-flex items-center justify-center" title="سررسید امروز و معوق">{toPersianNum(dueCount)}</span>
+                  )}
                 </button>
               );
             })}

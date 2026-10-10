@@ -3,7 +3,7 @@ import JalaliDateInput from '@/components/JalaliDateInput';
 import { todayGregorian } from '@/lib/jalali';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 
-export default function PurchaseEditForm({ form, setForm, onSave, onCancel, saving, showHowMet = false }) {
+export default function PurchaseEditForm({ form, setForm, onSave, onCancel, saving, showHowMet = false, hidePaid = false }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
       <div>
@@ -24,9 +24,11 @@ export default function PurchaseEditForm({ form, setForm, onSave, onCancel, savi
           </select>
         </div>
       )}
+      {!hidePaid && (
       <label className="flex items-center gap-2 text-sm pb-2.5">
         <input type="checkbox" checked={!!form.is_paid} onChange={e => setForm({ ...form, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
       </label>
+      )}
       <div className="flex items-center gap-2 sm:col-span-2 lg:col-span-4">
         <button onClick={onSave} disabled={saving} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
           {saving ? 'در حال ذخیره...' : 'ذخیره'}

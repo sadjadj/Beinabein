@@ -8,6 +8,8 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import PurchaseEditForm from '@/components/PurchaseEditForm';
+import { InstallmentPill } from '@/components/workshops/InstallmentChips';
+import { isInstallment } from '@/lib/installments';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import ExportButton from '@/components/ExportButton';
@@ -43,8 +45,11 @@ export default function WorkshopHistoryTab() {
   const saveEdit = async () => {
     setSavingEdit(true);
     try {
-      await base44.entities.WorkshopPurchase.update(editId, editForm);
-      setPurchases(prev => prev.map(p => p.id === editId ? { ...p, ...editForm } : p));
+      // is_paid of an instalment registration follows its instalments, never this form
+      const { is_paid, ...rest } = editForm;
+      const patch = isInstallment(purchases.find(p => p.id === editId)) ? rest : editForm;
+      await base44.entities.WorkshopPurchase.update(editId, patch);
+      setPurchases(prev => prev.map(p => p.id === editId ? { ...p, ...patch } : p));
       setEditId(null);
     } finally { setSavingEdit(false); }
   };
@@ -125,7 +130,7 @@ export default function WorkshopHistoryTab() {
     date: p.purchase_date ? formatJalaliShort(p.purchase_date) : '',
     price: (Number(p.price) || 0) * (Number(p.quantity) || 1),
     donation: Number(p.donation) || 0,
-    status: p.is_paid ? 'پرداخت‌شده' : 'پرداخت‌نشده',
+    status: p.is_paid ? 'پرداخت‌شده' : isInstallment(p) ? 'قسطی' : 'پرداخت‌نشده',
   }));
 
   const rangeLabel = range.end
@@ -210,7 +215,9 @@ export default function WorkshopHistoryTab() {
                     </td>
                     <td className="p-3 text-xs text-center">{p.registered_sessions ? `${toPersianNum(p.registered_sessions)} جلسه` : '-'}</td>
                     <td className="p-3 text-center">
-                      <span className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت‌شده' : 'پرداخت‌نشده'}</span>
+                      {isInstallment(p)
+                        ? <InstallmentPill purchase={p} />
+                        : <span className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت‌شده' : 'پرداخت‌نشده'}</span>}
                     </td>
                     <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-2">
@@ -222,7 +229,7 @@ export default function WorkshopHistoryTab() {
                   {editId === p.id && (
                     <tr className="border-t border-border">
                       <td colSpan={8} className="p-3 bg-muted/20">
-                        <PurchaseEditForm form={editForm} setForm={setEditForm} onSave={saveEdit} onCancel={() => setEditId(null)} saving={savingEdit} showHowMet />
+                        <PurchaseEditForm form={editForm} setForm={setEditForm} onSave={saveEdit} onCancel={() => setEditId(null)} saving={savingEdit} showHowMet hidePaid={isInstallment(p)} />
                       </td>
                     </tr>
                   )}

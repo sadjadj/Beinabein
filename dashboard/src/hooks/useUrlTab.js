@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 /**
@@ -18,6 +18,10 @@ export function useUrlTab(paramName, defaultTab, validTabs) {
   const fromUrl = searchParams.get(paramName);
   const initial = validTabs.includes(fromUrl) ? fromUrl : defaultTab;
   const [tab, setTabState] = useState(initial);
+
+  // Follow in-page links that change the param (e.g. a Link to ?tab=installments
+  // from another tab of the same hub), not just the value at mount.
+  useEffect(() => { setTabState(initial); }, [initial]);
 
   const setTab = useCallback((value) => {
     setTabState(value);

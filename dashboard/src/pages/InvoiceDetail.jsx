@@ -8,6 +8,8 @@ import { toJalaliStr } from '@/lib/jalali';
 import PriceInput from '@/components/PriceInput';
 import PersianNumberInput from '@/components/PersianNumberInput';
 import JalaliDateInput from '@/components/JalaliDateInput';
+import { InstallmentPill } from '@/components/workshops/InstallmentChips';
+import { isInstallment } from '@/lib/installments';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -40,6 +42,8 @@ export default function InvoiceDetail() {
   const [form, setForm] = useState({});
   const [deleteOpen, setDeleteOpen] = useState(false);
   const cfg = entityMap[type];
+  // Instalment registration: amount and paid state belong to its instalments (مالی › اقساط)
+  const installment = type === 'workshop' && isInstallment(invoice);
 
   const fromPath = location.state?.from || '/accounting';
   const fromLabels = { '/cafe': 'کافه', '/accounting': 'حسابداری', '/workspace': 'فضای کار', '/groups': 'گروه‌ها', '/workshops': 'کارگاه‌ها', '/finance': 'مالی' };
@@ -128,6 +132,7 @@ export default function InvoiceDetail() {
           payload.registered_sessions = form.registered_sessions ? Number(form.registered_sessions) : null;
           payload.description = form.description || '';
         }
+        if (installment) { delete payload[cfg.amountField]; delete payload.quantity; delete payload.is_paid; }
         await base44.entities[cfg.entity].update(id, payload);
       }
       setEditing(false);
@@ -210,10 +215,12 @@ export default function InvoiceDetail() {
                   <label className="text-xs text-muted-foreground block mb-1">{cfg.labelFieldLabel}</label>
                   <input type="text" value={form[cfg.labelField]} onChange={e => setForm({ ...form, [cfg.labelField]: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
                 </div>
+                {!installment && (
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">مبلغ واحد (تومان)</label>
                   <PriceInput value={form[cfg.amountField]} onChange={v => setForm({ ...form, [cfg.amountField]: v })} />
                 </div>
+                )}
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">نام مشتری</label>
                   <input type="text" value={form.person_name} onChange={e => setForm({ ...form, person_name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
@@ -222,10 +229,12 @@ export default function InvoiceDetail() {
                   <label className="text-xs text-muted-foreground block mb-1">شماره تماس</label>
                   <input type="tel" value={form.person_phone} onChange={e => setForm({ ...form, person_phone: e.target.value })} dir="ltr" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />
                 </div>
+                {!installment && (
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">تعداد</label>
                   <PersianNumberInput value={form.quantity} onChange={v => setForm({ ...form, quantity: v })} placeholder="تعداد" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-right" />
                 </div>
+                )}
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">تاریخ</label>
                   <JalaliDateInput value={form.purchase_date} onChange={v => setForm({ ...form, purchase_date: v })} showToday={false} />
@@ -256,9 +265,11 @@ export default function InvoiceDetail() {
                     <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" placeholder="توضیحات..." />
                   </div>
                 )}
+                {!installment && (
                 <label className="flex items-center gap-2 text-sm self-end pb-2">
                   <input type="checkbox" checked={form.is_paid} onChange={e => setForm({ ...form, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شده
                 </label>
+                )}
               </div>
             )}
             <div className="flex justify-between gap-2 pt-2">
@@ -370,6 +381,7 @@ export default function InvoiceDetail() {
 
             <div className="mt-6 pt-6 border-t border-border flex items-center justify-between">
               <span className="text-sm text-muted-foreground">وضعیت پرداخت</span>
+              {installment ? <InstallmentPill purchase={invoice} /> : (
               <button onClick={togglePaid} disabled={toggling} className="inline-flex items-center gap-1.5 text-sm font-medium">
                 {invoice.is_paid ? (
                   <span className="inline-flex items-center gap-1 text-green-600"><CheckCircle className="w-4 h-4" /> پرداخت شده</span>
@@ -377,6 +389,7 @@ export default function InvoiceDetail() {
                   <span className="inline-flex items-center gap-1 text-[#B9834B]"><AlertCircle className="w-4 h-4" /> پرداخت‌نشده</span>
                 )}
               </button>
+              )}
             </div>
 
             <div className="mt-4 flex justify-end">

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText, Layers, ShoppingBag, LogOut, KeyRound } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
+import { useInstallmentDueCount } from '@/hooks/useInstallmentDueCount';
+import { toPersianNum } from '@/lib/stats';
 
 const standaloneItems = [
   { path: '/', label: 'داشبورد', icon: LayoutDashboard },
@@ -28,6 +30,7 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState({});
+  const installmentDueCount = useInstallmentDueCount();
 
   const handleLogout = () => {
     logout();
@@ -69,6 +72,9 @@ export default function Layout() {
           <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[#FDF2F1] text-[#B74B40]' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
             <item.icon className="w-5 h-5 flex-shrink-0" />
             <span>{item.label}</span>
+            {item.path === '/finance' && installmentDueCount > 0 && (
+              <span className="mr-auto min-w-5 h-5 px-1.5 rounded-full bg-[#B74B40] text-white text-xs font-bold inline-flex items-center justify-center" title="اقساط سررسید امروز و معوق">{toPersianNum(installmentDueCount)}</span>
+            )}
           </Link>
         );
       })}
