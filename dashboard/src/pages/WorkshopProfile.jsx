@@ -14,6 +14,9 @@ import WorkshopForm from '@/components/WorkshopForm';
 import PlanOverflowDialog from '@/components/PlanOverflowDialog';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
+import InstallmentFields, { lastSessionDate } from '@/components/workshops/InstallmentFields';
+import InstallmentChips, { InstallmentPayForm } from '@/components/workshops/InstallmentChips';
+import { blankInstallmentForm, isInstallment, installmentError, buildInstallments, paidCount, paidTotal, purchaseStatus, purchasePaidAmount } from '@/lib/installments';
 
 export default function WorkshopProfile() {
   const { id } = useParams();
@@ -40,6 +43,8 @@ export default function WorkshopProfile() {
   const [regSessionTab, setRegSessionTab] = useState(null);
   const [deleteRegId, setDeleteRegId] = useState(null);
   const [saveError, setSaveError] = useState('');
+  const [inst, setInst] = useState(blankInstallmentForm);
+  const [openInst, setOpenInst] = useState(null); // { id, index } — registration whose instalments are open
 
   const fetchData = async () => {
     setLoading(true);
@@ -98,7 +103,8 @@ export default function WorkshopProfile() {
       end_date: existingDates[existingDates.length - 1] || workshop.end_date || '',
       facilitator_percentage: workshop.facilitator_percentage || '',
       capacity: workshop.capacity || '',
-      session_dates: existingDates
+      session_dates: existingDates,
+      allow_installments: workshop.allow_installments || false
     };
   };
 
@@ -216,6 +222,12 @@ export default function WorkshopProfile() {
     const { min, max } = getPlanBounds(plan);
     const amount = Number(regForm.price) || 0;
     const donation = Number(regForm.donation) || 0;
+    if (inst.on) {
+      const instError = amount > max
+        ? 'در پرداخت قسطی، مبلغ نمی‌تواند بیشتر از سقف مدل ثبت‌نام باشد'
+        : installmentError(inst.rows, amount, lastSessionDate(workshop));
+      if (instError) { setRegError(instError); return; }
+    }
     if (amount > max) { setOverflow({ amount, max, donation }); return; }
     const pending = { amount, donation, isPaid: amount >= min };
     const newCount = rev.participantCount + (Number(regForm.quantity) || 1);
@@ -240,6 +252,7 @@ export default function WorkshopProfile() {
     try {
       const wsSessionCount = workshop.session_dates?.length || workshop.session_count || 0;
       await findOrCreatePerson(regForm.person_phone, regForm.person_name);
+      const installments = inst.on ? buildInstallments(inst, regForm.purchase_date, regForm.payment_method) : null;
       const newPurchase = await base44.entities.WorkshopPurchase.create({
         workshop_id: id,
         workshop_title: workshop.title,
@@ -250,7 +263,8 @@ export default function WorkshopProfile() {
         purchase_date: regForm.purchase_date,
         payment_method: isFreePlan(plans.find(p => p.id === regForm.plan_id)) ? 'free' : regForm.payment_method,
         how_met: regForm.how_met || 'other',
-        is_paid: pending.isPaid,
+        is_paid: installments ? installments.every(i => i.paid_date) : pending.isPaid,
+        ...(installments ? { is_installment: true, installments } : {}),
         registered_sessions: (regForm.selected_sessions || []).length || null,
         donation: pending.donation,
         plan_name: plans.find(p => p.id === regForm.plan_id)?.name || '',
@@ -258,6 +272,8 @@ export default function WorkshopProfile() {
         selected_sessions: regForm.selected_sessions || []
       });
       setPurchases(prev => [newPurchase, ...prev]);
+      if (installments) window.dispatchEvent(new Event('installments-changed'));
+      setInst(blankInstallmentForm);
       setRegForm({ person_name: '', person_phone: '', price: '', quantity: 1, purchase_date: todayGregorian(), payment_method: 'cash', how_met: '', registered_sessions: '', donation: '', plan_id: '', registration_type: 'full', selected_sessions: [] });
       setCapacityWarning('');
       setPendingReg(null);
@@ -305,7 +321,7 @@ export default function WorkshopProfile() {
   persons.forEach(per => { if (per.phone) personByPhone[per.phone] = per; });
   const rev = computeWorkshopRevenue(workshop, purchases);
   const totalAmount = purchases.reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
-  const paidAmount = purchases.filter(p => p.is_paid).reduce((s, p) => s + (p.price || 0) * (p.quantity || 1) + (p.donation || 0), 0);
+  const paidAmount = purchases.reduce((s, p) => s + purchasePaidAmount(p), 0);
   const facNames = (workshop.facilitator_ids || []).map(fid => facilitators.find(f => f.id === fid)?.full_name).filter(Boolean);
 
   const isNewWorkshop = workshop.session_dates && workshop.session_dates.length > 0;
@@ -325,6 +341,60 @@ export default function WorkshopProfile() {
   const activeRegParticipants = activeRegSession ? getSessionParticipants(activeRegSession) : purchases;
   const selectedRegPlan = plans.find(p => p.id === regForm.plan_id);
   const computedPaid = selectedRegPlan ? isAmountPaid(regForm.price, selectedRegPlan) : false;
+
+  // One registration row of the ثبت‌نامی‌ها box (shared by the per-session and
+  // the plain list). Instalment registrations get a «قسطی» pill instead of the
+  // paid/unpaid toggle; clicking it opens that person's instalments in place.
+  const today = todayGregorian();
+  const renderRegRow = (p) => {
+    const total = (p.price || 0) * (p.quantity || 1) + (p.donation || 0);
+    const isInst = isInstallment(p);
+    const status = isInst ? purchaseStatus(p, today) : null;
+    const due = status === 'overdue' || status === 'due_today';
+    const expanded = openInst?.id === p.id;
+    return (
+      <div key={p.id}>
+        <div onClick={() => navigate(`/accounting/workshop/${p.id}`, { state: { from: `/workshops/${id}` } })} className="py-2.5 flex items-center justify-between text-sm cursor-pointer hover:bg-muted/30 rounded-lg">
+          <div>
+            {personByPhone[p.person_phone]
+              ? <Link to={`/people/${personByPhone[p.person_phone].id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
+              : <span className="font-medium">{p.person_name || '-'}</span>}
+            {p.plan_name && <span className="inline-block text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
+            {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
+            {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
+            <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-medium whitespace-nowrap ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
+              {isInst && !p.is_paid && `${toPersianNum(paidTotal(p))} از `}{formatCurrency(total)}
+            </span>
+            {isInst ? (
+              <button onClick={(e) => { e.stopPropagation(); setOpenInst(expanded ? null : { id: p.id, index: null }); }} aria-expanded={expanded} className={`px-2.5 py-1 rounded-full text-xs whitespace-nowrap border ${due ? 'border-[#F5C9C3] bg-[#FDF2F1] text-[#8F342B] font-bold' : p.is_paid ? 'border-green-200 bg-green-50 text-green-700 font-medium' : 'border-[#E8D5C0] bg-[#FBF3EC] text-[#7A4F1F] font-medium'} ${expanded ? 'ring-2 ring-[#B74B40] ring-offset-1' : ''}`}>
+                قسطی — {toPersianNum(paidCount(p))} از {toPersianNum(p.installments.length)}{status === 'due_today' ? ' · سررسید امروز' : status === 'overdue' ? ' · معوق' : ''}
+              </button>
+            ) : (
+              <button onClick={(e) => { e.stopPropagation(); toggleRegPaid(p); }} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
+            )}
+            <button onClick={(e) => { e.stopPropagation(); setDeleteRegId(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+          </div>
+        </div>
+        {expanded && (
+          <div className={`mb-2 p-3 rounded-lg border space-y-3 ${due ? 'bg-[#FDF2F1] border-[#F5C9C3]' : 'bg-muted/30 border-border'}`}>
+            <InstallmentChips purchase={p} selected={openInst.index} onSelect={i => setOpenInst({ id: p.id, index: i })} />
+            {openInst.index !== null && (
+              <InstallmentPayForm
+                key={openInst.index}
+                purchase={p}
+                index={openInst.index}
+                onSaved={updated => { setPurchases(prev => prev.map(x => (x.id === updated.id ? updated : x))); setOpenInst({ id: p.id, index: null }); }}
+                onCancel={() => setOpenInst({ id: p.id, index: null })}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
@@ -411,7 +481,7 @@ export default function WorkshopProfile() {
                   <PriceInput value={regForm.price} onChange={v => setRegForm({ ...regForm, price: v })} />
                   <PriceInput value={regForm.donation} onChange={v => setRegForm({ ...regForm, donation: v })} placeholder="دونیشین (اختیاری)" />
                   <JalaliDateInput value={regForm.purchase_date} onChange={v => setRegForm({ ...regForm, purchase_date: v })} />
-                  {!computedPaid && (
+                  {!computedPaid && !inst.on && (
                   <select value={regForm.payment_method} onChange={e => setRegForm({ ...regForm, payment_method: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
                     {Object.entries(paymentMethodLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
@@ -442,9 +512,20 @@ export default function WorkshopProfile() {
                       <p className="text-xs text-muted-foreground mt-2">تعداد جلسات انتخابی: {toPersianNum(regForm.selected_sessions.length)}</p>
                     </div>
                   )}
+                  {workshop.allow_installments && (
+                    <div className="sm:col-span-2">
+                      <InstallmentFields compact value={inst} onChange={setInst} total={regForm.price} workshop={workshop} method={regForm.payment_method} onMethod={v => setRegForm({ ...regForm, payment_method: v })} />
+                    </div>
+                  )}
+                  {inst.on ? (
+                    <span className="self-center text-xs font-medium px-2 py-1 rounded text-[#7A4F1F] bg-[#FBF3EC]">
+                      قسطی — {toPersianNum(inst.firstPaid && inst.rows.length ? 1 : 0)} از {toPersianNum(inst.rows.length)} قسط پرداخت شده
+                    </span>
+                  ) : (
                   <span className={`self-center text-xs font-medium px-2 py-1 rounded ${computedPaid ? 'text-green-600 bg-green-50' : 'text-[#B9834B] bg-[#FBF3EC]'}`}>
                     {computedPaid ? 'پرداخت شده' : 'پرداخت نشده'}
                   </span>
+                  )}
                   {regError && (
                     <div className="sm:col-span-2 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
                       {regError}
@@ -503,47 +584,13 @@ export default function WorkshopProfile() {
                     <p className="text-sm text-muted-foreground text-center py-4">در این جلسه ثبت‌نامی وجود ندارد</p>
                   ) : (
                     <div className="divide-y divide-border">
-                      {activeRegParticipants.map(p => (
-                        <div key={p.id} onClick={() => navigate(`/accounting/workshop/${p.id}`, { state: { from: `/workshops/${id}` } })} className="py-2.5 flex items-center justify-between text-sm cursor-pointer hover:bg-muted/30 rounded-lg">
-                          <div>
-                            {personByPhone[p.person_phone]
-                              ? <Link to={`/people/${personByPhone[p.person_phone].id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
-                              : <span className="font-medium">{p.person_name || '-'}</span>}
-                            {p.plan_name && <span className="inline-block text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
-                            {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
-                            {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
-                            <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-xs font-medium ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{formatCurrency((p.price || 0) * (p.quantity || 1) + (p.donation || 0))}</span>
-                            <button onClick={(e) => { e.stopPropagation(); toggleRegPaid(p); }} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
-                            <button onClick={(e) => { e.stopPropagation(); setDeleteRegId(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </div>
-                      ))}
+                      {activeRegParticipants.map(renderRegRow)}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {purchases.map(p => (
-                    <div key={p.id} onClick={() => navigate(`/accounting/workshop/${p.id}`, { state: { from: `/workshops/${id}` } })} className="py-2.5 flex items-center justify-between text-sm cursor-pointer hover:bg-muted/30 rounded-lg">
-                      <div>
-                        {personByPhone[p.person_phone]
-                          ? <Link to={`/people/${personByPhone[p.person_phone].id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
-                          : <span className="font-medium">{p.person_name || '-'}</span>}
-                        {p.plan_name && <span className="inline-block text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
-                        {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
-                        {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
-                        <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-medium ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{formatCurrency((p.price || 0) * (p.quantity || 1) + (p.donation || 0))}</span>
-                        <button onClick={(e) => { e.stopPropagation(); toggleRegPaid(p); }} className={`text-xs ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{p.is_paid ? 'پرداخت شده' : 'پرداخت‌نشده'}</button>
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteRegId(p.id); }} className="text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
-                      </div>
-                    </div>
-                  ))}
+                  {purchases.map(renderRegRow)}
                 </div>
               )}
             </div>

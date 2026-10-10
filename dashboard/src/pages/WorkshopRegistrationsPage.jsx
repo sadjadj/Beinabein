@@ -15,6 +15,9 @@ import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
 import ExportButton from '@/components/ExportButton';
 import PlanOverflowDialog from '@/components/PlanOverflowDialog';
 import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
+import InstallmentFields, { lastSessionDate } from '@/components/workshops/InstallmentFields';
+import { InstallmentPill } from '@/components/workshops/InstallmentChips';
+import { blankInstallmentForm, isInstallment, installmentError, buildInstallments, paidTotal, remaining } from '@/lib/installments';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -44,6 +47,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     description: '', registration_type: 'full', selected_sessions: []
   });
   const [overflow, setOverflow] = useState(null);
+  const [inst, setInst] = useState(blankInstallmentForm);
 
   const fetchData = async () => {
     setLoading(true);
@@ -95,6 +99,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
 
   const handleWorkshopChange = (wid) => {
     setFormError('');
+    setInst(blankInstallmentForm);
     setForm(prev => ({
       ...prev, workshop_id: wid, plan_id: '', price: '', selected_sessions: [], registered_sessions: 0
     }));
@@ -126,7 +131,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     date: p.purchase_date ? formatJalaliShort(p.purchase_date) : '',
     price: (Number(p.price) || 0) * (Number(p.quantity) || 1),
     donation: Number(p.donation) || 0,
-    status: p.is_paid ? 'پرداخت‌شده' : 'پرداخت‌نشده',
+    status: p.is_paid ? 'پرداخت‌شده' : isInstallment(p) ? 'قسطی' : 'پرداخت‌نشده',
   }));
 
   const validateForm = () => {
@@ -149,6 +154,12 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     const { min, max } = getPlanBounds(plan);
     const amount = Number(form.price) || 0;
     const donation = Number(form.donation) || 0;
+    if (inst.on) {
+      const instError = amount > max
+        ? 'در پرداخت قسطی، مبلغ نمی‌تواند بیشتر از سقف مدل ثبت‌نام باشد'
+        : installmentError(inst.rows, amount, lastSessionDate(workshopById[form.workshop_id]));
+      if (instError) { setFormError(instError); return; }
+    }
     if (amount > max) { setOverflow({ amount, max, donation }); return; }
     await doAddRegistration(amount, donation, amount >= min);
   };
@@ -166,6 +177,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
       await findOrCreatePerson(form.person_phone, form.person_name);
       const selected = form.selected_sessions || [];
       const regType = (sessionCount > 0 && selected.length === sessionCount) ? 'full' : 'single';
+      const installments = inst.on ? buildInstallments(inst, form.purchase_date, form.payment_method) : null;
       const newPurchase = await base44.entities.WorkshopPurchase.create({
         workshop_id: form.workshop_id,
         workshop_title: ws?.title || '',
@@ -176,7 +188,8 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
         purchase_date: form.purchase_date,
         payment_method: isFreePlan(plans.find(p => p.id === form.plan_id)) ? 'free' : form.payment_method,
         how_met: form.how_met || 'other',
-        is_paid: isPaid,
+        is_paid: installments ? installments.every(i => i.paid_date) : isPaid,
+        ...(installments ? { is_installment: true, installments } : {}),
         registered_sessions: selected.length || null,
         donation: donation,
         plan_name: plans.find(p => p.id === form.plan_id)?.name || '',
@@ -185,6 +198,8 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
         selected_sessions: selected
       });
       setPurchases(prev => [newPurchase, ...prev]);
+      if (installments) window.dispatchEvent(new Event('installments-changed'));
+      setInst(blankInstallmentForm);
       setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', purchase_date: todayGregorian(), payment_method: 'card_to_card', how_met: 'other', registered_sessions: '', donation: '', plan_id: '', description: '', registration_type: 'full', selected_sessions: [] });
     } finally { setSubmitting(false); }
   };
@@ -197,7 +212,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
   const saveInlineEdit = async (p) => {
     const updated = await base44.entities.WorkshopPurchase.update(p.id, {
       registered_sessions: editForm.registered_sessions ? Number(editForm.registered_sessions) : null,
-      is_paid: editForm.is_paid
+      ...(isInstallment(p) ? {} : { is_paid: editForm.is_paid })
     });
     setPurchases(prev => prev.map(x => x.id === p.id ? { ...x, ...updated } : x));
     setEditingId(null);
@@ -270,7 +285,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
             <label className="text-xs text-muted-foreground block mb-1">تاریخ ثبت</label>
             <JalaliDateInput value={form.purchase_date} onChange={v => setForm({ ...form, purchase_date: v })} showToday={false} max={todayGregorian()} />
           </div>
-          {!computedPaid && (
+          {!computedPaid && !inst.on && (
             <div>
               <label className="text-xs text-muted-foreground block mb-1">مدل پرداخت</label>
               <select value={form.payment_method} onChange={e => setForm({ ...form, payment_method: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
@@ -308,6 +323,11 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
             <p className="text-xs text-muted-foreground mt-2">تعداد جلسات انتخابی: {toPersianNum(form.selected_sessions.length)}</p>
           </div>
         )}
+        {selectedWorkshop?.allow_installments && (
+          <div className="mt-4">
+            <InstallmentFields value={inst} onChange={setInst} total={form.price} workshop={selectedWorkshop} method={form.payment_method} onMethod={v => setForm({ ...form, payment_method: v })} />
+          </div>
+        )}
         {/* Description */}
         <div className="mt-3">
           <label className="text-xs text-muted-foreground block mb-1">توضیحات</label>
@@ -329,7 +349,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
           <button onClick={addRegistration} disabled={submitting} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">
             {submitting ? 'در حال ثبت...' : 'ثبت'}
           </button>
-          <button onClick={() => { setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', purchase_date: todayGregorian(), payment_method: 'card_to_card', how_met: 'other', registered_sessions: '', donation: '', plan_id: '', description: '', registration_type: 'full', selected_sessions: [] }); setFormError(''); setDupWarning(''); }} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-border text-sm">
+          <button onClick={() => { setForm({ workshop_id: '', person_name: '', person_phone: '', price: '', purchase_date: todayGregorian(), payment_method: 'card_to_card', how_met: 'other', registered_sessions: '', donation: '', plan_id: '', description: '', registration_type: 'full', selected_sessions: [] }); setInst(blankInstallmentForm); setFormError(''); setDupWarning(''); }} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-border text-sm">
             <RotateCcw className="w-3.5 h-3.5" /> پاک کردن فرم
           </button>
         </div>
@@ -386,7 +406,9 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
                     <td className="p-3 text-xs text-muted-foreground whitespace-nowrap text-center" dir="ltr">{p.person_phone || '-'}</td>
                     <td className="p-3 text-xs whitespace-nowrap text-center">{p.purchase_date ? formatJalaliShort(p.purchase_date) : '-'}</td>
                     <td className="p-3 text-xs whitespace-nowrap text-center">
+                      {isInstallment(p) && !p.is_paid && `${toPersianNum(paidTotal(p))} از `}
                       {formatCurrency((Number(p.price) || 0) * (Number(p.quantity) || 1) + (Number(p.donation) || 0))}
+                      {isInstallment(p) && !p.is_paid && <span className="block text-[10px] text-muted-foreground">مانده {toPersianNum(remaining(p))}</span>}
                       {Number(p.donation) > 0 && <span className="block text-[10px] text-[#8CB9C0]">شامل {formatCurrency(Number(p.donation))} دونیشین</span>}
                     </td>
                     <td className="p-3 text-xs text-center">
@@ -397,7 +419,9 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
                       )}
                     </td>
                     <td className="p-3 text-center">
-                      {editingId === p.id ? (
+                      {isInstallment(p) ? (
+                        <InstallmentPill purchase={p} />
+                      ) : editingId === p.id ? (
                         <label className="flex items-center gap-1 text-xs justify-center">
                           <input type="checkbox" checked={editForm.is_paid} onChange={e => setEditForm({ ...editForm, is_paid: e.target.checked })} className="w-4 h-4" /> پرداخت شد
                         </label>

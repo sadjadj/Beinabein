@@ -5,7 +5,9 @@ import { getJalaliParts, jalaliDaysInMonth, jalaliFirstWeekday, jalaliToGregoria
 const jMonthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 const weekDayLabels = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
 
-export default function JalaliMultiCalendar({ selectedDates = [], onToggle, onConfirm }) {
+// max: last selectable day (later days are disabled). markedDates: days shown
+// with a dot (workshop session days, when picking instalment due dates).
+export default function JalaliMultiCalendar({ selectedDates = [], onToggle, onConfirm, max, markedDates }) {
   const todayParts = getJalaliParts(new Date().toISOString().split('T')[0]);
   const [viewYear, setViewYear] = useState(todayParts?.jy || 1404);
   const [viewMonth, setViewMonth] = useState(todayParts?.jm || 1);
@@ -13,6 +15,9 @@ export default function JalaliMultiCalendar({ selectedDates = [], onToggle, onCo
   const daysInMonth = jalaliDaysInMonth(viewYear, viewMonth);
   const firstWeekday = jalaliFirstWeekday(viewYear, viewMonth);
   const selectedSet = new Set(selectedDates);
+  const markedSet = new Set(markedDates || []);
+  const nextMonthFirst = viewMonth === 12 ? jalaliToGregorianStr(viewYear + 1, 1, 1) : jalaliToGregorianStr(viewYear, viewMonth + 1, 1);
+  const nextDisabled = !!max && nextMonthFirst > max;
 
   const prevMonth = () => {
     if (viewMonth === 1) { setViewMonth(12); setViewYear(y => y - 1); }
@@ -42,7 +47,7 @@ export default function JalaliMultiCalendar({ selectedDates = [], onToggle, onCo
       <div className="flex items-center justify-between mb-3">
         <button type="button" onClick={prevMonth} className="p-1 hover:bg-muted rounded-md"><ChevronRight className="w-4 h-4" /></button>
         <span className="text-sm font-medium">{jMonthNames[viewMonth - 1]} {toPersianDigits(viewYear)}</span>
-        <button type="button" onClick={nextMonth} className="p-1 hover:bg-muted rounded-md"><ChevronLeft className="w-4 h-4" /></button>
+        <button type="button" onClick={nextMonth} disabled={nextDisabled} className="p-1 hover:bg-muted rounded-md disabled:opacity-30 disabled:cursor-not-allowed"><ChevronLeft className="w-4 h-4" /></button>
       </div>
       <div className="grid grid-cols-7 gap-1 mb-1">
         {weekDayLabels.map(d => (
@@ -55,21 +60,29 @@ export default function JalaliMultiCalendar({ selectedDates = [], onToggle, onCo
           const greg = jalaliToGregorianStr(viewYear, viewMonth, day);
           const isSelected = selectedSet.has(greg);
           const isToday = todayParts?.jy === viewYear && todayParts?.jm === viewMonth && todayParts?.jd === day;
+          const disabled = !!max && greg > max;
           return (
             <button
               key={i}
               type="button"
               onClick={() => toggleDay(day)}
-              className={`w-9 h-9 rounded-lg text-sm transition-colors flex items-center justify-center
+              disabled={disabled}
+              className={`relative w-9 h-9 rounded-lg text-sm transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed
                 ${isSelected ? 'bg-[#B74B40] text-white font-medium' : 'hover:bg-muted text-foreground'}
                 ${isToday && !isSelected ? 'ring-1 ring-[#B74B40] text-[#B74B40] font-medium' : ''}
               `}
             >
               {isSelected ? <Check className="w-4 h-4" /> : toPersianDigits(day)}
+              {markedSet.has(greg) && <span className={`absolute bottom-1 w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-[#2F7480]'}`} />}
             </button>
           );
         })}
       </div>
+      {markedDates && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="w-1 h-1 rounded-full bg-[#2F7480]" /> روز جلسه کارگاه
+        </div>
+      )}
       <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{toPersianDigits(selectedDates.length)} روز انتخاب شده</span>
         <button type="button" onClick={onConfirm} className="px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-xs font-medium hover:bg-[#A03D34]">
