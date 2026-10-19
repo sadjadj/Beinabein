@@ -68,15 +68,6 @@ export default function WorkshopProfile() {
       setSpaces(spcs);
       setPersons(ppl);
       setPlans(planList);
-      const wsSess = [...sess].sort((a, b) => (a.session_number || 0) - (b.session_number || 0));
-      const today = todayGregorian();
-      const pastSessions = wsSess.filter(s => s.session_date && s.session_date <= today);
-      if (pastSessions.length > 0) {
-        const latest = pastSessions.sort((a, b) => (b.session_date || '').localeCompare(a.session_date || ''))[0];
-        setRegSessionTab(latest.id);
-      } else if (wsSess.length > 0) {
-        setRegSessionTab(wsSess[wsSess.length - 1].id);
-      }
     } finally { setLoading(false); }
   };
 
@@ -570,6 +561,16 @@ export default function WorkshopProfile() {
                 <div>
                   {/* Session tabs */}
                   <div className="flex items-center gap-1.5 flex-wrap mb-3 border-b border-border pb-2">
+                    <button
+                      onClick={() => setRegSessionTab(null)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        regSessionTab === null
+                          ? 'bg-[#B74B40] text-white'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      همه
+                    </button>
                     {sessions.map(s => (
                       <button
                         key={s.id}
