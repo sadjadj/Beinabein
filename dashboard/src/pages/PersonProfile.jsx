@@ -158,7 +158,7 @@ export default function PersonProfile() {
               <div key={w.id} className="p-3 flex items-center justify-between text-sm">
                 <div>
                   <Link to={`/workshops/${w.workshop_id}`} className="font-medium text-[#B74B40] hover:underline">{w.workshop_title || '-'}</Link>
-                  {w.plan_name && <span className="text-xs text-[#8CB9C0] mr-2">{w.plan_name}</span>}
+                  {w.plan_name && <span className="inline-block text-xs text-[#8CB9C0] mr-2">{w.plan_name}</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">{formatJalaliShort(w.purchase_date)}</span>
