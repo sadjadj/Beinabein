@@ -83,32 +83,36 @@ export default function GroupAttendancePage() {
   const activeSession = getSessionForDate(activeDate);
   const activeComputed = monthSessions.find(s => s.date === activeDate);
 
-  const toggleAttendance = async (phone) => {
+  // Saves the active date's present list, creating its GroupSession on first mark
+  const savePresent = async (update) => {
     if (!activeDate) return;
-    let session = getSessionForDate(activeDate);
+    const session = getSessionForDate(activeDate);
+    const updated = update(session?.present_phones || []);
     if (!session) {
-      const num = activeComputed?.session_number || 1;
-      session = await base44.entities.GroupSession.create({
+      const created = await base44.entities.GroupSession.create({
         group_id: groupId,
         group_title: group.title,
-        session_number: num,
+        session_number: activeComputed?.session_number || 1,
         session_date: activeDate,
         month: gregorianToMonthKey(activeDate),
-        present_phones: [phone]
+        present_phones: updated
       });
-      setSessions(prev => [...prev, session]);
+      setSessions(prev => [...prev, created]);
       return;
     }
-    const present = session.present_phones || [];
-    const updated = present.includes(phone) ? present.filter(p => p !== phone) : [...present, phone];
     setSessions(prev => prev.map(s => s.id === session.id ? { ...s, present_phones: updated } : s));
     await base44.entities.GroupSession.update(session.id, { present_phones: updated });
   };
+
+  const toggleAttendance = (phone) => savePresent(present => present.includes(phone) ? present.filter(p => p !== phone) : [...present, phone]);
+  const markAllPresent = (phones) => savePresent(present => [...new Set([...present, ...phones])]);
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
   if (!group) return <div className="p-6 text-center text-muted-foreground">گروهی یافت نشد</div>;
 
   const presentSet = new Set(activeSession?.present_phones || []);
+  const monthPhones = [...new Set(monthParticipants.map(p => p.person_phone).filter(Boolean))];
+  const allPresent = monthPhones.length > 0 && monthPhones.every(ph => presentSet.has(ph));
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -157,7 +161,18 @@ export default function GroupAttendancePage() {
                 <p className="text-sm font-semibold">{activeDate ? toJalaliStr(activeDate) : ''}</p>
                 <p className="text-xs text-muted-foreground">{activeComputed ? dayLabels[activeComputed.day] : ''}</p>
               </div>
-              <span className="text-xs text-muted-foreground">{toPersianNum(presentSet.size)} از {toPersianNum(monthParticipants.length)} نفر حاضر</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">{toPersianNum(presentSet.size)} از {toPersianNum(monthParticipants.length)} نفر حاضر</span>
+                {monthPhones.length > 0 && (
+                  <button
+                    onClick={() => markAllPresent(monthPhones)}
+                    disabled={allPresent}
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 transition-colors disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  >
+                    <Check className="w-3.5 h-3.5" /> {allPresent ? 'همه حاضرند' : 'همه حاضر'}
+                  </button>
+                )}
+              </div>
             </div>
             {monthParticipants.length === 0 ? (
               <div className="p-4 text-center text-sm text-muted-foreground">در این ماه کسی ثبت‌نام نکرده است</div>

@@ -49,6 +49,12 @@ export default function WorkshopAttendancePage() {
     await base44.entities.WorkshopSession.update(session.id, { present_phones: updated });
   };
 
+  const markAllPresent = async (session, phones) => {
+    const updated = [...new Set([...(session.present_phones || []), ...phones])];
+    setSessions(prev => prev.map(s => s.id === session.id ? { ...s, present_phones: updated } : s));
+    await base44.entities.WorkshopSession.update(session.id, { present_phones: updated });
+  };
+
   const isNewWorkshop = workshop?.session_dates && workshop.session_dates.length > 0;
   const getSessionParticipants = (session) => {
     if (isNewWorkshop) {
@@ -65,6 +71,8 @@ export default function WorkshopAttendancePage() {
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
   const activeParticipants = activeSession ? getSessionParticipants(activeSession) : [];
+  const activePhones = [...new Set(activeParticipants.map(p => p.person_phone).filter(Boolean))];
+  const allPresent = activePhones.length > 0 && activePhones.every(ph => (activeSession.present_phones || []).includes(ph));
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
   if (!workshop) return <div className="p-6 text-center text-muted-foreground">کارگاهی یافت نشد</div>;
@@ -124,7 +132,18 @@ export default function WorkshopAttendancePage() {
                     <p className="text-xs text-muted-foreground">{toJalaliStr(activeSession.session_date)}</p>
                   </div>
                 </div>
-                <span className="text-xs text-muted-foreground">{toPersianNum((activeSession.present_phones || []).length)} از {toPersianNum(activeParticipants.length)} نفر حاضر</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">{toPersianNum((activeSession.present_phones || []).length)} از {toPersianNum(activeParticipants.length)} نفر حاضر</span>
+                  {activePhones.length > 0 && (
+                    <button
+                      onClick={() => markAllPresent(activeSession, activePhones)}
+                      disabled={allPresent}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 transition-colors disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                    >
+                      <Check className="w-3.5 h-3.5" /> {allPresent ? 'همه حاضرند' : 'همه حاضر'}
+                    </button>
+                  )}
+                </div>
               </div>
               {activeParticipants.length === 0 ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">هنوز کسی در این جلسه ثبت‌نام نکرده است</div>
