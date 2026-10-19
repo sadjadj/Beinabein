@@ -15,6 +15,8 @@ import PlanOverflowDialog from '@/components/PlanOverflowDialog';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { workshopTimeLabel } from '@/lib/workshopSchedule';
 import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
+import SessionPicker from '@/components/workshops/SessionPicker';
+import { heldSessions, planLimit, firstRegistrationIds } from '@/lib/registrationSessions';
 import InstallmentFields, { lastSessionDate } from '@/components/workshops/InstallmentFields';
 import InstallmentChips, { InstallmentPayForm } from '@/components/workshops/InstallmentChips';
 import { blankInstallmentForm, isInstallment, installmentError, buildInstallments, paidCount, paidTotal, purchaseStatus, purchasePaidAmount } from '@/lib/installments';
@@ -181,8 +183,8 @@ export default function WorkshopProfile() {
       const plansToUpdate = (submittedPlans || []).filter(p => p.id);
       const plansToAdd = (submittedPlans || []).filter(p => !p.id);
       for (const p of plansToDelete) await base44.entities.WorkshopPlan.delete(p.id);
-      if (plansToUpdate.length) await base44.entities.WorkshopPlan.bulkUpdate(plansToUpdate.map(p => ({ id: p.id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false })));
-      if (plansToAdd.length) await base44.entities.WorkshopPlan.bulkCreate(plansToAdd.map(p => ({ workshop_id: id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false })));
+      if (plansToUpdate.length) await base44.entities.WorkshopPlan.bulkUpdate(plansToUpdate.map(p => ({ id: p.id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, session_count: Number(p.session_count) || null, is_active: p.is_active !== false })));
+      if (plansToAdd.length) await base44.entities.WorkshopPlan.bulkCreate(plansToAdd.map(p => ({ workshop_id: id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, session_count: Number(p.session_count) || null, is_active: p.is_active !== false })));
 
       setEditing(false);
       fetchData();
@@ -209,14 +211,13 @@ export default function WorkshopProfile() {
     if (!regForm.plan_id) { setRegError('انتخاب مدل ثبت‌نام الزامی است'); return; }
     setRegError('');
     if (!regForm.person_phone) return;
-    const dup = purchases.find(p => p.person_phone === regForm.person_phone);
-    if (dup) {
-      setDupWarning('این شخص قبلاً در این کارگاه ثبت‌نام شده است.');
+    // A repeat registration needs a session the person doesn't hold yet
+    if (priorRegs.length > 0 && held.size >= wsSessionCount) {
+      setDupWarning(wsSessionCount > 0 ? 'این شخص برای همهٔ جلسات این کارگاه ثبت‌نام کرده است.' : 'این شخص قبلاً در این کارگاه ثبت‌نام شده است.');
       return;
     }
     setDupWarning('');
-    const wsSessionCount = workshop.session_dates?.length || workshop.session_count || 0;
-    if (wsSessionCount > 0 && (regForm.selected_sessions || []).length === 0) {
+    if (wsSessionCount > 0 && pickedSessions.length === 0) {
       setRegError('انتخاب حداقل یک جلسه الزامی است');
       return;
     }
@@ -232,7 +233,7 @@ export default function WorkshopProfile() {
     }
     if (amount > max) { setOverflow({ amount, max, donation }); return; }
     const pending = { amount, donation, isPaid: amount >= min };
-    const newCount = rev.participantCount + (Number(regForm.quantity) || 1);
+    const newCount = peopleCount + (priorRegs.length > 0 ? 0 : Number(regForm.quantity) || 1);
     if (workshop.capacity && newCount > workshop.capacity) {
       setPendingReg(pending);
       setCapacityWarning(`ظرفیت کارگاه ${toPersianNum(workshop.capacity)} نفر است. با این ثبت‌نام تعداد به ${toPersianNum(newCount)} نفر می‌رسد. آیا مطمئن هستید؟`);
@@ -252,7 +253,6 @@ export default function WorkshopProfile() {
   const doAddRegistration = async (pending) => {
     setSubmitting(true);
     try {
-      const wsSessionCount = workshop.session_dates?.length || workshop.session_count || 0;
       await findOrCreatePerson(regForm.person_phone, regForm.person_name);
       const installments = inst.on ? buildInstallments(inst, regForm.purchase_date, regForm.payment_method) : null;
       const newPurchase = await base44.entities.WorkshopPurchase.create({
@@ -267,11 +267,11 @@ export default function WorkshopProfile() {
         how_met: regForm.how_met || 'other',
         is_paid: installments ? installments.every(i => i.paid_date) : pending.isPaid,
         ...(installments ? { is_installment: true, installments } : {}),
-        registered_sessions: (regForm.selected_sessions || []).length || null,
+        registered_sessions: pickedSessions.length || null,
         donation: pending.donation,
         plan_name: plans.find(p => p.id === regForm.plan_id)?.name || '',
-        registration_type: wsSessionCount > 0 && (regForm.selected_sessions || []).length < wsSessionCount ? 'single' : 'full',
-        selected_sessions: regForm.selected_sessions || []
+        registration_type: wsSessionCount > 0 && pickedSessions.length < wsSessionCount ? 'single' : 'full',
+        selected_sessions: pickedSessions
       });
       setPurchases(prev => [newPurchase, ...prev]);
       if (installments) window.dispatchEvent(new Event('installments-changed'));
@@ -281,14 +281,6 @@ export default function WorkshopProfile() {
       setPendingReg(null);
       setShowAddReg(false);
     } finally { setSubmitting(false); }
-  };
-
-  const handleSessionToggle = (sessionNum) => {
-    setRegForm(prev => {
-      const isSelected = prev.selected_sessions.includes(sessionNum);
-      const next = isSelected ? prev.selected_sessions.filter(s => s !== sessionNum) : [...prev.selected_sessions, sessionNum];
-      return { ...prev, selected_sessions: next };
-    });
   };
 
   const deleteRegistration = async (purchaseId) => {
@@ -342,6 +334,14 @@ export default function WorkshopProfile() {
   const activeRegSession = sessions.find(s => s.id === regSessionTab);
   const activeRegParticipants = activeRegSession ? getSessionParticipants(activeRegSession) : purchases;
   const selectedRegPlan = plans.find(p => p.id === regForm.plan_id);
+  // Repeat registrations: the same person again, only for sessions they don't hold yet
+  const wsSessionCount = workshop.session_dates?.length || workshop.session_count || 0;
+  const priorRegs = purchases.filter(p => regForm.person_phone && p.person_phone === regForm.person_phone);
+  const held = heldSessions(purchases, regForm.person_phone, wsSessionCount);
+  const pickedSessions = regForm.selected_sessions.filter(s => !held.has(s));
+  const firstRegIds = firstRegistrationIds(purchases);
+  // A person registered more than once still takes one seat
+  const peopleCount = rev.participantCount - (purchases.length - firstRegIds.size);
   const computedPaid = selectedRegPlan ? isAmountPaid(regForm.price, selectedRegPlan) : false;
 
   // One registration row of the ثبت‌نامی‌ها box (shared by the per-session and
@@ -357,16 +357,17 @@ export default function WorkshopProfile() {
     return (
       <div key={p.id}>
         <div onClick={() => navigate(`/accounting/workshop/${p.id}`, { state: { from: `/workshops/${id}` } })} className="py-2.5 flex items-center justify-between text-sm cursor-pointer hover:bg-muted/30 rounded-lg">
-          <div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
             {personByPhone[p.person_phone]
               ? <Link to={`/people/${personByPhone[p.person_phone].id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
               : <span className="font-medium">{p.person_name || '-'}</span>}
-            {p.plan_name && <span className="inline-block text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
-            {p.registered_sessions && <span className="text-xs text-[#B9834B] mr-2">{toPersianNum(p.registered_sessions)} جلسه</span>}
-            {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
-            <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
+            {!firstRegIds.has(p.id) && <span className="whitespace-nowrap text-[11px] font-medium px-2 py-px rounded-full border border-[#E8D5C0] bg-[#FBF3EC] text-[#7A4F1F]">ثبت‌نام مجدد</span>}
+            {p.plan_name && <span className="whitespace-nowrap text-xs text-[#8CB9C0]">{p.plan_name}</span>}
+            {p.registered_sessions && <span className="whitespace-nowrap text-xs text-[#B9834B]">{toPersianNum(p.registered_sessions)} جلسه</span>}
+            {p.donation > 0 && <span className="whitespace-nowrap text-xs text-[#8CB9C0]">دونیشین {formatCurrency(p.donation)}</span>}
+            <span className="whitespace-nowrap text-xs text-muted-foreground">{formatJalaliShort(p.purchase_date)}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0 mr-2">
             <span className={`text-xs font-medium whitespace-nowrap ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>
               {isInst && !p.is_paid && `${toPersianNum(paidTotal(p))} از `}{formatCurrency(total)}
             </span>
@@ -437,7 +438,7 @@ export default function WorkshopProfile() {
                   {workshop.space && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {workshop.space}</span>}
                 </div>
                 <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                  <span className="flex items-center gap-1 text-muted-foreground"><Users className="w-4 h-4" /> {toPersianNum(rev.purchaseCount)} ثبت‌نام{workshop.capacity ? ` از ${toPersianNum(workshop.capacity)}` : ''}</span>
+                  <span className="flex items-center gap-1 text-muted-foreground"><Users className="w-4 h-4" /> {toPersianNum(peopleCount)} نفر{workshop.capacity ? ` از ${toPersianNum(workshop.capacity)}` : ''}</span>
                   <span className="font-medium text-[#B74B40]">{formatCurrency(paidAmount)} از {formatCurrency(totalAmount)}</span>
                   {workshop.is_permanent && <span className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs">دائمی</span>}
                   {workshop.is_ended && <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">پایان یافته</span>}
@@ -465,7 +466,7 @@ export default function WorkshopProfile() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border border-border p-5">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold flex items-center gap-2"><Users className="w-4 h-4 text-[#B74B40]" /> ثبت‌نامی‌ها ({toPersianNum(purchases.length)})</h3>
+                <h3 className="text-sm font-semibold flex items-center gap-2"><Users className="w-4 h-4 text-[#B74B40]" /> ثبت‌نامی‌ها ({toPersianNum(peopleCount)} نفر{purchases.length > firstRegIds.size && ` · ${toPersianNum(purchases.length)} ثبت‌نام`})</h3>
                 <button onClick={() => setShowAddReg(!showAddReg)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-xs font-medium hover:bg-[#A03D34]">
                   <Plus className="w-3.5 h-3.5" /> افزودن
                 </button>
@@ -479,7 +480,7 @@ export default function WorkshopProfile() {
                   <div className="flex flex-col gap-2">
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام *</label>
-                      <select required value={regForm.plan_id} onChange={(e) => { setRegError(''); const plan = plans.find(p => p.id === e.target.value); setRegForm(prev => ({ ...prev, plan_id: e.target.value, price: plan ? getPlanBounds(plan).min : '', payment_method: isFreePlan(plan) ? 'free' : 'cash' })); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
+                      <select required value={regForm.plan_id} onChange={(e) => { setRegError(''); const plan = plans.find(p => p.id === e.target.value); setRegForm(prev => ({ ...prev, plan_id: e.target.value, price: plan ? getPlanBounds(plan).min : '', payment_method: isFreePlan(plan) ? 'free' : 'cash', selected_sessions: planLimit(plan) ? prev.selected_sessions.slice(0, planLimit(plan)) : prev.selected_sessions })); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm">
                         <option value="" disabled>انتخاب مدل ثبت‌نام...</option>
                         {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {formatPlanRange(p)}</option>)}
                       </select>
@@ -512,28 +513,16 @@ export default function WorkshopProfile() {
                       {Object.entries(howMetLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                     </select>
                   </div>
-                  {(workshop.session_dates?.length || workshop.session_count || 0) > 0 && (
-                    <div className="sm:col-span-2 p-3 bg-white rounded-lg border border-border">
-                      <label className="text-xs text-muted-foreground block mb-2">جلسات *</label>
-                      <div className="flex flex-wrap gap-2">
-                        {Array.from({ length: workshop.session_dates?.length || workshop.session_count || 0 }, (_, i) => i + 1).map(s => {
-                          const isSelected = regForm.selected_sessions.includes(s);
-                          const dateLabel = workshop.session_dates?.[s - 1] ? formatJalaliShort(workshop.session_dates[s - 1]) : `جلسه ${toPersianNum(s)}`;
-                          return (
-                            <button
-                              key={s}
-                              type="button"
-                              onClick={() => handleSessionToggle(s)}
-                              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isSelected ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}
-                            >
-                              {dateLabel}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">تعداد جلسات انتخابی: {toPersianNum(regForm.selected_sessions.length)}</p>
-                    </div>
-                  )}
+                  <SessionPicker
+                    className="sm:col-span-2 p-3 bg-white rounded-lg border border-border"
+                    workshop={workshop}
+                    selected={pickedSessions}
+                    onChange={next => setRegForm(prev => ({ ...prev, selected_sessions: next }))}
+                    held={held}
+                    limit={planLimit(selectedRegPlan)}
+                    prior={priorRegs}
+                    personName={regForm.person_name}
+                  />
                   {workshop.allow_installments && (
                     <div className="sm:col-span-2">
                       <InstallmentFields compact value={inst} onChange={setInst} total={regForm.price} workshop={workshop} method={regForm.payment_method} onMethod={v => setRegForm({ ...regForm, payment_method: v })} />

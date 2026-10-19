@@ -15,6 +15,8 @@ import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
 import ExportButton from '@/components/ExportButton';
 import PlanOverflowDialog from '@/components/PlanOverflowDialog';
 import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
+import SessionPicker from '@/components/workshops/SessionPicker';
+import { heldSessions, planLimit } from '@/lib/registrationSessions';
 import InstallmentFields, { lastSessionDate } from '@/components/workshops/InstallmentFields';
 import { InstallmentPill } from '@/components/workshops/InstallmentChips';
 import { blankInstallmentForm, isInstallment, installmentError, buildInstallments, paidTotal, remaining } from '@/lib/installments';
@@ -93,8 +95,12 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
   // Session computation for selected workshop
   const selectedWorkshop = workshopById[form.workshop_id];
   const sessionCount = selectedWorkshop?.session_dates?.length || selectedWorkshop?.session_count || 0;
-  const sessions = Array.from({ length: sessionCount }, (_, i) => i + 1);
   const selectedPlan = plans.find(p => p.id === form.plan_id);
+  // Repeat registrations: the same person again, only for sessions they don't hold yet
+  const workshopRegs = purchases.filter(p => p.workshop_id === form.workshop_id);
+  const priorRegs = workshopRegs.filter(p => form.person_phone && p.person_phone === form.person_phone);
+  const held = heldSessions(workshopRegs, form.person_phone, sessionCount);
+  const pickedSessions = form.selected_sessions.filter(s => !held.has(s));
   const computedPaid = selectedPlan ? isAmountPaid(form.price, selectedPlan) : false;
 
   const handleWorkshopChange = (wid) => {
@@ -103,14 +109,6 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     setForm(prev => ({
       ...prev, workshop_id: wid, plan_id: '', price: '', selected_sessions: [], registered_sessions: 0
     }));
-  };
-
-  const handleSessionToggle = (sessionNum) => {
-    setForm(prev => {
-      const isSelected = prev.selected_sessions.includes(sessionNum);
-      const next = isSelected ? prev.selected_sessions.filter(s => s !== sessionNum) : [...prev.selected_sessions, sessionNum];
-      return { ...prev, selected_sessions: next, registered_sessions: next.length };
-    });
   };
 
   const regExportColumns = [
@@ -139,7 +137,9 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     if (!form.plan_id) return 'انتخاب مدل ثبت‌نام الزامی است';
     if (!form.person_name) return 'نام مشتری الزامی است';
     if (!form.person_phone) return 'شماره تلفن الزامی است';
-    if (sessionCount > 0 && (!form.selected_sessions || form.selected_sessions.length === 0)) return 'انتخاب حداقل یک جلسه الزامی است';
+    // A repeat registration needs a session the person doesn't hold yet — reported as dupWarning
+    if (priorRegs.length > 0 && held.size >= sessionCount) return '';
+    if (sessionCount > 0 && pickedSessions.length === 0) return 'انتخاب حداقل یک جلسه الزامی است';
     return '';
   };
 
@@ -147,8 +147,10 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     const error = validateForm();
     if (error) { setFormError(error); return; }
     setFormError('');
-    const dup = purchases.find(p => p.workshop_id === form.workshop_id && p.person_phone === form.person_phone);
-    if (dup) { setDupWarning('این شخص قبلاً در این کارگاه ثبت‌نام شده است.'); return; }
+    if (priorRegs.length > 0 && held.size >= sessionCount) {
+      setDupWarning(sessionCount > 0 ? 'این شخص برای همهٔ جلسات این کارگاه ثبت‌نام کرده است.' : 'این شخص قبلاً در این کارگاه ثبت‌نام شده است.');
+      return;
+    }
     setDupWarning('');
     const plan = plans.find(p => p.id === form.plan_id);
     const { min, max } = getPlanBounds(plan);
@@ -175,7 +177,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     try {
       const ws = workshopById[form.workshop_id];
       await findOrCreatePerson(form.person_phone, form.person_name);
-      const selected = form.selected_sessions || [];
+      const selected = pickedSessions;
       const regType = (sessionCount > 0 && selected.length === sessionCount) ? 'full' : 'single';
       const installments = inst.on ? buildInstallments(inst, form.purchase_date, form.payment_method) : null;
       const newPurchase = await base44.entities.WorkshopPurchase.create({
@@ -264,7 +266,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">مدل ثبت‌نام *</label>
-            <select disabled={!form.workshop_id} value={form.plan_id} onClick={() => { if (!form.workshop_id) setFormError('انتخاب کارگاه الزامی است'); }} onChange={(e) => { if (!form.workshop_id) { setFormError('انتخاب کارگاه الزامی است'); return; } setFormError(''); const plan = plans.find(p => p.id === e.target.value); setForm(prev => ({ ...prev, plan_id: e.target.value, price: plan ? getPlanBounds(plan).min : '', payment_method: isFreePlan(plan) ? 'free' : 'card_to_card' })); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm disabled:opacity-50 disabled:cursor-not-allowed" required>
+            <select disabled={!form.workshop_id} value={form.plan_id} onClick={() => { if (!form.workshop_id) setFormError('انتخاب کارگاه الزامی است'); }} onChange={(e) => { if (!form.workshop_id) { setFormError('انتخاب کارگاه الزامی است'); return; } setFormError(''); const plan = plans.find(p => p.id === e.target.value); setForm(prev => ({ ...prev, plan_id: e.target.value, price: plan ? getPlanBounds(plan).min : '', payment_method: isFreePlan(plan) ? 'free' : 'card_to_card', selected_sessions: planLimit(plan) ? prev.selected_sessions.slice(0, planLimit(plan)) : prev.selected_sessions })); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm disabled:opacity-50 disabled:cursor-not-allowed" required>
               <option value="">{form.workshop_id ? 'انتخاب مدل...' : 'ابتدا کارگاه را از لیست انتخاب کنید'}</option>
               {plans.filter(p => p.workshop_id === form.workshop_id).map(p => <option key={p.id} value={p.id}>{p.name} — {formatPlanRange(p)}</option>)}
             </select>
@@ -301,27 +303,17 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
           </div>
         </div>
         {/* Session selection */}
-        {form.workshop_id && sessionCount > 0 && (
-          <div className="mt-4 p-3 bg-muted/30 rounded-lg">
-            <label className="text-xs text-muted-foreground block mb-2">جلسات *</label>
-            <div className="flex flex-wrap gap-2">
-              {sessions.map(s => {
-                const isSelected = form.selected_sessions.includes(s);
-                const dateLabel = selectedWorkshop?.session_dates?.[s - 1] ? formatJalaliShort(selectedWorkshop.session_dates[s - 1]) : `جلسه ${toPersianNum(s)}`;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => handleSessionToggle(s)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isSelected ? 'bg-[#B74B40] text-white' : 'bg-white border border-border text-muted-foreground hover:bg-muted'}`}
-                  >
-                    {dateLabel}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">تعداد جلسات انتخابی: {toPersianNum(form.selected_sessions.length)}</p>
-          </div>
+        {form.workshop_id && (
+          <SessionPicker
+            className="mt-4 p-3 bg-muted/30 rounded-lg"
+            workshop={selectedWorkshop}
+            selected={pickedSessions}
+            onChange={next => setForm(prev => ({ ...prev, selected_sessions: next }))}
+            held={held}
+            limit={planLimit(selectedPlan)}
+            prior={priorRegs}
+            personName={form.person_name}
+          />
         )}
         {selectedWorkshop?.allow_installments && (
           <div className="mt-4">

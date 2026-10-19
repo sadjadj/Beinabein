@@ -30,9 +30,9 @@ export default function WorkshopForm({
 }) {
   const [form, setForm] = useState(initialForm);
   const [plans, setPlans] = useState(
-    (initialPlans || []).map(p => ({ id: p.id || '', name: p.name || '', price_min: p.price_min ?? '', price_max: p.price_max ?? '', is_active: p.is_active !== false }))
+    (initialPlans || []).map(p => ({ id: p.id || '', name: p.name || '', price_min: p.price_min ?? '', price_max: p.price_max ?? '', session_count: p.session_count ?? '', is_active: p.is_active !== false }))
   );
-  const [newPlan, setNewPlan] = useState({ name: '', price_min: '', price_max: '' });
+  const [newPlan, setNewPlan] = useState({ name: '', price_min: '', price_max: '', session_count: '' });
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [perSessionTimes, setPerSessionTimes] = useState((initialForm.schedule || []).length > 0);
@@ -59,8 +59,8 @@ export default function WorkshopForm({
       return;
     }
     setError('');
-    setPlans(prev => [...prev, { id: '', name: newPlan.name, price_min: newPlan.price_min, price_max: newPlan.price_max, is_active: true }]);
-    setNewPlan({ name: '', price_min: '', price_max: '' });
+    setPlans(prev => [...prev, { id: '', name: newPlan.name, price_min: newPlan.price_min, price_max: newPlan.price_max, session_count: newPlan.session_count, is_active: true }]);
+    setNewPlan({ name: '', price_min: '', price_max: '', session_count: '' });
   };
   const togglePlanActive = (i) => setPlans(prev => prev.map((p, idx) => idx === i ? { ...p, is_active: !p.is_active } : p));
   const removePlan = (i) => setPlans(prev => prev.filter((_, idx) => idx !== i));
@@ -196,6 +196,10 @@ export default function WorkshopForm({
               <label className="text-[11px] text-muted-foreground block mb-1">کران بالای قیمت (تومان)</label>
               <PriceInput value={newPlan.price_max} onChange={v => setNewPlan({ ...newPlan, price_max: v })} placeholder="حداکثر" />
             </div>
+            <div>
+              <label className="text-[11px] text-muted-foreground block mb-1">تعداد جلسات</label>
+              <PersianNumberInput value={newPlan.session_count} onChange={v => setNewPlan({ ...newPlan, session_count: v })} placeholder="بدون محدودیت" className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-32 text-right" />
+            </div>
             <button type="button" onClick={handleAddPlan} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
               <Plus className="w-4 h-4" /> افزودن مدل ثبت‌نام
             </button>
@@ -208,6 +212,7 @@ export default function WorkshopForm({
                   <tr>
                     <th className="text-right p-2.5 font-medium">نام مدل</th>
                     <th className="text-right p-2.5 font-medium">کران قیمت</th>
+                    <th className="text-right p-2.5 font-medium">تعداد جلسات</th>
                     <th className="text-center p-2.5 font-medium">وضعیت</th>
                     <th className="text-center p-2.5 font-medium">حذف</th>
                   </tr>
@@ -217,6 +222,9 @@ export default function WorkshopForm({
                     <tr key={i} className="border-t border-border">
                       <td className="p-2.5 font-medium">{pl.name || '-'}</td>
                       <td className="p-2.5">{formatPlanRange(pl)}</td>
+                      <td className="p-2.5">
+                        <PersianNumberInput value={pl.session_count} onChange={v => setPlans(prev => prev.map((p, idx) => idx === i ? { ...p, session_count: v } : p))} placeholder="بدون محدودیت" className="px-2 py-1 rounded-lg border border-input bg-background text-sm w-28 text-right" />
+                      </td>
                       <td className="p-2.5 text-center">
                         <button type="button" onClick={() => togglePlanActive(i)} className={`text-xs px-2 py-1 rounded-full ${pl.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{pl.is_active ? 'فعال' : 'غیرفعال'}</button>
                       </td>

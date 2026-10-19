@@ -100,7 +100,7 @@ export default function WorkshopsPage({ embedded = false }) {
       const validPlans = (plans || []).filter(p => p.name && p.price_min !== '' && p.price_min !== null && p.price_max !== '' && p.price_max !== null);
       if (validPlans.length > 0) {
         await base44.entities.WorkshopPlan.bulkCreate(
-          validPlans.map(p => ({ workshop_id: created.id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, is_active: p.is_active !== false }))
+          validPlans.map(p => ({ workshop_id: created.id, name: p.name, price_min: Number(p.price_min) || 0, price_max: Number(p.price_max) || 0, session_count: Number(p.session_count) || null, is_active: p.is_active !== false }))
         );
       }
       // Auto-create a default "رایگان" (free) plan, inactive
