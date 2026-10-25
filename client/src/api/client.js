@@ -20,4 +20,5 @@ export const api = {
   getWorkshop: (id) => request('GET', `/entities/Workshop/${id}`),
   createPerson: (data) => request('POST', '/entities/Person', data),
   createWorkshopPurchase: (data) => request('POST', '/entities/WorkshopPurchase', data),
+  createApplication: (data) => request('POST', '/entities/Application', data),
 };
