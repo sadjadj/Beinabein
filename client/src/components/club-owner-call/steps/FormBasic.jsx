@@ -20,6 +20,16 @@ export default function FormBasic({ formData, updateField }) {
 
       <FormField label="اسم و فامیل" value={formData.full_name} onChange={(v) => updateField("full_name", v)} required placeholder="پاسخ کوتاه" />
       <FormField label="شماره تماس" type="tel" inputMode="numeric" value={formData.phone} onChange={handlePhone} required placeholder="۰۹۱۲..." error={phoneError} />
+      {/* Honeypot: off-screen, so people never fill it; bots that fill every field get discarded by the API. */}
+      <input
+        type="text"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        value={formData.website || ""}
+        onChange={(e) => updateField("website", e.target.value)}
+        className="absolute -left-[9999px] w-px h-px opacity-0"
+      />
       <FormField label="صفحه‌ای که شاید با آن بتوانیم شما را بهتر بشناسیم" value={formData.work_link} onChange={(v) => updateField("work_link", v)} optional placeholder="لینک (اینستاگرام، سایت، ...)" />
     </div>
   );

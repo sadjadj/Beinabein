@@ -19,6 +19,7 @@
 //  GET    /api/me                          admin only — { user, mustChangePassword }
 //  GET    /api/stats/workshop-registrations  admin only — per-workshop count/totals
 //  PATCH  /api/admin/password              admin only — body: { currentPassword, newPassword }
+//  GET    /api/files/:id                    admin only — download an uploaded file (resume PDFs)
 //
 //  Everything else serves the two static frontend builds the Dockerfile bakes
 //  into public/ and public/dashboard/ (client and dashboard respectively) —
@@ -97,6 +98,17 @@ app.get('/api/stats/workshop-registrations', requireAdmin, async (req, res, next
         GROUP BY 1`
     );
     res.json(rows);
+  } catch (err) { next(err); }
+});
+
+// Admin-only download of an uploaded file (club-owner-call resume PDFs).
+app.get('/api/files/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query('SELECT filename, content_type, data FROM files WHERE id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'not found' });
+    res.set('Content-Type', rows[0].content_type);
+    res.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(rows[0].filename)}`);
+    res.send(rows[0].data);
   } catch (err) { next(err); }
 });
 

@@ -50,6 +50,18 @@ async function initDb() {
   // EXISTS above is a no-op there, so the column needs its own backfill.
   await pool.query(`ALTER TABLE admin_logs ADD COLUMN IF NOT EXISTS request_body JSONB`);
 
+  // Uploaded files (club-owner-call resume PDFs) — bytes kept in Postgres since
+  // the app container's disk doesn't survive a deploy. See src/files.js.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS files (
+      id            TEXT PRIMARY KEY,
+      filename      TEXT NOT NULL,
+      content_type  TEXT NOT NULL,
+      data          BYTEA NOT NULL,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+
   // Expense categories used to be a hardcoded enum; existing Expense rows
   // store these keys in `category`, so the seed reuses them as ids. Only runs
   // on an empty collection — otherwise a category an admin deleted would come

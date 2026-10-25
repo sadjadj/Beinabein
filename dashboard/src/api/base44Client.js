@@ -81,6 +81,21 @@ for (const name of ENTITY_NAMES) entities[name] = makeEntityClient(name);
 
 export const base44 = {
   entities,
+  files: {
+    // Uploaded files (resume PDFs) need the admin credential, so a plain <a href> won't do:
+    // fetch with auth, then hand the bytes to the browser as a download.
+    async download(id, filename) {
+      const credential = getStoredCredential();
+      const res = await fetch(`${API_BASE}/files/${id}`, { headers: credential ? { Authorization: `Basic ${credential}` } : {} });
+      if (!res.ok) throw new Error(res.status === 404 ? 'فایل پیدا نشد' : res.statusText);
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'resume.pdf';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
+  },
   stats: {
     // [{ workshop_id, purchase_count, total_amount, paid_amount }]
     workshopRegistrations: () => request('GET', '/stats/workshop-registrations'),

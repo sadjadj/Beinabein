@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Check, X, Eye, Trash2 } from 'lucide-react';
+import { Check, X, Eye, Trash2, Download } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { formatJalali } from '@/lib/jalali';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
@@ -143,7 +143,18 @@ export default function ApplicationsPage() {
                   <p className="leading-8 whitespace-pre-wrap">{open.topics || '—'}</p>
                 </Row>
                 <Row label="صفحه‌ی معرفی"><LinkValue href={open.work_link} /></Row>
-                <Row label="رزومه"><LinkValue href={open.resume} /></Row>
+                <Row label="لینک رزومه"><LinkValue href={open.resume} /></Row>
+                <Row label="فایل رزومه">
+                  {open.resume_file_id ? (
+                    <button
+                      onClick={() => base44.files.download(open.resume_file_id, open.resume_file_name).catch(err => alert(err.message))}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm hover:border-[#B74B40] hover:text-[#B74B40]"
+                    >
+                      <Download className="w-4 h-4" />
+                      دانلود <span dir="ltr" className="max-w-[16rem] truncate">{open.resume_file_name || 'resume.pdf'}</span>
+                    </button>
+                  ) : <span className="text-muted-foreground">—</span>}
+                </Row>
                 <div className="pt-5 border-t border-border">
                   <button onClick={() => setDeleteId(open.id)} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-red-600">
                     <Trash2 className="w-4 h-4" /> حذف درخواست

@@ -6,6 +6,7 @@ const { pool } = require('../db');
 const { requireAdmin } = require('../auth');
 const { ENTITY_NAMES } = require('../schemas');
 const { buildWhere, buildSetParam, parseSort } = require('../queryBuilder');
+const { saveResumePdf } = require('../files');
 
 const router = express.Router();
 
@@ -148,9 +149,22 @@ router.post('/:name', publicOr('create'), async (req, res, next) => {
   try {
     const id = crypto.randomUUID();
     const data = { created_date: new Date().toISOString(), ...req.body };
-    // Public club-owner-call submissions always start unreviewed — the sender
-    // can't pre-set their own status; only admins move it on from there.
-    if (req.params.name === 'Application' && !req.adminUser) data.status = 'submitted';
+    if (req.params.name === 'Application' && !req.adminUser) {
+      // Honeypot: `website` is a field real visitors never see. Bots fill it —
+      // answer as if it worked so they don't retry, and store nothing.
+      if (data.website) return res.status(201).json({});
+      delete data.website;
+      // Public club-owner-call submissions always start unreviewed — the sender
+      // can't pre-set their own status; only admins move it on from there.
+      data.status = 'submitted';
+      // Optional resume PDF arrives inline (base64); only its file id is kept on the record.
+      if (data.resume_file) {
+        const file = await saveResumePdf(data.resume_file);
+        data.resume_file_id = file.id;
+        data.resume_file_name = file.filename;
+      }
+      delete data.resume_file;
+    }
     await pool.query('INSERT INTO entities (collection, id, data) VALUES ($1, $2, $3)', [req.params.name, id, data]);
     res.status(201).json(toRecord({ id, data }));
   } catch (err) { next(err); }
@@ -179,6 +193,13 @@ router.delete('/:name/:id', publicOr('delete'), async (req, res, next) => {
         [req.params.id]
       );
       if (rows[0].n) return res.status(409).json({ error: `category is used by ${rows[0].n} expenses` });
+    }
+    if (req.params.name === 'Application') {
+      // The resume PDF belongs to the application — remove it along with it.
+      await pool.query(
+        `DELETE FROM files WHERE id = (SELECT data->>'resume_file_id' FROM entities WHERE collection = 'Application' AND id = $1)`,
+        [req.params.id]
+      );
     }
     const { rowCount } = await pool.query('DELETE FROM entities WHERE collection = $1 AND id = $2', [req.params.name, req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'not found' });
