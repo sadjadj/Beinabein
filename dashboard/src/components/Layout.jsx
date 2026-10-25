@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText, Layers, ShoppingBag, LogOut, KeyRound } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText, Layers, ShoppingBag, LogOut, KeyRound, Megaphone } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useInstallmentDueCount } from '@/hooks/useInstallmentDueCount';
 import { toPersianNum } from '@/lib/stats';
@@ -13,6 +13,7 @@ const standaloneItems = [
   { path: '/groups', label: 'گروه‌ها', icon: Layers },
   { path: '/store', label: 'فروشگاه', icon: ShoppingBag },
   { path: '/people', label: 'افراد', icon: Users },
+  { path: '/applications', label: 'فراخوان', icon: Megaphone },
   { path: '/finance', label: 'مالی', icon: Wallet },
 ];
 

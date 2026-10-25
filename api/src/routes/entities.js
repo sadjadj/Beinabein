@@ -6,18 +6,23 @@ const { pool } = require('../db');
 const { requireAdmin } = require('../auth');
 const { ENTITY_NAMES } = require('../schemas');
 const { buildWhere, buildSetParam, parseSort } = require('../queryBuilder');
+const { limitPublicSubmissions } = require('../rateLimit');
 
 const router = express.Router();
 
 // Signup flow is fully anonymous — these are the only reads/writes it's allowed.
 // Everything else on every other entity needs an admin. Scoped to the exact
 // action, not just method+entity, so e.g. POST Person/bulk still needs admin.
-const PUBLIC_ACTIONS = new Set(['list:Workshop', 'get:Workshop', 'create:Person', 'create:WorkshopPurchase']);
+const PUBLIC_ACTIONS = new Set(['list:Workshop', 'get:Workshop', 'create:Person', 'create:WorkshopPurchase', 'create:Application']);
 
 function publicOr(action) {
   return (req, res, next) => {
-    if (PUBLIC_ACTIONS.has(`${action}:${req.params.name}`)) return next();
-    return requireAdmin(req, res, next);
+    if (!PUBLIC_ACTIONS.has(`${action}:${req.params.name}`)) return requireAdmin(req, res, next);
+    // The dashboard sends its admin credential on public actions too (e.g. adding a
+    // Person) — verify it, so admin writes are audit-logged and never rate-limited.
+    if (req.headers.authorization) return requireAdmin(req, res, next);
+    if (action === 'create') return limitPublicSubmissions(req, res, next);
+    next();
   };
 }
 
@@ -148,6 +153,23 @@ router.post('/:name', publicOr('create'), async (req, res, next) => {
   try {
     const id = crypto.randomUUID();
     const data = { created_date: new Date().toISOString(), ...req.body };
+    if (req.params.name === 'Application' && !req.adminUser) {
+      // Honeypot: `website` is a field real visitors never see. Bots fill it —
+      // answer as if it worked so they don't retry, and store nothing.
+      if (data.website) return res.status(201).json({});
+      delete data.website;
+      // Public club-owner-call submissions always start unreviewed — the sender
+      // can't pre-set their own status; only admins move it on from there.
+      data.status = 'submitted';
+      // The resume PDF was uploaded beforehand (POST /api/files/resume); keep its id
+      // only if that file really exists, and take its name from the stored row.
+      delete data.resume_file_name;
+      if (data.resume_file_id) {
+        const { rows } = await pool.query('SELECT filename FROM files WHERE id = $1', [String(data.resume_file_id)]);
+        if (rows[0]) data.resume_file_name = rows[0].filename;
+        else delete data.resume_file_id;
+      }
+    }
     await pool.query('INSERT INTO entities (collection, id, data) VALUES ($1, $2, $3)', [req.params.name, id, data]);
     res.status(201).json(toRecord({ id, data }));
   } catch (err) { next(err); }
@@ -176,6 +198,13 @@ router.delete('/:name/:id', publicOr('delete'), async (req, res, next) => {
         [req.params.id]
       );
       if (rows[0].n) return res.status(409).json({ error: `category is used by ${rows[0].n} expenses` });
+    }
+    if (req.params.name === 'Application') {
+      // The resume PDF belongs to the application — remove it along with it.
+      await pool.query(
+        `DELETE FROM files WHERE id = (SELECT data->>'resume_file_id' FROM entities WHERE collection = 'Application' AND id = $1)`,
+        [req.params.id]
+      );
     }
     const { rowCount } = await pool.query('DELETE FROM entities WHERE collection = $1 AND id = $2', [req.params.name, req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'not found' });

@@ -91,6 +91,7 @@ async function testAuthBoundaries() {
     ['Workshop list is public', async () => (await noAuth('GET', '/entities/Workshop')).status === 200],
     ['Workshop create requires admin', async () => (await noAuth('POST', '/entities/Workshop', { title: 'x' })).status === 401],
     ['Expense (admin-only entity) requires admin', async () => (await noAuth('POST', '/entities/Expense', { title: 'x', amount: 1, date: '2026-01-01' })).status === 401],
+    ['Application list requires admin', async () => (await noAuth('GET', '/entities/Application')).status === 401],
   ];
 
   const results = [];
@@ -112,6 +113,41 @@ async function testAuthBoundaries() {
     results.push({ name: 'Person create is public', ok: res.status === 201 });
   } catch (err) {
     results.push({ name: 'Person create is public', ok: false, error: err.message });
+  }
+
+  // Club-owner-call submissions: public create, and the server pins status
+  // to 'submitted' whatever the sender asks for.
+  try {
+    const res = await noAuth('POST', '/entities/Application', { full_name: 'smoke-test', phone: '0000000000', topics: 'x', can_attend: 'yes', status: 'invited' });
+    const created = await res.json();
+    await api('DELETE', `/entities/Application/${created.id}`);
+    results.push({ name: 'Application create is public, status pinned', ok: res.status === 201 && created.status === 'submitted' });
+  } catch (err) {
+    results.push({ name: 'Application create is public, status pinned', ok: false, error: err.message });
+  }
+
+  // Resume PDF: public upload first, then the application points at it; only an
+  // admin can download it back (with nosniff); a non-PDF upload is refused; the
+  // file goes when its application is deleted.
+  try {
+    const upload = (bytes) => fetch(`${API_BASE_URL}/api/files/resume`, {
+      method: 'POST', headers: { 'Content-Type': 'application/pdf', 'X-Filename': encodeURIComponent('cv.pdf') }, body: bytes,
+    });
+    const up = await upload(Buffer.from('%PDF-1.4\n%smoke\n'));
+    const file = await up.json();
+    const res = await noAuth('POST', '/entities/Application', { full_name: 'smoke-test', phone: '0000000000', topics: 'x', can_attend: 'yes', resume_file_id: file.id });
+    const created = await res.json();
+    const anon = await noAuth('GET', `/files/${file.id}`);
+    const admin = await fetch(`${API_BASE_URL}/api/files/${file.id}`, { headers: { Authorization: AUTH } });
+    const bytes = Buffer.from(await admin.arrayBuffer()).toString('latin1');
+    const notPdf = await upload(Buffer.from('hello'));
+    await api('DELETE', `/entities/Application/${created.id}`);
+    const gone = await fetch(`${API_BASE_URL}/api/files/${file.id}`, { headers: { Authorization: AUTH } });
+    results.push({ name: 'Resume PDF: public upload, linked to application, admin-only nosniff download, non-PDF refused, deleted with application',
+      ok: up.status === 201 && created.resume_file_name === 'cv.pdf' && anon.status === 401 && admin.status === 200
+        && admin.headers.get('x-content-type-options') === 'nosniff' && bytes.startsWith('%PDF-') && notPdf.status === 400 && gone.status === 404 });
+  } catch (err) {
+    results.push({ name: 'Resume PDF upload/download', ok: false, error: err.message });
   }
 
   return results;
