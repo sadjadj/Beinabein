@@ -9,11 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 // Submissions from the public club-owner-call form (client/ at /club-owner-call).
 const STATUSES = [
-  { key: 'submitted', label: 'جدید' },
-  { key: 'reviewed', label: 'بررسی‌شده' },
-  { key: 'invited', label: 'دعوت‌شده' },
-  { key: 'declined', label: 'رد‌شده' },
+  { key: 'submitted', label: 'جدید', className: 'bg-amber-50 text-amber-700' },
+  { key: 'reviewed', label: 'بررسی‌شده', className: 'bg-slate-100 text-slate-700' },
+  { key: 'invited', label: 'دعوت‌شده', className: 'bg-green-50 text-green-700' },
+  { key: 'declined', label: 'رد‌شده', className: 'bg-red-50 text-red-700' },
 ];
+const statusOf = (key) => STATUSES.find(s => s.key === key) || STATUSES[0];
 
 function LinkValue({ href }) {
   if (!href) return <span className="text-muted-foreground">—</span>;
@@ -74,7 +75,7 @@ export default function ApplicationsPage() {
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">درخواست‌ها ({toPersianNum(applications.length)})</h3></div>
         {loading ? (
-          <TableSkeleton rows={4} cols={4} />
+          <TableSkeleton rows={4} cols={5} />
         ) : applications.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">هنوز درخواستی ثبت نشده است</div>
         ) : (
@@ -85,6 +86,7 @@ export default function ApplicationsPage() {
                   <th className="text-right p-3 font-medium">نام</th>
                   <th className="text-right p-3 font-medium">شماره تماس</th>
                   <th className="text-center p-3 font-medium">امکان حضور</th>
+                  <th className="text-center p-3 font-medium">وضعیت</th>
                   <th className="text-center p-3 font-medium">جزئیات</th>
                 </tr>
               </thead>
@@ -97,6 +99,9 @@ export default function ApplicationsPage() {
                       {a.can_attend === 'yes'
                         ? <Check className="w-4 h-4 text-green-600 inline" aria-label="بله" />
                         : <X className="w-4 h-4 text-muted-foreground inline" aria-label="خیر" />}
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`text-xs px-2.5 py-1 rounded-full whitespace-nowrap ${statusOf(a.status).className}`}>{statusOf(a.status).label}</span>
                     </td>
                     <td className="p-3 text-center">
                       <button onClick={() => setOpenId(a.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs hover:border-[#B74B40] hover:text-[#B74B40]">
