@@ -11,7 +11,7 @@ export default function FormBasic({ formData, updateField }) {
 
   const handlePhone = (v) => {
     setPhoneError(/[^\d۰-۹]/.test(v) ? "فقط عدد وارد کنید" : "");
-    updateField("phone", toDigits(v));
+    updateField("phone", toDigits(v).slice(0, 11)); // Iranian numbers are 11 digits
   };
 
   return (

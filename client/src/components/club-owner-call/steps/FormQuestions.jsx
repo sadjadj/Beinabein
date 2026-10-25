@@ -21,7 +21,7 @@ export default function FormQuestions({ formData, updateField }) {
             rows={6}
             aria-label="یک پاراگراف"
             dir="rtl"
-            className="block w-full bg-transparent border border-[#D1D1D1] focus:border-[#0A0A0A] outline-none px-4 py-3 text-right text-[15px] leading-[1.7] text-[#0A0A0A] resize-none transition-colors"
+            className="block w-full bg-transparent border border-[#D1D1D1] focus:border-[#A8A8A8] outline-none px-4 py-3 text-right text-[15px] leading-[1.7] text-[#0A0A0A] resize-none transition-colors"
           />
           {!formData.topics && (
             <span className="pointer-events-none absolute top-3 right-4 text-[15px] leading-[1.7] text-[#C0C0C0]">یک پاراگراف</span>

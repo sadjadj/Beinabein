@@ -90,8 +90,6 @@ export default function StepWizard() {
     setSubmitted(false);
   };
 
-  if (submitted) return <FormSubmitted onRestart={restart} />;
-
   const StepComponent = steps[step].component;
   // Derived from formData here, not reported by the form, so it is never a keystroke behind.
   const canProceed = !steps[step].valid || steps[step].valid(formData);
@@ -105,7 +103,15 @@ export default function StepWizard() {
   const borderColor = isDark ? "border-[#2A2A2A]" : isWhite ? "border-[#E2E2E2]" : "border-[#D1D1D1]";
   const mutedColor = "text-[#8C8C8C]";
 
+  // The full-width backdrop takes the page's color too, so wide screens don't show
+  // a light band around the dark pages.
   return (
+    <div className={`min-h-[100dvh] ${submitted ? "bg-[#0A0A0A]" : bg} transition-colors duration-300`}>
+    {submitted ? (
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
+        <FormSubmitted onRestart={restart} />
+      </motion.div>
+    ) : (
     <div className={`max-w-[390px] mx-auto h-[100dvh] flex flex-col ${bg} overflow-hidden transition-colors duration-300`}>
       {/* Top bar */}
       <div className="px-6 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
@@ -191,6 +197,8 @@ export default function StepWizard() {
           </div>
         )}
       </div>
+    </div>
+    )}
     </div>
   );
 }
