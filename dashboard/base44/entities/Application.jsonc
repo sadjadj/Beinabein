@@ -1,0 +1,51 @@
+{
+  "name": "Application",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "title": "اسم و فامیل"
+    },
+    "phone": {
+      "type": "string",
+      "title": "شماره تماس"
+    },
+    "work_link": {
+      "type": "string",
+      "title": "صفحه‌ی معرفی"
+    },
+    "topics": {
+      "type": "string",
+      "title": "موضوعات جمع"
+    },
+    "resume": {
+      "type": "string",
+      "title": "لینک رزومه"
+    },
+    "can_attend": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no"
+      ],
+      "title": "امکان حضور در دورهمی"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "reviewed",
+        "invited",
+        "declined"
+      ],
+      "default": "submitted",
+      "title": "وضعیت"
+    }
+  },
+  "required": [
+    "full_name",
+    "phone",
+    "topics",
+    "can_attend"
+  ]
+}

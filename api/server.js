@@ -3,7 +3,7 @@
 // ── API Reference ─────────────────────────────────────────────────────────────
 //
 //  Generic entity CRUD, one route per action, entity name is the collection.
-//  PUBLIC (no auth): GET Workshop (list/get), POST Person, POST WorkshopPurchase.
+//  PUBLIC (no auth): GET Workshop (list/get), POST Person, POST WorkshopPurchase, POST Application.
 //  Everything else needs HTTP Basic Auth against the `admins` table
 //  (bcrypt-hashed passwords — see scripts/upsert-admin.js to create/reset one).
 //

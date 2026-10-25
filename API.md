@@ -6,7 +6,7 @@ regenerate this file's entity tables if those change.
 
 ## How it works
 
-One generic route handles all 36 entity types below — there's no per-entity endpoint, `:name` in
+One generic route handles all 38 entity types below — there's no per-entity endpoint, `:name` in
 the URL is the entity name (e.g. `Workshop`, `Person`). Records are JSON objects; `id` and
 `created_date` are set by the server, not sent by the client.
 
@@ -27,6 +27,7 @@ Two tiers, no signup/login page — just HTTP Basic Auth (the browser's native p
 | GET | `/api/entities/Workshop/:id` | Workshop | get |
 | POST | `/api/entities/Person` | Person | create |
 | POST | `/api/entities/WorkshopPurchase` | WorkshopPurchase | create |
+| POST | `/api/entities/Application` | Application | create (status always stored as `submitted`) |
 
 Everything else (any other entity, or any write to Workshop) requires admin auth.
 
@@ -55,17 +56,31 @@ Both `dashboard/src/api/base44Client.js` and `client/src/api/client.js` wrap the
 those instead of `fetch` directly:
 
 ```js
-// dashboard (admin, all 36 entities + auth)
+// dashboard (admin, all 38 entities + auth)
 base44.entities.Workshop.list('-created_date', 500)
 base44.entities.Person.create({ full_name, phone })
 base44.auth.me()
 
-// client (public, 3 routes only)
+// client (public routes only)
 api.listWorkshops()
 api.createPerson({ full_name, phone })
 ```
 
 ## Entities
+
+### Application
+
+Club-owner-call submissions from `client/` at `/club-owner-call`.
+
+| Field | Type | Required | Title (fa) | Notes |
+|---|---|---|---|---|
+| `full_name` | string | yes | اسم و فامیل |  |
+| `phone` | string | yes | شماره تماس | Latin digits |
+| `work_link` | string |  | صفحه‌ی معرفی |  |
+| `topics` | string | yes | موضوعات جمع |  |
+| `resume` | string |  | لینک رزومه |  |
+| `can_attend` | string | yes | امکان حضور در دورهمی | enum: yes, no |
+| `status` | string |  | وضعیت | enum: submitted, reviewed, invited, declined; default: "submitted" |
 
 ### Artist
 

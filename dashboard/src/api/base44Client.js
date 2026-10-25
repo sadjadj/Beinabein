@@ -66,7 +66,7 @@ function makeEntityClient(name) {
 // plain list here since a browser bundle can't read the filesystem at
 // runtime. Re-sync both lists if entities are added/removed.
 const ENTITY_NAMES = [
-  'Artist', 'Brand', 'CafeTag', 'Category', 'CustomIncome', 'Event',
+  'Application', 'Artist', 'Brand', 'CafeTag', 'Category', 'CustomIncome', 'Event',
   'EventPlan', 'EventPurchase', 'Expense', 'ExpenseCategory', 'Facilitator', 'GreenhouseCategory',
   'GreenhouseItem', 'GreenhousePurchase', 'Group', 'GroupPlan', 'GroupPurchase',
   'GroupSession', 'InventoryItem', 'ItemPurchase', 'Person', 'Returns',

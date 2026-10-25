@@ -1,6 +1,6 @@
 # Beinabein API
 
-Express + Postgres backend replacing Base44's hosted backend. One generic route handles all 36
+Express + Postgres backend replacing Base44's hosted backend. One generic route handles all 38
 entity types (`base44-entities/*.jsonc`) — see `server.js` for the full route reference.
 
 ## Run locally

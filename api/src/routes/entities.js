@@ -12,7 +12,7 @@ const router = express.Router();
 // Signup flow is fully anonymous — these are the only reads/writes it's allowed.
 // Everything else on every other entity needs an admin. Scoped to the exact
 // action, not just method+entity, so e.g. POST Person/bulk still needs admin.
-const PUBLIC_ACTIONS = new Set(['list:Workshop', 'get:Workshop', 'create:Person', 'create:WorkshopPurchase']);
+const PUBLIC_ACTIONS = new Set(['list:Workshop', 'get:Workshop', 'create:Person', 'create:WorkshopPurchase', 'create:Application']);
 
 function publicOr(action) {
   return (req, res, next) => {
@@ -148,6 +148,9 @@ router.post('/:name', publicOr('create'), async (req, res, next) => {
   try {
     const id = crypto.randomUUID();
     const data = { created_date: new Date().toISOString(), ...req.body };
+    // Public club-owner-call submissions always start unreviewed — the sender
+    // can't pre-set their own status; only admins move it on from there.
+    if (req.params.name === 'Application' && !req.adminUser) data.status = 'submitted';
     await pool.query('INSERT INTO entities (collection, id, data) VALUES ($1, $2, $3)', [req.params.name, id, data]);
     res.status(201).json(toRecord({ id, data }));
   } catch (err) { next(err); }

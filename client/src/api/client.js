@@ -1,4 +1,4 @@
-// Thin client for the three public routes beinabein-api exposes to signup flow
+// Thin client for the public routes beinabein-api exposes to the signup flow and the club-owner call
 // (see api/src/routes/entities.js's PUBLIC_ACTIONS) — no auth, this app never
 // signs in. Mirrors dashboard/src/api/base44Client.js's request() shape.
 

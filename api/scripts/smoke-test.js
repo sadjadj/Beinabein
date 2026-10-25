@@ -91,6 +91,7 @@ async function testAuthBoundaries() {
     ['Workshop list is public', async () => (await noAuth('GET', '/entities/Workshop')).status === 200],
     ['Workshop create requires admin', async () => (await noAuth('POST', '/entities/Workshop', { title: 'x' })).status === 401],
     ['Expense (admin-only entity) requires admin', async () => (await noAuth('POST', '/entities/Expense', { title: 'x', amount: 1, date: '2026-01-01' })).status === 401],
+    ['Application list requires admin', async () => (await noAuth('GET', '/entities/Application')).status === 401],
   ];
 
   const results = [];
@@ -112,6 +113,17 @@ async function testAuthBoundaries() {
     results.push({ name: 'Person create is public', ok: res.status === 201 });
   } catch (err) {
     results.push({ name: 'Person create is public', ok: false, error: err.message });
+  }
+
+  // Club-owner-call submissions: public create, and the server pins status
+  // to 'submitted' whatever the sender asks for.
+  try {
+    const res = await noAuth('POST', '/entities/Application', { full_name: 'smoke-test', phone: '0000000000', topics: 'x', can_attend: 'yes', status: 'invited' });
+    const created = await res.json();
+    await api('DELETE', `/entities/Application/${created.id}`);
+    results.push({ name: 'Application create is public, status pinned', ok: res.status === 201 && created.status === 'submitted' });
+  } catch (err) {
+    results.push({ name: 'Application create is public, status pinned', ok: false, error: err.message });
   }
 
   return results;
