@@ -101,7 +101,7 @@ export default function FormQuestions({ formData, updateField }) {
       </div>
 
       <FormField
-        label="اگر رزومه یا تجربه‌ای دارید که به بهتر شناختنتان کمک می‌کند، لینکش را اینجا بگذارید یا فایل PDF آن را بارگذاری کنید."
+        label="اگر رزومه یا تجربه‌ای دارید که به بهتر شناختنتان کمک می‌کند، لطفا در اینجا بارگذاری کنید (می‌تواند لینک، ویدیو یا یک فایل پی‌دی‌اف باشد)."
         type="url"
         value={formData.resume}
         onChange={(v) => updateField("resume", v)}
