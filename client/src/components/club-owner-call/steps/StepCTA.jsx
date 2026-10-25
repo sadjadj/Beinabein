@@ -5,20 +5,17 @@ export default function StepCTA({ isDark }) {
   const sub = isDark ? "text-[#9A9A9A]" : "text-[#3A3A3A]";
   const rule = isDark ? "border-[#2A2A2A]" : "border-[#D1D1D1]";
   return (
-    <div className="flex flex-col justify-center min-h-[78vh] py-6">
-      <h2 dir="ltr" className={`font-mono-lab font-bold text-[26px] uppercase tracking-lab ${ink} mb-6`}>
-        07 Apply
+    <div className="flex flex-col justify-center min-h-[62vh] py-6">
+      <h2 className={`text-[26px] font-bold leading-[1.4] ${ink} mb-6`}>
+        اگر جمع‌ساز هستید…
       </h2>
       <div className={`divider-rule ${rule} mb-6`} />
-      <p className={`text-[17px] font-semibold leading-[1.7] ${ink} mb-4`}>
-        اگر همچین ذهنیتی دارید…
-      </p>
       <div className={`space-y-4 text-[16px] leading-[1.8] ${sub}`}>
         <p>
-          برای شرکت در <span className="font-mono-lab">Challenge Day</span> باید یک فرم پر کنید. این فرم درخواست کمتر درباره رزومه و بیشتر درباره شیوه‌ی فکر کردن شماست.
+          برای دعوت به دورهمی بینابین، فرم کوتاهی را پر کنید. این فرم بیشتر درباره‌ی موضوع‌هایی است که دوست دارید جمعی حولشان بسازید تا سابقه و رزومه‌تان.
         </p>
         <p>
-          درخواست‌ها به‌صورت مستمر بررسی می‌شوند و پس از بررسی اولیه، با افرادی که برای مرحله‌ی بعد انتخاب می‌شوند تماس گرفته خواهد شد.
+          درخواست‌ها به‌صورت مستمر بررسی می‌شوند و با کسانی که برای دورهمی انتخاب می‌شوند تماس می‌گیریم.
         </p>
       </div>
     </div>

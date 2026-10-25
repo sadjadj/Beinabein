@@ -1,18 +1,12 @@
 import React from "react";
 import BeinabeinLogo from "../BeinabeinLogo";
-import BorjLogo from "../BorjLogo";
 
 export default function FormSubmitted({ onRestart }) {
   return (
     <div className="max-w-[390px] mx-auto h-[100dvh] flex flex-col bg-[#0A0A0A] overflow-hidden">
       {/* Top bar */}
       <div className="px-6 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <BeinabeinLogo className="invert" />
-          <span className="font-mono-lab text-xs text-[#8C8C8C]">×</span>
-          <BorjLogo className="invert" />
-        </div>
-        <span className="font-mono-lab text-[10px] tracking-lab uppercase text-[#8C8C8C]">10 / 10</span>
+        <BeinabeinLogo className="invert" />
       </div>
       <div className="px-6 pb-4 flex-shrink-0">
         <div className="h-[2px] bg-[#2A2A2A] relative overflow-hidden">
@@ -22,24 +16,19 @@ export default function FormSubmitted({ onRestart }) {
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-        
-        
-
-        
         <div className="w-16 h-px bg-[#2A2A2A] mb-6" />
         <h2 className="text-[22px] font-bold leading-[1.3] text-[#F4F4F4] mb-5">
           درخواست شما ثبت شد
         </h2>
         <p className="text-[15px] leading-[1.8] text-[#9A9A9A] mb-12 max-w-[300px]">
-          درخواست‌ها به‌صورت مستمر بررسی می‌شوند و پس از بررسی اولیه، با افراد منتخب تماس خواهیم گرفت.
+          امیدواریم بینابین ما و شما همکاری شکل بگیرد.
         </p>
         <button
           onClick={onRestart}
-          className="font-mono-lab text-[12px] uppercase tracking-lab text-[#8C8C8C] hover:text-[#F4F4F4] transition-colors">
-          
+          className="text-[12px] text-[#8C8C8C] hover:text-[#F4F4F4] transition-colors">
           بازگشت به ابتدا
         </button>
       </div>
-    </div>);
-
+    </div>
+  );
 }

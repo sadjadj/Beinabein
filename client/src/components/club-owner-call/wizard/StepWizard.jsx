@@ -2,48 +2,70 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/api/client";
 import BeinabeinLogo from "../BeinabeinLogo";
-import BorjLogo from "../BorjLogo";
 import ProgressBar from "./ProgressBar";
 
 import StepIntro from "../steps/StepIntro";
-import StepOverview from "../steps/StepOverview";
-import StepWhy from "../steps/StepWhy";
-import StepOil from "../steps/StepOil";
-import StepWho from "../steps/StepWho";
-import StepChallengeDay from "../steps/StepChallengeDay";
-import StepCollaboration from "../steps/StepCollaboration";
+import StepText from "../steps/StepText";
 import StepCTA from "../steps/StepCTA";
-import FormBasic from "../steps/FormBasic";
-import FormQuestions from "../steps/FormQuestions";
-import FormAttendance from "../steps/FormAttendance";
+import FormBasic, { isValid as basicValid } from "../steps/FormBasic";
+import FormQuestions, { isValid as questionsValid } from "../steps/FormQuestions";
+import FormAttendance, { isValid as attendanceValid } from "../steps/FormAttendance";
 import FormSubmitted from "../steps/FormSubmitted";
 
-const steps = [
-  { id: "intro", num: "", nextLabel: "شروع", component: StepIntro, isForm: false },
-  { id: "overview", num: "01", nextLabel: "ادامه", component: StepOverview, isForm: false },
-  { id: "why", num: "02", nextLabel: "ادامه", component: StepWhy, isForm: false },
-  { id: "oil", num: "03", nextLabel: "ادامه", component: StepOil, isForm: false },
-  { id: "who", num: "04", nextLabel: "ادامه", component: StepWho, isForm: false },
-  { id: "challenge", num: "05", nextLabel: "ادامه", component: StepChallengeDay, isForm: false },
-  { id: "collab", num: "06", nextLabel: "ادامه", component: StepCollaboration, isForm: false },
-  { id: "apply", num: "07", nextLabel: "شروع فرم", component: StepCTA, isForm: false, bigButton: true, isDark: true },
-  { id: "form-basic", num: "08", nextLabel: "ادامه", component: FormBasic, isForm: true, isWhite: true },
-  { id: "form-questions", num: "09", nextLabel: "ادامه", component: FormQuestions, isForm: true, isWhite: true },
-  { id: "form-attend", num: "10", nextLabel: "ارسال درخواست", component: FormAttendance, isForm: true, isLast: true, isWhite: true },
+const text = (id, props) => ({ id, nextLabel: "ادامه", component: StepText, props });
+
+export const steps = [
+  { id: "intro", nextLabel: "شروع", component: StepIntro },
+  text("problem", {
+    title: "مسئله جمع‌های این روزها",
+    paragraphs: [
+      "جمع‌های این روزها، کمتر جمع‌اند. این یک اعتراف است. چرا که رنگ و لعاب اضافه، لزوما جمع نمی‌سازد. جمع حول چیزهای دیگری شکل می‌گیرد که لزوما اینستاگرامی نیستند؛ حتی شاید قابل نمایش هم نباشند.",
+      "واقعیت خود بینابین هم پایش در این مسئله گیر بود. و همین ما را به طراحی شکل جدیدی از کنار هم قرار گرفتن سوق داد: جمع‌های ادامه‌دار و از لحاظ اقتصادی بصرفه که حول یک موضوع یا دغدغه شکل می‌گیرند و ما اسمشان را گذاشته‌ایم انجمن.",
+      "انجمن برخلاف کارگاه در مسیر خود ساختار صلبی ندارد و همه‌ی افراد در مدل پیش بردنش سهیم هستند. ما در انجمن علاقه‌مان را با همراهی دیگری دنبال می‌کنیم و ارتباطات انسانی می‌سازیم.",
+    ],
+  }),
+  text("who", {
+    title: "برای ایجاد چنین جمع‌هایی، بینابین طبق روال همیشگی‌اش دست یاری دراز کرده است.",
+    paragraphs: [
+      "به سمت آدم‌هایی که متخصص و یا روی موضوعی کنجکاوند و دوست دارند راهبری یک جمع را به عهده بگیرند اما به آن بیشتر به شکل یک دغدغه نگاه می‌کنند تا شغل.",
+      "اگر این ویژگی‌ها را دارید لطفا فرمی که در ادامه قرار دارد را پر کنید تا پیدایتان کنیم.",
+    ],
+  }),
+  text("gathering", {
+    title: "دورهمی در بینابین",
+    paragraphs: [
+      "در مرحله بعد به یک دورهمی در بینابین دعوت می‌شوید. قرار است یک روز را در بینابین بگذرانیم و حول مسئله جمع در این روزها گفتگو کنیم: چرا با وجود رویدادهای متعدد شهری هنوز تنهاییم؟ جمع خوب چه ویژگی‌هایی دارد؟ چطور می‌توان چنین جمعی ساخت؟",
+      "بعد از این روز اگر امکان‌های همکاری فراهم باشد، با هم برگزاری انجمنی به راهبری شما را پیش خواهیم گرفت.",
+    ],
+    footer: ["دورهمی بینابین", "پنجشنبه ۱۴ آبان | تهران"],
+  }),
+  { id: "apply", nextLabel: "شروع فرم", component: StepCTA, bigButton: true, isDark: true },
+  { id: "form-basic", nextLabel: "ادامه", component: FormBasic, valid: basicValid, isWhite: true },
+  { id: "form-questions", nextLabel: "ادامه", component: FormQuestions, valid: questionsValid, isWhite: true },
+  { id: "form-attend", nextLabel: "ارسال درخواست", component: FormAttendance, valid: attendanceValid, isLast: true, isWhite: true },
 ];
+// Counter: the intro is unnumbered, every page after it counts 01, 02, …
+const toFa = (s) => s.replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]);
+export const pad = (n) => toFa(String(n).padStart(2, "0"));
+export const TOTAL = pad(steps.length - 1);
 
 export default function StepWizard() {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
-  const [canProceed, setCanProceed] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const contentRef = useRef(null);
+  const [moreBelow, setMoreBelow] = useState(false);
+  // Fade at the bottom while there's still content below, so it's clear the page scrolls.
+  const checkMore = () => {
+    const el = contentRef.current;
+    setMoreBelow(!!el && el.scrollHeight - el.scrollTop - el.clientHeight > 8);
+  };
 
   useEffect(() => {
-    if (!steps[step].isForm) setCanProceed(true);
     if (contentRef.current) contentRef.current.scrollTop = 0;
+    checkMore();
   }, [step]);
 
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1));
@@ -71,12 +93,15 @@ export default function StepWizard() {
   if (submitted) return <FormSubmitted onRestart={restart} />;
 
   const StepComponent = steps[step].component;
+  // Derived from formData here, not reported by the form, so it is never a keystroke behind.
+  const canProceed = !steps[step].valid || steps[step].valid(formData);
   const isLast = steps[step].isLast;
   const isWhite = steps[step].isWhite;
   const isDark = !!steps[step].isDark;
   const bigButton = steps[step].bigButton;
 
   const bg = isDark ? "bg-[#0A0A0A]" : isWhite ? "bg-white" : "bg-[#F0F0F0]";
+  const fadeFrom = isDark ? "from-[#0A0A0A]" : isWhite ? "from-white" : "from-[#F0F0F0]";
   const borderColor = isDark ? "border-[#2A2A2A]" : isWhite ? "border-[#E2E2E2]" : "border-[#D1D1D1]";
   const mutedColor = "text-[#8C8C8C]";
 
@@ -84,13 +109,9 @@ export default function StepWizard() {
     <div className={`max-w-[390px] mx-auto h-[100dvh] flex flex-col ${bg} overflow-hidden transition-colors duration-300`}>
       {/* Top bar */}
       <div className="px-6 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <BeinabeinLogo className={isDark ? "invert" : ""} />
-          <span className={`font-mono-lab text-xs ${mutedColor}`}>×</span>
-          <BorjLogo className={isDark ? "invert" : ""} />
-        </div>
-        <span className={`font-mono-lab text-[10px] tracking-lab uppercase ${mutedColor}`}>
-          {steps[step].num ? `${steps[step].num} / 10` : ""}
+        <BeinabeinLogo className={isDark ? "invert" : ""} />
+        <span className={`text-[12px] ${mutedColor}`}>
+          {step > 0 ? `${pad(step)} / ${TOTAL}` : ""}
         </span>
       </div>
 
@@ -98,7 +119,7 @@ export default function StepWizard() {
 
       {/* Content */}
       <div className="flex-1 relative overflow-hidden">
-        <div ref={contentRef} className="h-full overflow-y-auto px-6 pb-4">
+        <div ref={contentRef} onScroll={checkMore} className="h-full overflow-y-auto px-6 pb-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -106,11 +127,12 @@ export default function StepWizard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              onAnimationComplete={checkMore}
             >
               <StepComponent
+                {...steps[step].props}
                 formData={formData}
                 updateField={updateField}
-                setCanProceed={setCanProceed}
                 onNext={next}
                 onSubmit={handleSubmit}
                 submitting={submitting}
@@ -119,9 +141,8 @@ export default function StepWizard() {
             </motion.div>
           </AnimatePresence>
         </div>
-        {/* Scroll indicator gradient for step 05 */}
-        {step === 4 && (
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#F0F0F0] to-transparent" />
+        {moreBelow && (
+          <div className={`pointer-events-none absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t ${fadeFrom} to-transparent`} />
         )}
       </div>
 

@@ -1,16 +1,13 @@
-import React, { useEffect } from "react";
+import React from "react";
 
-export default function FormAttendance({ formData, updateField, setCanProceed }) {
-  useEffect(() => {
-    setCanProceed(!!formData.can_attend);
-  }, [formData.can_attend, setCanProceed]);
+export const isValid = (d) => !!d.can_attend;
 
+export default function FormAttendance({ formData, updateField }) {
   return (
     <div className="py-6">
-      
       <h2 className="text-[20px] font-bold text-[#0A0A0A] mb-5">امکان حضور</h2>
       <p className="text-[15px] leading-[1.7] text-[#3A3A3A] mb-6">
-        آیا امکان شرکت حضوری در تهران، از ۱۰ تا ۵ در تاریخ پنجشنبه ۱۹ شهریور را دارید؟
+        امکان حضور در دورهمی روز پنج‌شنبه، ۱۴ آبان در تهران را دارید؟
       </p>
 
       <div className="flex gap-3 mb-8">
@@ -38,10 +35,10 @@ export default function FormAttendance({ formData, updateField, setCanProceed })
 
       <div className="divider-rule mb-5" />
       <p className="text-[13px] leading-[1.7] text-[#8C8C8C] mb-4">
-        پس از بررسی درخواست‌ها، با افرادی که برای مرحله‌ی بعد انتخاب می‌شوند تماس گرفته خواهد شد.
+        پس از بررسی درخواست‌ها، با کسانی که برای دورهمی انتخاب می‌شوند تماس گرفته خواهد شد.
       </p>
-      <p className="font-mono-lab text-[11px] uppercase tracking-lab text-[#8C8C8C]">
-        <span className="font-mono-lab">Challenge Day</span>: پنجشنبه ۱۹ شهریور | ۱۰ تا ۵
+      <p className="text-[12px] text-[#8C8C8C]">
+        دورهمی بینابین: پنجشنبه ۱۴ آبان
       </p>
     </div>);
 

@@ -22,6 +22,7 @@ export default function FormField({ label, value, onChange, type = "text", input
 
       <input
         type={type}
+        dir={type === "url" ? "ltr" : undefined}
         inputMode={inputMode}
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
