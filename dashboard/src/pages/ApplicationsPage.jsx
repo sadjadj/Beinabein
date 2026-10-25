@@ -1,36 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Trash2, Phone, Link2, FileText } from 'lucide-react';
+import { Check, X, Eye, Trash2 } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { formatJalali } from '@/lib/jalali';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Submissions from the public club-owner-call form (client/ at /club-owner-call).
 const STATUSES = [
-  { key: 'submitted', label: 'جدید', className: 'bg-amber-50 text-amber-700' },
-  { key: 'reviewed', label: 'بررسی‌شده', className: 'bg-slate-100 text-slate-700' },
-  { key: 'invited', label: 'دعوت‌شده', className: 'bg-green-50 text-green-700' },
-  { key: 'declined', label: 'رد‌شده', className: 'bg-red-50 text-red-700' },
+  { key: 'submitted', label: 'جدید' },
+  { key: 'reviewed', label: 'بررسی‌شده' },
+  { key: 'invited', label: 'دعوت‌شده' },
+  { key: 'declined', label: 'رد‌شده' },
 ];
-const statusOf = (key) => STATUSES.find(s => s.key === key) || STATUSES[0];
 
-function ExternalLink({ href, icon: Icon, label }) {
-  if (!href) return null;
+function LinkValue({ href }) {
+  if (!href) return <span className="text-muted-foreground">—</span>;
   const url = /^https?:\/\//i.test(href) ? href : `https://${href}`;
+  return <a href={url} target="_blank" rel="noreferrer" dir="ltr" className="text-[#B74B40] hover:underline break-all">{href}</a>;
+}
+
+function Row({ label, children }) {
   return (
-    <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[#B74B40] hover:underline max-w-full">
-      <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-      <span className="text-muted-foreground">{label}:</span>
-      <span dir="ltr" className="truncate">{href}</span>
-    </a>
+    <div className="space-y-1">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-sm">{children}</div>
+    </div>
   );
 }
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [openId, setOpenId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
 
   const fetchData = async () => {
@@ -54,94 +57,98 @@ export default function ApplicationsPage() {
   const handleDelete = async () => {
     const id = deleteId;
     setDeleteId(null);
+    setOpenId(null);
     await base44.entities.Application.delete(id);
     fetchData();
   };
 
-  const countOf = (key) => applications.filter(a => (a.status || 'submitted') === key).length;
-  const shown = filter === 'all' ? applications : applications.filter(a => (a.status || 'submitted') === filter);
-  const tabs = [{ key: 'all', label: 'همه', count: applications.length }, ...STATUSES.map(s => ({ ...s, count: countOf(s.key) }))];
+  const open = applications.find(a => a.id === openId);
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold">فراخوان جمع‌سازها</h1>
-        <p className="text-sm text-muted-foreground mt-1">درخواست‌هایی که از فرم فراخوان ثبت شده‌اند</p>
+        <h1 className="text-2xl font-bold">فراخوان</h1>
+        <p className="text-sm text-muted-foreground mt-1">درخواست‌هایی که از فرم فراخوان جمع‌سازها ثبت شده‌اند</p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {tabs.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setFilter(t.key)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-              filter === t.key ? 'bg-[#B74B40] text-white border-[#B74B40]' : 'bg-white border-border text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t.label} ({toPersianNum(t.count)})
-          </button>
-        ))}
+      <div className="bg-white rounded-xl border border-border overflow-hidden">
+        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">درخواست‌ها ({toPersianNum(applications.length)})</h3></div>
+        {loading ? (
+          <TableSkeleton rows={4} cols={4} />
+        ) : applications.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">هنوز درخواستی ثبت نشده است</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-right p-3 font-medium">نام</th>
+                  <th className="text-right p-3 font-medium">شماره تماس</th>
+                  <th className="text-center p-3 font-medium">امکان حضور</th>
+                  <th className="text-center p-3 font-medium">جزئیات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {applications.map(a => (
+                  <tr key={a.id} className="border-t border-border hover:bg-muted/30">
+                    <td className="p-3 font-medium">{a.full_name || '—'}</td>
+                    <td className="p-3"><span dir="ltr">{a.phone || '—'}</span></td>
+                    <td className="p-3 text-center">
+                      {a.can_attend === 'yes'
+                        ? <Check className="w-4 h-4 text-green-600 inline" aria-label="بله" />
+                        : <X className="w-4 h-4 text-muted-foreground inline" aria-label="خیر" />}
+                    </td>
+                    <td className="p-3 text-center">
+                      <button onClick={() => setOpenId(a.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs hover:border-[#B74B40] hover:text-[#B74B40]">
+                        <Eye className="w-3.5 h-3.5" /> جزئیات
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {loading ? (
-        <div className="bg-white rounded-xl border border-border"><TableSkeleton rows={4} cols={3} /></div>
-      ) : shown.length === 0 ? (
-        <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground">
-          {applications.length === 0 ? 'هنوز درخواستی ثبت نشده است' : 'درخواستی با این وضعیت نیست'}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {shown.map(a => {
-            const status = statusOf(a.status);
-            return (
-              <div key={a.id} className="bg-white rounded-xl border border-border p-4 md:p-5 space-y-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-bold">{a.full_name || '—'}</h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${status.className}`}>{status.label}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${a.can_attend === 'yes' ? 'bg-green-50 text-green-700' : 'bg-muted text-muted-foreground'}`}>
-                        حضور در دورهمی: {a.can_attend === 'yes' ? 'بله' : a.can_attend === 'no' ? 'خیر' : '—'}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
-                      {a.phone && (
-                        <a href={`tel:${a.phone}`} className="inline-flex items-center gap-1.5 hover:text-foreground">
-                          <Phone className="w-3.5 h-3.5" /><span dir="ltr">{a.phone}</span>
-                        </a>
-                      )}
-                      {a.created_date && <span>{formatJalali(a.created_date)}</span>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="sr-only" htmlFor={`status-${a.id}`}>وضعیت</label>
+      <Dialog open={!!open} onOpenChange={(isOpen) => !isOpen && setOpenId(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" dir="rtl">
+          {open && (
+            <>
+              <DialogHeader className="text-right">
+                <DialogTitle className="text-right">{open.full_name || '—'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Row label="شماره تماس"><span dir="ltr">{open.phone || '—'}</span></Row>
+                  <Row label="تاریخ ثبت">{open.created_date ? formatJalali(open.created_date) : '—'}</Row>
+                  <Row label="امکان حضور در دورهمی">{open.can_attend === 'yes' ? 'بله' : open.can_attend === 'no' ? 'خیر' : '—'}</Row>
+                  <Row label="وضعیت">
                     <select
-                      id={`status-${a.id}`}
-                      value={a.status || 'submitted'}
-                      onChange={e => setStatus(a.id, e.target.value)}
-                      className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm"
+                      value={open.status || 'submitted'}
+                      onChange={e => setStatus(open.id, e.target.value)}
+                      className="px-2 py-1 rounded-lg border border-input bg-background text-sm"
+                      aria-label="وضعیت"
                     >
                       {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                     </select>
-                    <button onClick={() => setDeleteId(a.id)} className="p-1.5 text-muted-foreground hover:text-red-600" aria-label="حذف">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  </Row>
                 </div>
-
-                {a.topics && <p className="text-sm leading-7 whitespace-pre-wrap">{a.topics}</p>}
-
-                {(a.work_link || a.resume) && (
-                  <div className="flex flex-col gap-1 text-sm min-w-0">
-                    <ExternalLink href={a.work_link} icon={Link2} label="صفحه" />
-                    <ExternalLink href={a.resume} icon={FileText} label="رزومه" />
-                  </div>
-                )}
+                <Row label="موضوعاتی که می‌تواند حولشان جمع بسازد">
+                  <p className="leading-7 whitespace-pre-wrap">{open.topics || '—'}</p>
+                </Row>
+                <Row label="صفحه‌ی معرفی"><LinkValue href={open.work_link} /></Row>
+                <Row label="رزومه"><LinkValue href={open.resume} /></Row>
+                <div className="pt-2 border-t border-border">
+                  <button onClick={() => setDeleteId(open.id)} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-red-600">
+                    <Trash2 className="w-4 h-4" /> حذف درخواست
+                  </button>
+                </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDeleteDialog
         open={!!deleteId}
