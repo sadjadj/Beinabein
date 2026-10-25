@@ -17,19 +17,39 @@ function badFile() {
   return err;
 }
 
-// `file` is { name, data } from the public form, data = base64 of the PDF.
 // Checks the real bytes (size + %PDF- header), not the claimed name or type.
-async function saveResumePdf(file) {
-  const bytes = Buffer.from(String(file?.data || ''), 'base64');
-  if (!bytes.length || bytes.length > MAX_RESUME_BYTES) throw badFile();
+function assertPdf(bytes) {
+  if (!Buffer.isBuffer(bytes) || !bytes.length || bytes.length > MAX_RESUME_BYTES) throw badFile();
   if (bytes.subarray(0, 5).toString('latin1') !== '%PDF-') throw badFile();
-  const id = crypto.randomUUID();
-  const filename = String(file.name || 'resume.pdf').slice(0, 200);
-  await pool.query(
-    'INSERT INTO files (id, filename, content_type, data) VALUES ($1, $2, $3, $4)',
-    [id, filename, 'application/pdf', bytes]
-  );
-  return { id, filename };
 }
 
-module.exports = { saveResumePdf, MAX_RESUME_BYTES };
+const cleanName = (name) => String(name || 'resume.pdf').slice(0, 200);
+
+// Public upload from the form, before the application itself is submitted.
+async function saveResumePdf(bytes, filename) {
+  assertPdf(bytes);
+  // Uploads whose form was never submitted are left behind with no application
+  // pointing at them — sweep the day-old ones here rather than run a cron.
+  await pool.query(
+    `DELETE FROM files f WHERE f.created_at < now() - interval '1 day'
+       AND NOT EXISTS (SELECT 1 FROM entities e WHERE e.collection = 'Application' AND e.data->>'resume_file_id' = f.id)`
+  );
+  const id = crypto.randomUUID();
+  await pool.query(
+    'INSERT INTO files (id, filename, content_type, data) VALUES ($1, $2, $3, $4)',
+    [id, cleanName(filename), 'application/pdf', bytes]
+  );
+  return { id, filename: cleanName(filename) };
+}
+
+// Admin restore (scripts/restore-from-backup.js): put a file back under its original id.
+async function restoreFile(id, bytes, filename) {
+  assertPdf(bytes);
+  await pool.query(
+    `INSERT INTO files (id, filename, content_type, data) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (id) DO UPDATE SET filename = EXCLUDED.filename, data = EXCLUDED.data`,
+    [id, cleanName(filename), 'application/pdf', bytes]
+  );
+}
+
+module.exports = { saveResumePdf, restoreFile, MAX_RESUME_BYTES };

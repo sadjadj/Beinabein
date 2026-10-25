@@ -76,10 +76,12 @@ export default function StepWizard() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      await api.createApplication(formData);
+      const { resume_uploading, ...application } = formData; // UI-only flag, not stored
+      await api.createApplication(application);
       setSubmitted(true);
     } catch (err) {
-      setSubmitError("خطا در ثبت درخواست. لطفاً دوباره تلاش کنید.");
+      // The API's own messages (e.g. too many submissions) are Persian and worth showing as-is.
+      setSubmitError(/[\u0600-\u06FF]/.test(err.message) ? err.message : "خطا در ثبت درخواست. لطفاً دوباره تلاش کنید.");
     }
     setSubmitting(false);
   };

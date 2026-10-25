@@ -27,9 +27,12 @@ Two tiers, no signup/login page — just HTTP Basic Auth (the browser's native p
 | GET | `/api/entities/Workshop/:id` | Workshop | get |
 | POST | `/api/entities/Person` | Person | create |
 | POST | `/api/entities/WorkshopPurchase` | WorkshopPurchase | create |
-| POST | `/api/entities/Application` | Application | create (status always stored as `submitted`; optional `resume_file: { name, data }`, data = base64 PDF ≤ 5MB, stored in `files`; a filled `website` honeypot is accepted and discarded) |
+| POST | `/api/entities/Application` | Application | create (status always stored as `submitted`; optional `resume_file_id` from the upload below; a filled `website` honeypot is accepted and discarded) |
+| POST | `/api/files/resume` | — | upload a resume: raw PDF body ≤ 5MB, `Content-Type: application/pdf`, file name URI-encoded in `X-Filename` → `{ id, filename }` |
 
 Everything else (any other entity, or any write to Workshop) requires admin auth.
+
+Anonymous writes (the creates above and the resume upload) share a limit of 20 per hour per visitor IP; past it the API answers `429` with a Persian message and `Retry-After`. Requests carrying admin credentials are never limited.
 
 ## Routes
 
@@ -79,7 +82,7 @@ Club-owner-call submissions from `client/` at `/club-owner-call`.
 | `work_link` | string |  | صفحه‌ی معرفی |  |
 | `topics` | string | yes | موضوعات جمع |  |
 | `resume` | string |  | لینک رزومه |  |
-| `resume_file_id` | string |  | فایل رزومه | id in the `files` table; download with `GET /api/files/:id` (admin) |
+| `resume_file_id` | string |  | فایل رزومه | id in the `files` table; download with `GET /api/files/:id` (admin, logged in `admin_logs` as entity `File`) |
 | `resume_file_name` | string |  | اسم فایل رزومه |  |
 | `can_attend` | string | yes | امکان حضور در دورهمی | enum: yes, no |
 | `status` | string |  | وضعیت | enum: submitted, reviewed, invited, declined; default: "submitted" |

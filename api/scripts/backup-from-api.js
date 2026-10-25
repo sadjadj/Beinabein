@@ -1,8 +1,10 @@
 // Dumps every entity from a running beinabein API (production or local) into
 // backups/<timestamp>/<Entity>.json — same layout as backup-from-base44.js,
 // and restorable with the bulk route the same way migrate-from-base44.js does.
-// Goes through the API (no DATABASE_URL, no exposing Postgres), so it only
-// covers the `entities` table — not `admins` or `admin_logs`.
+// Goes through the API (no DATABASE_URL, no exposing Postgres), so it covers
+// the `entities` table plus the uploaded resume PDFs the Application rows point
+// at (saved under files/, with files/index.json mapping id -> original name) —
+// not `admins` or `admin_logs`.
 //
 // Usage:
 //   API_BASE_URL=https://beinabein-space.ir ADMIN_USER=... ADMIN_PASSWORD=... node scripts/backup-from-api.js
@@ -37,6 +39,9 @@ async function main() {
   for (const name of ENTITY_NAMES) {
     try {
       const res = await fetch(`${API_BASE_URL}/api/entities/${name}?limit=${LIMIT}`, { headers: { Authorization: AUTH } });
+      // The checkout can be ahead of the server (an entity added on a branch, not
+      // deployed yet) — nothing to back up there, so not a failure.
+      if (res.status === 404) { console.log(`${name}: not on this server yet, skipped`); continue; }
       if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
       const records = await res.json();
       if (records.length >= LIMIT) throw new Error(`hit the ${LIMIT}-row cap, backup would be incomplete`);
@@ -47,6 +52,27 @@ async function main() {
       console.error(`${name}: FAILED — ${err.message}`);
     }
   }
+  // Resume PDFs referenced by applications (the files table has no list route).
+  try {
+    const appsFile = path.join(outDir, 'Application.json');
+    const apps = fs.existsSync(appsFile) ? JSON.parse(fs.readFileSync(appsFile)) : [];
+    const withFile = apps.filter((a) => a.resume_file_id);
+    const index = {};
+    if (withFile.length) fs.mkdirSync(path.join(outDir, 'files'));
+    for (const a of withFile) {
+      const res = await fetch(`${API_BASE_URL}/api/files/${a.resume_file_id}`, { headers: { Authorization: AUTH } });
+      if (res.status === 404) { console.error(`file ${a.resume_file_id}: missing on the server, skipped`); continue; }
+      if (!res.ok) throw new Error(`file ${a.resume_file_id}: ${res.status}`);
+      fs.writeFileSync(path.join(outDir, 'files', `${a.resume_file_id}.pdf`), Buffer.from(await res.arrayBuffer()));
+      index[a.resume_file_id] = a.resume_file_name || 'resume.pdf';
+    }
+    if (withFile.length) fs.writeFileSync(path.join(outDir, 'files', 'index.json'), JSON.stringify(index, null, 2));
+    console.log(`files: ${Object.keys(index).length} resume PDFs`);
+  } catch (err) {
+    failed++;
+    console.error(`files: FAILED — ${err.message}`);
+  }
+
   console.log(`\nBackup written to ${outDir}${failed ? ` (${failed} entities FAILED)` : ''}`);
   if (failed) process.exit(1); // keep old backups if this one is incomplete
 

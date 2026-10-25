@@ -3,7 +3,8 @@
 // ── API Reference ─────────────────────────────────────────────────────────────
 //
 //  Generic entity CRUD, one route per action, entity name is the collection.
-//  PUBLIC (no auth): GET Workshop (list/get), POST Person, POST WorkshopPurchase, POST Application.
+//  PUBLIC (no auth): GET Workshop (list/get), POST Person, POST WorkshopPurchase, POST Application,
+//  POST /api/files/resume. Anonymous writes are rate-limited per IP (src/rateLimit.js).
 //  Everything else needs HTTP Basic Auth against the `admins` table
 //  (bcrypt-hashed passwords — see scripts/upsert-admin.js to create/reset one).
 //
@@ -19,7 +20,9 @@
 //  GET    /api/me                          admin only — { user, mustChangePassword }
 //  GET    /api/stats/workshop-registrations  admin only — per-workshop count/totals
 //  PATCH  /api/admin/password              admin only — body: { currentPassword, newPassword }
-//  GET    /api/files/:id                    admin only — download an uploaded file (resume PDFs)
+//  POST   /api/files/resume                 PUBLIC, rate-limited — raw PDF body (≤5MB), X-Filename header → { id, filename }
+//  GET    /api/files/:id                    admin only — download an uploaded file (logged to admin_logs)
+//  PUT    /api/files/:id                    admin only — restore a file under its id (raw PDF body, X-Filename)
 //
 //  Everything else serves the two static frontend builds the Dockerfile bakes
 //  into public/ and public/dashboard/ (client and dashboard respectively) —
@@ -33,8 +36,14 @@ const bcrypt = require('bcryptjs');
 const { pool, initDb } = require('./src/db');
 const { requireAdmin, MIN_PASSWORD_LENGTH } = require('./src/auth');
 const entitiesRouter = require('./src/routes/entities');
+const { saveResumePdf, restoreFile } = require('./src/files');
+const { limitPublicSubmissions } = require('./src/rateLimit');
 
 const app = express();
+// Exactly one proxy (Hamravesh's ingress) sits in front of this app, so req.ip
+// is the visitor's address from the last X-Forwarded-For hop — what the public
+// rate limit keys on. Trusting more hops would let a client spoof its own IP.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
@@ -101,14 +110,44 @@ app.get('/api/stats/workshop-registrations', requireAdmin, async (req, res, next
   } catch (err) { next(err); }
 });
 
-// Admin-only download of an uploaded file (club-owner-call resume PDFs).
+// Resume PDFs: raw PDF body, original name in X-Filename (URI-encoded). 6mb lets
+// files.js answer an oversize upload with its own Persian message; past that
+// the body parser's 413 kicks in.
+const pdfBody = express.raw({ type: 'application/pdf', limit: '6mb' });
+const headerFilename = (req) => {
+  try { return decodeURIComponent(req.get('X-Filename') || ''); } catch { return ''; }
+};
+
+// Public: the club-owner-call form uploads the resume as soon as it's picked,
+// then submits the application with the returned id.
+app.post('/api/files/resume', limitPublicSubmissions, pdfBody, async (req, res, next) => {
+  try {
+    res.status(201).json(await saveResumePdf(req.body, headerFilename(req)));
+  } catch (err) { next(err); }
+});
+
+// Admin-only download of an uploaded file. Every download is written to
+// admin_logs (resumes are personal data — who opened which one is worth knowing).
 app.get('/api/files/:id', requireAdmin, async (req, res, next) => {
   try {
     const { rows } = await pool.query('SELECT filename, content_type, data FROM files WHERE id = $1', [req.params.id]);
+    pool.query(
+      `INSERT INTO admin_logs (admin_username, method, entity, entity_id, status_code) VALUES ($1, 'GET', 'File', $2, $3)`,
+      [req.adminUser, req.params.id, rows[0] ? 200 : 404]
+    ).catch((err) => console.error('admin_logs insert failed', err));
     if (!rows[0]) return res.status(404).json({ error: 'not found' });
     res.set('Content-Type', rows[0].content_type);
     res.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(rows[0].filename)}`);
+    res.set('X-Content-Type-Options', 'nosniff'); // never let a browser second-guess it as HTML/script
     res.send(rows[0].data);
+  } catch (err) { next(err); }
+});
+
+// Admin-only: put a backed-up file back under its original id (scripts/restore-from-backup.js).
+app.put('/api/files/:id', requireAdmin, pdfBody, async (req, res, next) => {
+  try {
+    await restoreFile(req.params.id, req.body, headerFilename(req));
+    res.json({ ok: true });
   } catch (err) { next(err); }
 });
 

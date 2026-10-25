@@ -8,6 +8,7 @@
 //     node scripts/restore-from-backup.js backups/<folder> [Entity ...]
 // With no entity names, restores every file in the folder. Prefer naming the
 // one entity you need (e.g. WorkshopPurchase) over restoring everything.
+// Resume PDFs (files/) come back whenever Application is restored.
 'use strict';
 
 const fs = require('fs');
@@ -34,6 +35,22 @@ async function main() {
       body: JSON.stringify(records),
     });
     console.log(res.ok ? `${name}: restored ${records.length} rows` : `${name}: FAILED ${res.status} ${await res.text()}`);
+  }
+
+  const filesDir = path.join(dir, 'files');
+  if (fs.existsSync(path.join(filesDir, 'index.json')) && (!only.length || only.includes('Application'))) {
+    const index = JSON.parse(fs.readFileSync(path.join(filesDir, 'index.json')));
+    let ok = 0;
+    for (const [id, filename] of Object.entries(index)) {
+      const res = await fetch(`${API_BASE_URL}/api/files/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/pdf', 'X-Filename': encodeURIComponent(filename), Authorization: AUTH },
+        body: fs.readFileSync(path.join(filesDir, `${id}.pdf`)),
+      });
+      if (res.ok) ok++;
+      else console.log(`file ${id}: FAILED ${res.status} ${await res.text()}`);
+    }
+    console.log(`files: restored ${ok} of ${Object.keys(index).length} resume PDFs`);
   }
 }
 main();

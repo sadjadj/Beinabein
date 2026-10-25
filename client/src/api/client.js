@@ -21,4 +21,20 @@ export const api = {
   createPerson: (data) => request('POST', '/entities/Person', data),
   createWorkshopPurchase: (data) => request('POST', '/entities/WorkshopPurchase', data),
   createApplication: (data) => request('POST', '/entities/Application', data),
+  // XHR rather than fetch: it reports upload progress for the progress bar.
+  uploadResume: (file, onProgress) => new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/files/resume`);
+    xhr.setRequestHeader('Content-Type', 'application/pdf');
+    xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name));
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(e.loaded / e.total);
+    xhr.onload = () => {
+      let payload = null;
+      try { payload = JSON.parse(xhr.responseText); } catch { /* non-JSON error page */ }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(payload);
+      else reject(new Error(payload?.error || 'بارگذاری ناموفق بود'));
+    };
+    xhr.onerror = () => reject(new Error('بارگذاری ناموفق بود — اتصال اینترنت را بررسی کنید'));
+    xhr.send(file);
+  }),
 };

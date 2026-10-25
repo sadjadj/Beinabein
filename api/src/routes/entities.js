@@ -6,7 +6,7 @@ const { pool } = require('../db');
 const { requireAdmin } = require('../auth');
 const { ENTITY_NAMES } = require('../schemas');
 const { buildWhere, buildSetParam, parseSort } = require('../queryBuilder');
-const { saveResumePdf } = require('../files');
+const { limitPublicSubmissions } = require('../rateLimit');
 
 const router = express.Router();
 
@@ -17,8 +17,12 @@ const PUBLIC_ACTIONS = new Set(['list:Workshop', 'get:Workshop', 'create:Person'
 
 function publicOr(action) {
   return (req, res, next) => {
-    if (PUBLIC_ACTIONS.has(`${action}:${req.params.name}`)) return next();
-    return requireAdmin(req, res, next);
+    if (!PUBLIC_ACTIONS.has(`${action}:${req.params.name}`)) return requireAdmin(req, res, next);
+    // The dashboard sends its admin credential on public actions too (e.g. adding a
+    // Person) — verify it, so admin writes are audit-logged and never rate-limited.
+    if (req.headers.authorization) return requireAdmin(req, res, next);
+    if (action === 'create') return limitPublicSubmissions(req, res, next);
+    next();
   };
 }
 
@@ -157,13 +161,14 @@ router.post('/:name', publicOr('create'), async (req, res, next) => {
       // Public club-owner-call submissions always start unreviewed — the sender
       // can't pre-set their own status; only admins move it on from there.
       data.status = 'submitted';
-      // Optional resume PDF arrives inline (base64); only its file id is kept on the record.
-      if (data.resume_file) {
-        const file = await saveResumePdf(data.resume_file);
-        data.resume_file_id = file.id;
-        data.resume_file_name = file.filename;
+      // The resume PDF was uploaded beforehand (POST /api/files/resume); keep its id
+      // only if that file really exists, and take its name from the stored row.
+      delete data.resume_file_name;
+      if (data.resume_file_id) {
+        const { rows } = await pool.query('SELECT filename FROM files WHERE id = $1', [String(data.resume_file_id)]);
+        if (rows[0]) data.resume_file_name = rows[0].filename;
+        else delete data.resume_file_id;
       }
-      delete data.resume_file;
     }
     await pool.query('INSERT INTO entities (collection, id, data) VALUES ($1, $2, $3)', [req.params.name, id, data]);
     res.status(201).json(toRecord({ id, data }));
