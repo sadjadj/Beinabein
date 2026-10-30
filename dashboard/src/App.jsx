@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -10,40 +11,40 @@ import Login from '@/pages/Login';
 import ChangePassword from '@/pages/ChangePassword';
 // Add page imports here
 import Layout from '@/components/Layout';
-import Dashboard from '@/pages/Dashboard';
-import PeopleHubPage from '@/pages/PeopleHubPage';
-import FinanceHubPage from '@/pages/FinanceHubPage';
-import WorkspacePage from '@/pages/WorkspacePage';
-import WorkspaceSubscriptionsPage from '@/pages/WorkspaceSubscriptionsPage';
-import CafePage from '@/pages/CafePage';
-import WorkshopsHubPage from '@/pages/WorkshopsHubPage';
-import WorkshopRegistrationsPage from '@/pages/WorkshopRegistrationsPage';
-import GroupsHubPage from '@/pages/GroupsHubPage';
-import StorePage from '@/pages/StorePage';
-import GroupProfile from '@/pages/GroupProfile';
-import GroupAttendancePage from '@/pages/GroupAttendancePage';
-import AttendancePage from '@/pages/AttendancePage';
-import WorkshopAttendancePage from '@/pages/WorkshopAttendancePage';
-import PersonProfile from '@/pages/PersonProfile';
-import FacilitatorsPage from '@/pages/FacilitatorsPage';
-import FacilitatorProfile from '@/pages/FacilitatorProfile';
-import BrandProfile from '@/pages/BrandProfile';
-import BrandsPage from '@/pages/BrandsPage';
-import ArtistProfile from '@/pages/ArtistProfile';
-import ArtistsPage from '@/pages/ArtistsPage';
-import CalendarPage from '@/pages/CalendarPage';
-import AccountingPage from '@/pages/AccountingPage';
-import ReturnsPage from '@/pages/ReturnsPage';
-import ExpensesPage from '@/pages/ExpensesPage';
-import SpacesPage from '@/pages/SpacesPage';
-import ApplicationsPage from '@/pages/ApplicationsPage';
-import WorkshopProfile from '@/pages/WorkshopProfile';
-import WorkspaceOrderDetail from '@/pages/WorkspaceOrderDetail';
-import InvoiceDetail from '@/pages/InvoiceDetail';
-import DailyReport from '@/pages/DailyReport';
-import FinancialReport from '@/pages/FinancialReport';
-import EventItemsPage from '@/pages/EventItemsPage';
-import EventCategoriesPage from '@/pages/EventCategoriesPage';
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const PeopleHubPage = lazy(() => import('@/pages/PeopleHubPage'));
+const FinanceHubPage = lazy(() => import('@/pages/FinanceHubPage'));
+const WorkspacePage = lazy(() => import('@/pages/WorkspacePage'));
+const WorkspaceSubscriptionsPage = lazy(() => import('@/pages/WorkspaceSubscriptionsPage'));
+const CafePage = lazy(() => import('@/pages/CafePage'));
+const WorkshopsHubPage = lazy(() => import('@/pages/WorkshopsHubPage'));
+const WorkshopRegistrationsPage = lazy(() => import('@/pages/WorkshopRegistrationsPage'));
+const GroupsHubPage = lazy(() => import('@/pages/GroupsHubPage'));
+const StorePage = lazy(() => import('@/pages/StorePage'));
+const GroupProfile = lazy(() => import('@/pages/GroupProfile'));
+const GroupAttendancePage = lazy(() => import('@/pages/GroupAttendancePage'));
+const AttendancePage = lazy(() => import('@/pages/AttendancePage'));
+const WorkshopAttendancePage = lazy(() => import('@/pages/WorkshopAttendancePage'));
+const PersonProfile = lazy(() => import('@/pages/PersonProfile'));
+const FacilitatorsPage = lazy(() => import('@/pages/FacilitatorsPage'));
+const FacilitatorProfile = lazy(() => import('@/pages/FacilitatorProfile'));
+const BrandProfile = lazy(() => import('@/pages/BrandProfile'));
+const BrandsPage = lazy(() => import('@/pages/BrandsPage'));
+const ArtistProfile = lazy(() => import('@/pages/ArtistProfile'));
+const ArtistsPage = lazy(() => import('@/pages/ArtistsPage'));
+const CalendarPage = lazy(() => import('@/pages/CalendarPage'));
+const AccountingPage = lazy(() => import('@/pages/AccountingPage'));
+const ReturnsPage = lazy(() => import('@/pages/ReturnsPage'));
+const ExpensesPage = lazy(() => import('@/pages/ExpensesPage'));
+const SpacesPage = lazy(() => import('@/pages/SpacesPage'));
+const ApplicationsPage = lazy(() => import('@/pages/ApplicationsPage'));
+const WorkshopProfile = lazy(() => import('@/pages/WorkshopProfile'));
+const WorkspaceOrderDetail = lazy(() => import('@/pages/WorkspaceOrderDetail'));
+const InvoiceDetail = lazy(() => import('@/pages/InvoiceDetail'));
+const DailyReport = lazy(() => import('@/pages/DailyReport'));
+const FinancialReport = lazy(() => import('@/pages/FinancialReport'));
+const EventItemsPage = lazy(() => import('@/pages/EventItemsPage'));
+const EventCategoriesPage = lazy(() => import('@/pages/EventCategoriesPage'));
 
 const AuthenticatedApp = () => {
   return (

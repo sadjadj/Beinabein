@@ -16,7 +16,32 @@ function getStoredCredential() {
   try { return localStorage.getItem(CREDENTIAL_KEY); } catch { return null; }
 }
 
+// Entity reads are remembered for a short while, so moving between pages doesn't
+// re-download the same tables. Any write clears everything: simplest way to never
+// show stale data after an edit here. Edits by another admin or public sign-ups
+// show up after CACHE_MS or a page reload.
+const CACHE_MS = 30 * 1000;
+const readCache = new Map(); // key -> { at, promise }
+export function clearReadCache() { readCache.clear(); }
+
 async function request(method, path, body) {
+  const isRead = path.startsWith('/entities/') && (method === 'GET' || path.endsWith('/filter'));
+  if (!isRead) {
+    if (method !== 'GET') readCache.clear();
+    return send(method, path, body);
+  }
+  const key = `${method} ${path} ${body !== undefined ? JSON.stringify(body) : ''}`;
+  let hit = readCache.get(key);
+  if (!hit || Date.now() - hit.at > CACHE_MS) {
+    hit = { at: Date.now(), promise: send(method, path, body) };
+    readCache.set(key, hit);
+    hit.promise.catch(() => readCache.get(key) === hit && readCache.delete(key));
+  }
+  // A copy, so a page sorting or editing its result can't change what the next page gets.
+  return structuredClone(await hit.promise);
+}
+
+async function send(method, path, body) {
   const credential = getStoredCredential();
   const headers = body !== undefined ? { 'Content-Type': 'application/json' } : {};
   if (credential) headers.Authorization = `Basic ${credential}`;
@@ -47,17 +72,17 @@ function makeEntityClient(name) {
       const qs = params.toString();
       return request('GET', `/entities/${name}${qs ? `?${qs}` : ''}`);
     },
-    get: (id) => request('GET', `/entities/${name}/${id}`),
+    get: (id) => request('GET', `/entities/${name}/${encodeURIComponent(id)}`),
     create: (data) => request('POST', `/entities/${name}`, data),
     bulkCreate: (records) => request('POST', `/entities/${name}/bulk`, records),
     // Per-record partial patch, unlike bulkCreate's full-replace upsert —
     // reuses the same PUT (shallow-merge) the single update() call makes,
     // just fired once per record.
-    bulkUpdate: (records) => Promise.all(records.map(({ id, ...patch }) => request('PUT', `/entities/${name}/${id}`, patch))),
+    bulkUpdate: (records) => Promise.all(records.map(({ id, ...patch }) => request('PUT', `/entities/${name}/${encodeURIComponent(id)}`, patch))),
     filter: (query) => request('POST', `/entities/${name}/filter`, query),
-    update: (id, patch) => request('PUT', `/entities/${name}/${id}`, patch),
+    update: (id, patch) => request('PUT', `/entities/${name}/${encodeURIComponent(id)}`, patch),
     updateMany: (filter, update) => request('PATCH', `/entities/${name}/many`, { filter, set: update?.$set ?? update }),
-    delete: (id) => request('DELETE', `/entities/${name}/${id}`),
+    delete: (id) => request('DELETE', `/entities/${name}/${encodeURIComponent(id)}`),
     deleteMany: (filter) => request('DELETE', `/entities/${name}/many`, filter),
   };
 }
@@ -86,7 +111,7 @@ export const base44 = {
     // fetch with auth, then hand the bytes to the browser as a download.
     async download(id, filename) {
       const credential = getStoredCredential();
-      const res = await fetch(`${API_BASE}/files/${id}`, { headers: credential ? { Authorization: `Basic ${credential}` } : {} });
+      const res = await fetch(`${API_BASE}/files/${encodeURIComponent(id)}`, { headers: credential ? { Authorization: `Basic ${credential}` } : {} });
       if (!res.ok) throw new Error(res.status === 404 ? 'فایل پیدا نشد' : res.statusText);
       const url = URL.createObjectURL(await res.blob());
       const a = document.createElement('a');
@@ -131,6 +156,7 @@ export const base44 = {
       return { role: 'admin', email: user, mustChangePassword };
     },
     logout() {
+      readCache.clear();
       try { localStorage.removeItem(CREDENTIAL_KEY); } catch { /* ignore */ }
     },
     // currentPassword is checked server-side independently of the stored

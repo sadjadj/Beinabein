@@ -1,0 +1,8 @@
+# Docker ignores .gitignore — keep local data and host builds out of the image.
+**/node_modules
+**/dist
+**/.env*
+!**/.env.example
+api/backups
+.git
+.claude

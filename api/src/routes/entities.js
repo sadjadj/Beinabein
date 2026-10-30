@@ -57,7 +57,8 @@ router.use((req, res, next) => {
 });
 
 function toRecord(row) {
-  return { id: row.id, ...row.data };
+  // Real row id last: a stored `id` field (e.g. from a public body) must never shadow it.
+  return { ...row.data, id: row.id };
 }
 
 // GET /api/entities/:name?sort=-created_date[&limit=N]
@@ -153,6 +154,7 @@ router.post('/:name', publicOr('create'), async (req, res, next) => {
   try {
     const id = crypto.randomUUID();
     const data = { created_date: new Date().toISOString(), ...req.body };
+    delete data.id; // the server assigns ids
     if (req.params.name === 'Application' && !req.adminUser) {
       // Honeypot: `website` is a field real visitors never see. Bots fill it —
       // answer as if it worked so they don't retry, and store nothing.

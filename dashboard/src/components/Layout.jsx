@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText, Layers, ShoppingBag, LogOut, KeyRound, Megaphone } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
@@ -190,7 +190,8 @@ export default function Layout() {
       </div>
 
       <main className="flex-1 min-w-0 pt-14 md:pt-0">
-        <Outlet />
+        {/* Pages are loaded on first visit (App.jsx); keep the menu up meanwhile. */}
+        <Suspense fallback={null}><Outlet /></Suspense>
       </main>
     </div>
   );
