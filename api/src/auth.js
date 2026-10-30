@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const { pool } = require('./db');
 
@@ -15,6 +16,20 @@ function recordFailure(username) {
   entry.count += 1;
   if (entry.count >= MAX_ATTEMPTS) entry.lockedUntil = Date.now() + LOCKOUT_MS;
   failedAttempts.set(username, entry);
+}
+
+// bcrypt is deliberately slow (~0.25s CPU on our server) and every dashboard
+// request carries the password, so a page firing 12 requests queued ~5s of
+// bcrypt. Remember which hash a credential already matched: a password change
+// gives a new hash, so stale entries simply stop matching.
+const verified = new Map(); // sha256(user:pass) -> password_hash it matched
+async function passwordMatches(username, password, hash) {
+  const key = crypto.createHash('sha256').update(`${username}:${password}`).digest('hex');
+  if (verified.get(key) === hash) return true;
+  if (!(await bcrypt.compare(password, hash))) return false;
+  if (verified.size >= 100) verified.clear(); // ponytail: crude bound, a handful of admins
+  verified.set(key, hash);
+  return true;
 }
 
 // Sets req.adminUser + req.adminMustChangePassword on success, else 401s (or
@@ -38,7 +53,7 @@ async function requireAdmin(req, res, next) {
 
     const { rows } = await pool.query('SELECT password_hash, must_change_password FROM admins WHERE username = $1', [username]);
     const admin = rows[0];
-    const ok = admin && (await bcrypt.compare(password || '', admin.password_hash));
+    const ok = admin && (await passwordMatches(username, password || '', admin.password_hash));
 
     if (!ok) {
       recordFailure(username);
