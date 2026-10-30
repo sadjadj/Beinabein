@@ -20,7 +20,7 @@ function getStoredCredential() {
 // re-download the same tables. Any write clears everything: simplest way to never
 // show stale data after an edit here. Edits by another admin or public sign-ups
 // show up after CACHE_MS or a page reload.
-const CACHE_MS = 2 * 60 * 1000;
+const CACHE_MS = 30 * 1000;
 const readCache = new Map(); // key -> { at, promise }
 export function clearReadCache() { readCache.clear(); }
 
