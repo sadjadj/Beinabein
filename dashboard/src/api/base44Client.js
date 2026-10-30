@@ -47,17 +47,17 @@ function makeEntityClient(name) {
       const qs = params.toString();
       return request('GET', `/entities/${name}${qs ? `?${qs}` : ''}`);
     },
-    get: (id) => request('GET', `/entities/${name}/${id}`),
+    get: (id) => request('GET', `/entities/${name}/${encodeURIComponent(id)}`),
     create: (data) => request('POST', `/entities/${name}`, data),
     bulkCreate: (records) => request('POST', `/entities/${name}/bulk`, records),
     // Per-record partial patch, unlike bulkCreate's full-replace upsert —
     // reuses the same PUT (shallow-merge) the single update() call makes,
     // just fired once per record.
-    bulkUpdate: (records) => Promise.all(records.map(({ id, ...patch }) => request('PUT', `/entities/${name}/${id}`, patch))),
+    bulkUpdate: (records) => Promise.all(records.map(({ id, ...patch }) => request('PUT', `/entities/${name}/${encodeURIComponent(id)}`, patch))),
     filter: (query) => request('POST', `/entities/${name}/filter`, query),
-    update: (id, patch) => request('PUT', `/entities/${name}/${id}`, patch),
+    update: (id, patch) => request('PUT', `/entities/${name}/${encodeURIComponent(id)}`, patch),
     updateMany: (filter, update) => request('PATCH', `/entities/${name}/many`, { filter, set: update?.$set ?? update }),
-    delete: (id) => request('DELETE', `/entities/${name}/${id}`),
+    delete: (id) => request('DELETE', `/entities/${name}/${encodeURIComponent(id)}`),
     deleteMany: (filter) => request('DELETE', `/entities/${name}/many`, filter),
   };
 }
@@ -86,7 +86,7 @@ export const base44 = {
     // fetch with auth, then hand the bytes to the browser as a download.
     async download(id, filename) {
       const credential = getStoredCredential();
-      const res = await fetch(`${API_BASE}/files/${id}`, { headers: credential ? { Authorization: `Basic ${credential}` } : {} });
+      const res = await fetch(`${API_BASE}/files/${encodeURIComponent(id)}`, { headers: credential ? { Authorization: `Basic ${credential}` } : {} });
       if (!res.ok) throw new Error(res.status === 404 ? 'فایل پیدا نشد' : res.statusText);
       const url = URL.createObjectURL(await res.blob());
       const a = document.createElement('a');

@@ -48,6 +48,11 @@ async function requireAdmin(req, res, next) {
     failedAttempts.delete(username);
     req.adminUser = username;
     req.adminMustChangePassword = admin.must_change_password;
+    // A temporary password only unlocks changing it — enforced here, not just in the dashboard.
+    const path = req.originalUrl.split('?')[0];
+    if (admin.must_change_password && path !== '/api/me' && path !== '/api/admin/password') {
+      return res.status(403).json({ error: 'ابتدا رمز عبور را تغییر دهید' });
+    }
     next();
   } catch (err) {
     next(err);

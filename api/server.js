@@ -77,6 +77,9 @@ app.patch('/api/admin/password', requireAdmin, async (req, res, next) => {
     if (!currentOk) {
       return res.status(400).json({ error: 'رمز عبور فعلی اشتباه است' });
     }
+    if (newPassword === currentPassword) {
+      return res.status(400).json({ error: 'رمز عبور جدید باید با رمز فعلی فرق داشته باشد' });
+    }
     const hash = await bcrypt.hash(newPassword, 10);
     await pool.query(
       'UPDATE admins SET password_hash = $1, must_change_password = false WHERE username = $2',
