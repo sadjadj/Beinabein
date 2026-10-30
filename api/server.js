@@ -32,6 +32,7 @@
 
 const path = require('node:path');
 const express = require('express');
+const compression = require('compression');
 const bcrypt = require('bcryptjs');
 const { pool, initDb } = require('./src/db');
 const { requireAdmin, MIN_PASSWORD_LENGTH } = require('./src/auth');
@@ -50,6 +51,7 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 // Default 100kb is too small for bulk-importing a few hundred records at
 // once (hit this for real: Person/649 rows and WorkshopPurchase/611 rows
 // both 500'd on the default limit during migration).
+app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
@@ -162,10 +164,17 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'not found' }));
 
 // /dashboard's static files + SPA fallback MUST be registered before the root
 // ones below, or root's catch-all would swallow every /dashboard/* request.
-app.use('/dashboard', express.static(path.join(PUBLIC_DIR, 'dashboard')));
+// Vite puts a content hash in every /assets/ filename, so browsers can keep them for good;
+// index.html stays revalidated so a new deploy is picked up.
+const staticOpts = {
+  setHeaders: (res, filePath) => {
+    if (filePath.includes(`${path.sep}assets${path.sep}`)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  },
+};
+app.use('/dashboard', express.static(path.join(PUBLIC_DIR, 'dashboard'), staticOpts));
 app.get('/dashboard/*', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'dashboard', 'index.html')));
 
-app.use(express.static(PUBLIC_DIR));
+app.use(express.static(PUBLIC_DIR, staticOpts));
 app.get('*', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
 app.use((err, req, res, next) => {
