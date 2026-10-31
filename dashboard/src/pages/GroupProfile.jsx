@@ -71,7 +71,7 @@ export default function GroupProfile() {
   useEffect(() => { fetchData(); }, [id]);
 
   const allSessions = useMemo(() => group ? computeGroupSessions(group) : [], [group]);
-  const totalSessions = allSessions.length;
+  const totalSessions = group ? computeGroupTotalSessions(group) : 0;
 
   const availableMonths = useMemo(() => {
     const set = new Set(allSessions.map(s => gregorianToMonthKey(s.date)));
