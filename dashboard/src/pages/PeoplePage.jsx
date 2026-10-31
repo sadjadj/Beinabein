@@ -12,6 +12,7 @@ import PersianNumberInput from '@/components/PersianNumberInput';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 import ExportButton from '@/components/ExportButton';
+import TablePager, { usePaged } from '@/components/TablePager';
 
 export default function PeoplePage({ embedded = false }) {
   const navigate = useNavigate();
@@ -127,6 +128,8 @@ export default function PeoplePage({ embedded = false }) {
       total: totalActivity,
     };
   });
+
+  const paged = usePaged(sortedFiltered, [search, genderFilter, howMetFilter, lastServiceFilter, sortByActivity].join('|'));
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -291,7 +294,7 @@ export default function PeoplePage({ embedded = false }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedFiltered.map(p => {
+                  {paged.pageRows.map(p => {
                     const lastService = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases);
                     const totalActivity = (allData.workspaceOrders.filter(o => o.person_phone === p.phone).length) +
                       (allData.itemPurchases.filter(i => i.person_phone === p.phone).length) +
@@ -320,6 +323,7 @@ export default function PeoplePage({ embedded = false }) {
                 </tbody>
               </table>
             </div>
+            <TablePager {...paged} />
             <div className="p-3 border-t border-border text-xs text-muted-foreground text-center">
               {toPersianNum(sortedFiltered.length)} نفر نمایش داده شده
             </div>

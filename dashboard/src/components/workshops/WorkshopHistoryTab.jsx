@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Search, FileText, RotateCcw, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, FileText, RotateCcw, Pencil, Trash2 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -15,6 +15,7 @@ import JalaliDateInput from '@/components/JalaliDateInput';
 import ExportButton from '@/components/ExportButton';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
 import { formatJalaliShort, todayGregorian, getJalaliParts, jalaliToGregorianStr, jalaliMonthNames } from '@/lib/jalali';
+import TablePager from '@/components/TablePager';
 
 export default function WorkshopHistoryTab() {
   const navigate = useNavigate();
@@ -239,17 +240,7 @@ export default function WorkshopHistoryTab() {
             </table>
           </div>
         )}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 p-4 border-t border-border">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 hover:bg-muted">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <span className="text-sm text-muted-foreground">صفحه {toPersianNum(safePage)} از {toPersianNum(totalPages)}</span>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 hover:bg-muted">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        <TablePager page={safePage} totalPages={totalPages} setPage={setPage} />
       </div>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>

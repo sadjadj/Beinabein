@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Briefcase, Users, Repeat, Plus, ChevronLeft, ChevronRight, Search, RotateCcw, Pencil, Trash2 } from 'lucide-react';
+import { Briefcase, Users, Repeat, Plus, ChevronLeft, Search, RotateCcw, Pencil, Trash2 } from 'lucide-react';
 import ExportButton from '@/components/ExportButton';
 import { computeWorkspaceStats, findOrCreatePerson, toPersianNum, formatCurrency, getDateRange } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
@@ -24,6 +24,7 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { useUrlTab } from '@/hooks/useUrlTab';
+import TablePager from '@/components/TablePager';
 
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 
@@ -523,17 +524,7 @@ export default function WorkspacePage() {
               </div>
             </div>
             {renderOrdersTable(pagedHistoryRecords, true)}
-            {historyTotalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 p-4 border-t border-border">
-                <button onClick={() => setHistoryPage(p => Math.max(1, p - 1))} disabled={historySafePage === 1} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 hover:bg-muted">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-                <span className="text-sm text-muted-foreground">صفحه {toPersianNum(historySafePage)} از {toPersianNum(historyTotalPages)}</span>
-                <button onClick={() => setHistoryPage(p => Math.min(historyTotalPages, p + 1))} disabled={historySafePage === historyTotalPages} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 hover:bg-muted">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+            <TablePager page={historySafePage} totalPages={historyTotalPages} setPage={setHistoryPage} />
           </div>
         </>
       )}

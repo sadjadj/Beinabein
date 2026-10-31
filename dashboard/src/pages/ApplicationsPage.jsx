@@ -6,6 +6,7 @@ import { formatJalali } from '@/lib/jalali';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import TablePager, { usePaged } from '@/components/TablePager';
 
 // Submissions from the public club-owner-call form (client/ at /club-owner-call).
 const STATUSES = [
@@ -80,6 +81,8 @@ export default function ApplicationsPage() {
       return (b.created_date || '').localeCompare(a.created_date || '');
     });
 
+  const paged = usePaged(filtered, [search, statusFilter, sortBy].join('|'));
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
       <div>
@@ -134,7 +137,7 @@ export default function ApplicationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(a => (
+                {paged.pageRows.map(a => (
                   <tr key={a.id} className="border-t border-border hover:bg-muted/30">
                     <td className="p-3 text-center">
                       <button onClick={() => save(a.id, { starred: !a.starred })} aria-label={a.starred ? 'برداشتن ستاره' : 'ستاره زدن'} aria-pressed={!!a.starred} className="p-1 rounded hover:bg-muted">
@@ -162,6 +165,7 @@ export default function ApplicationsPage() {
             </table>
           </div>
         )}
+        <TablePager {...paged} />
       </div>
 
       <Dialog open={!!open} onOpenChange={(isOpen) => !isOpen && setOpenId(null)}>

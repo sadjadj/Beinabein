@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import InvoiceList from '@/components/cafe/InvoiceList';
 import ExportButton from '@/components/ExportButton';
 import { toJalaliStr, toPersianDigits, todayGregorian } from '@/lib/jalali';
 import { paymentMethodLabels } from '@/lib/labels';
 import { toPersianNum } from '@/lib/stats';
+import TablePager from '@/components/TablePager';
 
 const cafeExportColumns = [
   { key: 'date', label: 'تاریخ' },
@@ -135,27 +135,7 @@ export default function CafeHistoryTab({ invoiceGroups, people, historyRange, se
           onDelete={onDelete}
           emptyMessage="در این بازه فاکتوری ثبت نشده است"
         />
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 p-4 border-t border-border">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={safePage === 1}
-              className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 hover:bg-muted"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <span className="text-sm text-muted-foreground">
-              صفحه {toPersianNum(safePage)} از {toPersianNum(totalPages)}
-            </span>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={safePage === totalPages}
-              className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-30 hover:bg-muted"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        <TablePager page={safePage} totalPages={totalPages} setPage={setCurrentPage} />
       </div>
     </div>
   );
