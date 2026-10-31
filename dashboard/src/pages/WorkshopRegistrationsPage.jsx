@@ -20,6 +20,7 @@ import { heldSessions, planLimit } from '@/lib/registrationSessions';
 import InstallmentFields, { lastSessionDate } from '@/components/workshops/InstallmentFields';
 import { InstallmentPill } from '@/components/workshops/InstallmentChips';
 import { blankInstallmentForm, isInstallment, installmentError, buildInstallments, paidTotal, remaining } from '@/lib/installments';
+import TablePager, { usePaged } from '@/components/TablePager';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -232,6 +233,8 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
     setDeleteTarget(null);
   };
 
+  const paged = usePaged(filtered, [search, workshopFilter, paidFilter].join('|'));
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -385,7 +388,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(p => (
+                {paged.pageRows.map(p => (
                   <tr key={p.id} className={`border-t border-border hover:bg-muted/30 ${editingId === p.id ? '' : 'cursor-pointer'}`} onClick={() => { if (editingId !== p.id) navigate(`/accounting/workshop/${p.id}`); }}>
                     <td className="p-3">
                       <span className="font-medium">{p.person_name || '-'}</span>
@@ -449,6 +452,7 @@ export default function WorkshopRegistrationsPage({ embedded = false }) {
             </table>
           </div>
         )}
+        <TablePager {...paged} />
       </div>
 
       <PlanOverflowDialog payload={overflow} onAccept={acceptOverflow} onClose={() => setOverflow(null)} />

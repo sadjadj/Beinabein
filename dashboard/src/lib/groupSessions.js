@@ -35,9 +35,20 @@ export function computeGroupSessions(group, endDate) {
   return sessions;
 }
 
-// Total sessions held (from start up to today or ended_at)
+// Tehran wall-clock time "HH:MM", to compare with schedule times.
+const nowTehranTime = () => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
+const padTime = (t) => t.split(':').map(x => x.padStart(2, '0')).join(':');
+
+// Total sessions held (from start up to today or ended_at). Today's session
+// counts only once its end time (or start time, if no end) has passed.
 export function computeGroupTotalSessions(group) {
-  return computeGroupSessions(group).length;
+  const today = todayGregorian();
+  const now = nowTehranTime();
+  return computeGroupSessions(group).filter(s => {
+    if (s.date < today) return true;
+    const t = s.end_time || s.start_time;
+    return s.date === today && !!t && padTime(t) <= now;
+  }).length;
 }
 
 // Sessions held within a given Jalali month key "jy-jm"
@@ -60,6 +71,14 @@ export function gregorianToMonthKey(gregorianStr) {
 // Current Jalali month key "jy-jm"
 export function currentJalaliMonthKey() {
   return gregorianToMonthKey(todayGregorian());
+}
+
+// The month a registration belongs to. Registering before the group starts
+// counts for its first month (older records were stamped with the month they
+// were entered, e.g. Mehr for a group starting in Aban). Keys compare as strings.
+export function registrationMonthKey(group, month = currentJalaliMonthKey()) {
+  const start = gregorianToMonthKey(group?.start_date);
+  return start && month < start ? start : month;
 }
 
 // Current week range (Saturday → Friday) as Gregorian strings

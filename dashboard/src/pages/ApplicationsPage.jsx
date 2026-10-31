@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Check, X, Eye, Trash2, Download } from 'lucide-react';
+import { Check, X, Eye, Trash2, Download, Search, Star } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { formatJalali } from '@/lib/jalali';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import TablePager, { usePaged } from '@/components/TablePager';
 
 // Submissions from the public club-owner-call form (client/ at /club-owner-call).
 const STATUSES = [
   { key: 'submitted', label: 'جدید', className: 'bg-amber-50 text-amber-700' },
   { key: 'reviewed', label: 'بررسی‌شده', className: 'bg-slate-100 text-slate-700' },
-  { key: 'invited', label: 'دعوت‌شده', className: 'bg-green-50 text-green-700' },
+  { key: 'invited', label: 'تایید‌شده', className: 'bg-green-50 text-green-700' },
   { key: 'declined', label: 'رد‌شده', className: 'bg-red-50 text-red-700' },
 ];
 const statusOf = (key) => STATUSES.find(s => s.key === key) || STATUSES[0];
@@ -36,6 +37,9 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState(''); // '' = all, 'starred', or a status key
+  const [sortBy, setSortBy] = useState('date_desc');
 
   const fetchData = async () => {
     setLoading(true);
@@ -46,14 +50,15 @@ export default function ApplicationsPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const setStatus = async (id, status) => {
-    setApplications(list => list.map(a => (a.id === id ? { ...a, status } : a)));
+  const save = async (id, patch) => {
+    setApplications(list => list.map(a => (a.id === id ? { ...a, ...patch } : a)));
     try {
-      await base44.entities.Application.update(id, { status });
+      await base44.entities.Application.update(id, patch);
     } catch {
-      fetchData(); // put the saved status back if the update failed
+      fetchData(); // put the saved values back if the update failed
     }
   };
+  const setStatus = (id, status) => save(id, { status });
 
   const handleDelete = async () => {
     const id = deleteId;
@@ -65,6 +70,19 @@ export default function ApplicationsPage() {
 
   const open = applications.find(a => a.id === openId);
 
+  const q = search.trim().toLowerCase();
+  const filtered = applications
+    .filter(a => !statusFilter || (statusFilter === 'starred' ? a.starred : (a.status || 'submitted') === statusFilter))
+    .filter(a => !q || [a.full_name, a.phone, a.topics].some(v => (v || '').toLowerCase().includes(q)))
+    .sort((a, b) => {
+      if (sortBy === 'date_asc') return (a.created_date || '').localeCompare(b.created_date || '');
+      if (sortBy === 'name_asc') return (a.full_name || '').localeCompare(b.full_name || '', 'fa');
+      if (sortBy === 'name_desc') return (b.full_name || '').localeCompare(a.full_name || '', 'fa');
+      return (b.created_date || '').localeCompare(a.created_date || '');
+    });
+
+  const paged = usePaged(filtered, [search, statusFilter, sortBy].join('|'));
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
       <div>
@@ -73,16 +91,44 @@ export default function ApplicationsPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border"><h3 className="text-sm font-semibold">درخواست‌ها ({toPersianNum(applications.length)})</h3></div>
+        <div className="p-4 border-b border-border space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="text-sm font-semibold">درخواست‌ها ({toPersianNum(filtered.length)})</h3>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm" aria-label="مرتب‌سازی">
+                <option value="date_desc">جدیدترین</option>
+                <option value="date_asc">قدیمی‌ترین</option>
+                <option value="name_asc">نام (الف-ی)</option>
+                <option value="name_desc">نام (ی-الف)</option>
+              </select>
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="جستجو: نام، شماره، موضوع..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-full sm:w-72"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            {[['', 'همه'], ...STATUSES.map(s => [s.key, s.label]), ['starred', 'ستاره‌دار']].map(([val, lbl]) => (
+              <button key={val} onClick={() => setStatusFilter(val)} className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${statusFilter === val ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>{lbl}</button>
+            ))}
+          </div>
+        </div>
         {loading ? (
-          <TableSkeleton rows={4} cols={5} />
-        ) : applications.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">هنوز درخواستی ثبت نشده است</div>
+          <TableSkeleton rows={4} cols={6} />
+        ) : filtered.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">{applications.length ? 'نتیجه‌ای یافت نشد' : 'هنوز درخواستی ثبت نشده است'}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
+                  <th className="w-10 p-3"><span className="sr-only">ستاره</span></th>
                   <th className="text-right p-3 font-medium">نام</th>
                   <th className="text-right p-3 font-medium">شماره تماس</th>
                   <th className="text-center p-3 font-medium">امکان حضور</th>
@@ -91,8 +137,13 @@ export default function ApplicationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {applications.map(a => (
+                {paged.pageRows.map(a => (
                   <tr key={a.id} className="border-t border-border hover:bg-muted/30">
+                    <td className="p-3 text-center">
+                      <button onClick={() => save(a.id, { starred: !a.starred })} aria-label={a.starred ? 'برداشتن ستاره' : 'ستاره زدن'} aria-pressed={!!a.starred} className="p-1 rounded hover:bg-muted">
+                        <Star className={`w-4 h-4 ${a.starred ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/40'}`} />
+                      </button>
+                    </td>
                     <td className="p-3 font-medium">{a.full_name || '—'}</td>
                     <td className="p-3"><span dir="ltr">{a.phone || '—'}</span></td>
                     <td className="p-3 text-center">
@@ -114,6 +165,7 @@ export default function ApplicationsPage() {
             </table>
           </div>
         )}
+        <TablePager {...paged} />
       </div>
 
       <Dialog open={!!open} onOpenChange={(isOpen) => !isOpen && setOpenId(null)}>

@@ -6,7 +6,7 @@ import { ArrowRight, Pencil, Users, Calendar, Clock, MapPin, ClipboardCheck, Plu
 import { toPersianNum, formatCurrency, findOrCreatePerson } from '@/lib/stats';
 import { dayLabels, paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { formatJalaliShort, todayGregorian, getJalaliParts } from '@/lib/jalali';
-import { computeGroupSessions, computeGroupTotalSessions, gregorianToMonthKey, currentJalaliMonthKey } from '@/lib/groupSessions';
+import { computeGroupSessions, computeGroupTotalSessions, gregorianToMonthKey, currentJalaliMonthKey, registrationMonthKey } from '@/lib/groupSessions';
 import { Skeleton } from '@/components/SkeletonPatterns';
 import GroupForm from '@/components/GroupForm';
 import JalaliDateInput from '@/components/JalaliDateInput';
@@ -71,7 +71,7 @@ export default function GroupProfile() {
   useEffect(() => { fetchData(); }, [id]);
 
   const allSessions = useMemo(() => group ? computeGroupSessions(group) : [], [group]);
-  const totalSessions = allSessions.length;
+  const totalSessions = group ? computeGroupTotalSessions(group) : 0;
 
   const availableMonths = useMemo(() => {
     const set = new Set(allSessions.map(s => gregorianToMonthKey(s.date)));
@@ -86,7 +86,7 @@ export default function GroupProfile() {
   }, [availableMonths]);
 
   const monthSessions = useMemo(() => allSessions.filter(s => gregorianToMonthKey(s.date) === monthKey), [allSessions, monthKey]);
-  const monthPurchases = purchases.filter(p => p.month === monthKey);
+  const monthPurchases = purchases.filter(p => registrationMonthKey(group, p.month) === monthKey);
   const selectedRegPlan = plans.find(p => p.id === regForm.plan_id);
   const computedPaid = selectedRegPlan ? isAmountPaid(regForm.price, selectedRegPlan) : false;
 

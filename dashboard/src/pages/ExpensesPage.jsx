@@ -9,6 +9,7 @@ import PriceInput from '@/components/PriceInput';
 import ExportButton from '@/components/ExportButton';
 import { TableSkeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 import ExpenseCategoryTab from '@/components/expenses/ExpenseCategoryTab';
+import TablePager, { usePaged } from '@/components/TablePager';
 
 // Categories themselves live in the ExpenseCategory entity; these only style
 // the built-in ones (seeded with these ids), new ones fall back to defaults.
@@ -210,6 +211,8 @@ export default function ExpensesPage({ embedded = false }) {
     categoryTotalsCount[e.category] = (categoryTotalsCount[e.category] || 0) + 1;
   });
 
+  const paged = usePaged(filtered, [filterCategory, search, dateFrom, dateTo].join('|'));
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -293,7 +296,7 @@ export default function ExpensesPage({ embedded = false }) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(e => {
+                {paged.pageRows.map(e => {
                   const Icon = categoryIcons[e.category] || Wallet;
                   return (
                     <React.Fragment key={e.id}>
@@ -334,6 +337,7 @@ export default function ExpensesPage({ embedded = false }) {
             </table>
           </div>
         )}
+        <TablePager {...paged} />
       </div>
     </div>
   );

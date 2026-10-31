@@ -19,5 +19,5 @@ assert.deepEqual(saved, [
 ]);
 assert.deepEqual(workshopTimeOn({ ...w, schedule: saved }, '2026-10-19'), { start_time: '10:00', end_time: '12:00' });
 assert.deepEqual(workshopTimeOn({ ...w, schedule: saved }, '2026-10-12'), { start_time: '17:00', end_time: '19:00' });
-assert.equal(workshopTimeLabel({ ...w, schedule: saved }, ' تا '), '17:00 تا 19:00 • 27 مهر 10:00 تا 12:00');
+assert.equal(workshopTimeLabel({ ...w, schedule: saved }, ' تا '), '17:00 تا 19:00، 27 مهر 10:00 تا 12:00');
 console.log('workshopSchedule: ok');

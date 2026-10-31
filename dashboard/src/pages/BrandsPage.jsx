@@ -7,6 +7,7 @@ import { toPersianNum } from '@/lib/stats';
 import { sanitizePhone } from '@/lib/inputUtils';
 import TagInput from '@/components/TagInput';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
+import TablePager, { usePaged } from '@/components/TablePager';
 
 export default function BrandsPage({ embedded = false }) {
   const [records, setRecords] = useState([]);
@@ -57,6 +58,8 @@ export default function BrandsPage({ embedded = false }) {
   const tagCounts = {};
   records.forEach(r => (r.collaboration_tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
   const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 2);
+
+  const paged = usePaged(filtered, [search, selectedTag].join('|'));
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -167,7 +170,7 @@ export default function BrandsPage({ embedded = false }) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(r => (
+                {paged.pageRows.map(r => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                     <td className="p-3">
                       <Link to={`/brands/${r.id}`} className="font-medium hover:text-[#B74B40]">{r.brand_name || r.full_name}</Link>
@@ -186,6 +189,7 @@ export default function BrandsPage({ embedded = false }) {
             </table>
           </div>
         )}
+        <TablePager {...paged} />
       </div>
     </div>
   );

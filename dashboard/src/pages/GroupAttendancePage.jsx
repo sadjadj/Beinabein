@@ -5,7 +5,7 @@ import { ArrowRight, Check, X } from 'lucide-react';
 import { toPersianNum } from '@/lib/stats';
 import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian, getJalaliParts } from '@/lib/jalali';
-import { computeGroupSessions, gregorianToMonthKey, currentJalaliMonthKey } from '@/lib/groupSessions';
+import { computeGroupSessions, gregorianToMonthKey, currentJalaliMonthKey, registrationMonthKey } from '@/lib/groupSessions';
 
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 function monthLabel(key) {
@@ -69,7 +69,7 @@ export default function GroupAttendancePage() {
   }, [monthSessions]);
 
   // Participants registered for this group in the selected month
-  const monthParticipants = purchases.filter(p => p.month === monthKey);
+  const monthParticipants = purchases.filter(p => registrationMonthKey(group, p.month) === monthKey);
 
   // Find or create GroupSession record for a date
   const ensureSession = (date, sessionNumber) => {

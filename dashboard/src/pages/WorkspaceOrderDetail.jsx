@@ -96,7 +96,7 @@ export default function WorkspaceOrderDetail() {
 
       <div className="bg-white rounded-xl border border-border p-6">
         <h1 className="text-xl font-bold mb-1">ویرایش سفارش</h1>
-        <p className="text-sm text-muted-foreground mb-6">{toJalaliStr(order.purchase_date)} • {order.subscription_name || '-'}</p>
+        <p className="text-sm text-muted-foreground mb-6">{toJalaliStr(order.purchase_date)} - {order.subscription_name || '-'}</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">

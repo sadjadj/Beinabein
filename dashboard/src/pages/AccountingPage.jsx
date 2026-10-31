@@ -16,6 +16,7 @@ import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 import ExportButton from '@/components/ExportButton';
 import { InstallmentPill } from '@/components/workshops/InstallmentChips';
 import { isInstallment, workshopIncomeRows } from '@/lib/installments';
+import TablePager, { usePaged } from '@/components/TablePager';
 
 export default function AccountingPage({ embedded = false }) {
   const navigate = useNavigate();
@@ -222,7 +223,7 @@ export default function AccountingPage({ embedded = false }) {
     { key: 'amount', label: 'مبلغ' },
     { key: 'status', label: 'وضعیت' },
   ];
-  const exportRows = filtered.slice(0, 200).map(t => ({
+  const exportRows = filtered.map(t => ({
     date: t.purchase_date ? toJalaliStr(t.purchase_date) : '',
     type: typeLabels[t.type] || t.type,
     label: t.label || '-',
@@ -232,6 +233,8 @@ export default function AccountingPage({ embedded = false }) {
     amount: t.amount || 0,
     status: t.is_paid ? 'پرداخت شده' : isInstallment(t) ? 'قسطی' : 'پرداخت‌نشده',
   }));
+
+  const paged = usePaged(filtered, [filter, search, typeFilter, methodFilter, dateFrom, dateTo].join('|'));
 
   if (loading) return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto pt-14 md:pt-6">
@@ -281,7 +284,7 @@ export default function AccountingPage({ embedded = false }) {
                 <div key={w.id} className="bg-white rounded-lg p-3 flex items-center justify-between text-sm">
                   <div>
                     <p className="font-medium">{w.title}</p>
-                    <p className="text-xs text-muted-foreground">{toPersianNum(w.participantCount)} ثبت‌نام • درصد: {toPersianNum(w.facilitator_percentage || 0)}٪</p>
+                    <p className="text-xs text-muted-foreground">{toPersianNum(w.participantCount)} ثبت‌نام - درصد: {toPersianNum(w.facilitator_percentage || 0)}٪</p>
                     {settlementDate ? (
                       <p className={`text-xs mt-1 flex items-center gap-1 ${isDue ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
                         <Bell className="w-3 h-3" />
@@ -417,7 +420,7 @@ export default function AccountingPage({ embedded = false }) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.slice(0, 200).map(t => (
+                {paged.pageRows.map(t => (
                   <tr key={`${t.type}-${t.id}`} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/accounting/${t.type}/${t.id}`, { state: { from: fromPath } })}>
                     <td className="p-3 whitespace-nowrap">{toJalaliStr(t.purchase_date)}</td>
                     <td className="p-3">
@@ -446,6 +449,7 @@ export default function AccountingPage({ embedded = false }) {
             </table>
           </div>
         )}
+        <TablePager {...paged} />
       </div>
     </div>
   );

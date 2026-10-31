@@ -12,6 +12,7 @@ import PersianNumberInput from '@/components/PersianNumberInput';
 import { sanitizePhone, sanitizeName } from '@/lib/inputUtils';
 import { TableSkeleton } from '@/components/SkeletonPatterns';
 import ExportButton from '@/components/ExportButton';
+import TablePager, { usePaged } from '@/components/TablePager';
 
 export default function PeoplePage({ embedded = false }) {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export default function PeoplePage({ embedded = false }) {
   const [adding, setAdding] = useState(false);
   const [howMetFilter, setHowMetFilter] = useState('');
   const [lastServiceFilter, setLastServiceFilter] = useState('');
-  const [sortByActivity, setSortByActivity] = useState(false);
+  const [sortBy, setSortBy] = useState('date_desc');
 
   const fetchData = async () => {
     setLoading(true);
@@ -90,10 +91,17 @@ export default function PeoplePage({ embedded = false }) {
 
   const isComplete = (p) => !!(p.full_name && p.phone && p.how_met && p.gender);
   const sortedFiltered = [...filtered].sort((a, b) => {
+    if (sortBy === 'date_asc') return (a.created_date || '').localeCompare(b.created_date || '');
+    if (sortBy === 'name_asc' || sortBy === 'name_desc') {
+      if (!a.full_name !== !b.full_name) return a.full_name ? -1 : 1; // nameless records last
+      const byName = (a.full_name || '').localeCompare(b.full_name || '', 'fa');
+      return sortBy === 'name_asc' ? byName : -byName;
+    }
+    // Newest (the default) keeps complete records first, as before.
     const aComplete = isComplete(a);
     const bComplete = isComplete(b);
-    if (aComplete !== bComplete) return aComplete ? -1 : 1;
-    if (sortByActivity) {
+    if (sortBy === 'date_desc' && aComplete !== bComplete) return aComplete ? -1 : 1;
+    if (sortBy === 'activity') {
       const aCount = (allData.workspaceOrders.filter(o => o.person_phone === a.phone).length) +
         (allData.itemPurchases.filter(i => i.person_phone === a.phone).length) +
         (allData.workshopPurchases.filter(w => w.person_phone === a.phone).length);
@@ -128,6 +136,8 @@ export default function PeoplePage({ embedded = false }) {
     };
   });
 
+  const paged = usePaged(sortedFiltered, [search, genderFilter, howMetFilter, lastServiceFilter, sortBy].join('|'));
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       {!embedded && (
@@ -137,15 +147,12 @@ export default function PeoplePage({ embedded = false }) {
       </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCard label="کل افراد" value={toPersianNum(people.length)} icon={Users} color="terracotta" />
         <StatCard label="افراد اضافه شده در این ماه" value={toPersianNum(newThisMonth)} icon={Calendar} color="ochre" />
-      </div>
-
-      {people.length > 0 && (
-        <div className="bg-white rounded-xl border border-border p-5">
-          <h3 className="text-sm font-semibold mb-3">توزیع جنسیتی</h3>
-          <div className="grid grid-cols-3 gap-4">
+        {people.length > 0 && (
+          <div className="bg-white rounded-xl border border-border p-5 col-span-2">
+            <h3 className="text-sm font-semibold mb-3">توزیع جنسیتی</h3>
             {(() => {
               const male = people.filter(p => p.gender === 'male').length;
               const female = people.filter(p => p.gender === 'female').length;
@@ -156,23 +163,42 @@ export default function PeoplePage({ embedded = false }) {
                 { key: 'female', label: 'خانم', count: female, color: 'bg-[#D98B94]', text: 'text-[#D98B94]' },
                 { key: 'unknown', label: 'نامشخص', count: unknown, color: 'bg-gray-300', text: 'text-gray-400' },
               ];
-              return items.map(item => (
-                <button
-                  key={item.key}
-                  onClick={() => setGenderFilter(genderFilter === item.key ? '' : item.key)}
-                  className={`text-center rounded-lg p-2 transition-all ${genderFilter === item.key ? 'ring-2 ring-[#B74B40]/30 bg-[#FDF2F1]/50' : 'hover:bg-muted/50'}`}
-                >
-                  <div className="relative h-2 bg-muted rounded-full overflow-hidden mb-2">
-                    <div className={`absolute inset-y-0 right-0 ${item.color} rounded-full`} style={{ width: `${(item.count / total) * 100}%` }} />
+              const toggle = (key) => setGenderFilter(genderFilter === key ? '' : key);
+              return (
+                <>
+                  {/* One bar split into the three shares; a selected filter dims the others. */}
+                  <div className="flex h-3 rounded-full overflow-hidden bg-muted gap-0.5 mb-3">
+                    {items.filter(item => item.count > 0).map(item => (
+                      <button
+                        key={item.key}
+                        onClick={() => toggle(item.key)}
+                        aria-label={`${item.label} ${formatPercent((item.count / total) * 100)}`}
+                        className={`${item.color} transition-opacity ${genderFilter && genderFilter !== item.key ? 'opacity-30' : ''}`}
+                        style={{ width: `${(item.count / total) * 100}%` }}
+                      />
+                    ))}
                   </div>
-                  <p className={`text-lg font-bold ${item.text}`}>{formatPercent((item.count / total) * 100)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{item.label} • {toPersianNum(item.count)} نفر</p>
-                </button>
-              ));
+                  <div className="grid grid-cols-3 gap-4">
+                    {items.map(item => (
+                      <button
+                        key={item.key}
+                        onClick={() => toggle(item.key)}
+                        className={`text-center rounded-lg p-2 transition-all ${genderFilter === item.key ? 'ring-2 ring-[#B74B40]/30 bg-[#FDF2F1]/50' : 'hover:bg-muted/50'}`}
+                      >
+                        <p className={`text-lg font-bold ${item.text} flex items-center justify-center gap-1.5`}>
+                          <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                          {formatPercent((item.count / total) * 100)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{item.label} - {toPersianNum(item.count)} نفر</p>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              );
             })()}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {showAddForm && (
         <div className="bg-white rounded-xl border border-border p-5">
@@ -248,15 +274,16 @@ export default function PeoplePage({ embedded = false }) {
                 <X className="w-3 h-3" />
               </button>
             )}
-            {sortByActivity && (
-              <button onClick={() => setSortByActivity(false)} className="px-2 py-0.5 rounded-full bg-[#FDF2F1] text-[#B74B40] text-xs font-medium flex items-center gap-1">
-                مرتب بر اساس خدمات
-                <X className="w-3 h-3" />
-              </button>
-            )}
           </h3>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <ExportButton filename="لیست-افراد" columns={peopleExportColumns} rows={peopleExportRows} />
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm" aria-label="مرتب‌سازی">
+              <option value="date_desc">جدیدترین</option>
+              <option value="date_asc">قدیمی‌ترین</option>
+              <option value="name_asc">نام (الف-ی)</option>
+              <option value="name_desc">نام (ی-الف)</option>
+              <option value="activity">بیشترین خدمات</option>
+            </select>
             <button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] flex-shrink-0">
               <Plus className="w-4 h-4" /> افزودن
             </button>
@@ -291,7 +318,7 @@ export default function PeoplePage({ embedded = false }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedFiltered.map(p => {
+                  {paged.pageRows.map(p => {
                     const lastService = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases);
                     const totalActivity = (allData.workspaceOrders.filter(o => o.person_phone === p.phone).length) +
                       (allData.itemPurchases.filter(i => i.person_phone === p.phone).length) +
@@ -311,8 +338,8 @@ export default function PeoplePage({ embedded = false }) {
                             </span>
                           ) : '-'}
                         </td>
-                        <td className="p-3 text-center font-semibold" onClick={(e) => { e.stopPropagation(); setSortByActivity(!sortByActivity); }} title="مرتب‌سازی بر اساس تعداد خدمات">
-                          <span className={`cursor-pointer ${sortByActivity ? 'text-[#B74B40]' : ''}`}>{toPersianNum(totalActivity)}</span>
+                        <td className="p-3 text-center font-semibold" onClick={(e) => { e.stopPropagation(); setSortBy(sortBy === 'activity' ? 'date_desc' : 'activity'); }} title="مرتب‌سازی بر اساس تعداد خدمات">
+                          <span className={`cursor-pointer ${sortBy === 'activity' ? 'text-[#B74B40]' : ''}`}>{toPersianNum(totalActivity)}</span>
                         </td>
                       </tr>
                     );
@@ -320,6 +347,7 @@ export default function PeoplePage({ embedded = false }) {
                 </tbody>
               </table>
             </div>
+            <TablePager {...paged} />
             <div className="p-3 border-t border-border text-xs text-muted-foreground text-center">
               {toPersianNum(sortedFiltered.length)} نفر نمایش داده شده
             </div>

@@ -5,7 +5,7 @@ import { Trash2, RotateCcw } from 'lucide-react';
 import { toPersianNum, formatCurrency, findOrCreatePerson } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { todayGregorian, formatJalaliShort } from '@/lib/jalali';
-import { currentJalaliMonthKey } from '@/lib/groupSessions';
+import { registrationMonthKey } from '@/lib/groupSessions';
 import PersonSearch from '@/components/PersonSearch';
 import PriceInput from '@/components/PriceInput';
 import JalaliDateInput from '@/components/JalaliDateInput';
@@ -89,8 +89,8 @@ export default function GroupRegistrationsPage({ embedded = false }) {
     if (!regForm.person_name) { setFormError('نام مشتری الزامی است'); return; }
     if (!regForm.person_phone) { setFormError('شماره تلفن الزامی است'); return; }
     setFormError('');
-    const monthKey = currentJalaliMonthKey();
-    const dup = purchases.find(p => p.group_id === regForm.group_id && p.month === monthKey && p.person_phone === regForm.person_phone);
+    const monthKey = registrationMonthKey(groupById[regForm.group_id]);
+    const dup = purchases.find(p => p.group_id === regForm.group_id && registrationMonthKey(groupById[regForm.group_id], p.month) === monthKey && p.person_phone === regForm.person_phone);
     if (dup) { setDupWarning('این شخص در این ماه قبلاً در این گروه ثبت‌نام شده است.'); return; }
     setDupWarning('');
     const plan = plans.find(p => p.id === regForm.plan_id);
@@ -111,7 +111,7 @@ export default function GroupRegistrationsPage({ embedded = false }) {
     setSubmitting(true);
     try {
       const selectedGroup = groupById[regForm.group_id];
-      const monthKey = currentJalaliMonthKey();
+      const monthKey = registrationMonthKey(selectedGroup);
       await findOrCreatePerson(regForm.person_phone, regForm.person_name);
       const newPurchase = await base44.entities.GroupPurchase.create({
         group_id: regForm.group_id,
