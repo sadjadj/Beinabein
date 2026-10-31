@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 const STATUSES = [
   { key: 'submitted', label: 'جدید', className: 'bg-amber-50 text-amber-700' },
   { key: 'reviewed', label: 'بررسی‌شده', className: 'bg-slate-100 text-slate-700' },
-  { key: 'invited', label: 'دعوت‌شده', className: 'bg-green-50 text-green-700' },
+  { key: 'invited', label: 'تایید‌شده', className: 'bg-green-50 text-green-700' },
   { key: 'declined', label: 'رد‌شده', className: 'bg-red-50 text-red-700' },
 ];
 const statusOf = (key) => STATUSES.find(s => s.key === key) || STATUSES[0];
