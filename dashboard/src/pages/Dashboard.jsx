@@ -153,7 +153,7 @@ export default function Dashboard() {
                 </BarChart>
               </ResponsiveContainer>
               <div className="mt-3 text-xs text-muted-foreground text-center">
-                میانگین روزانه: {toPersianNum((dailyUniques.reduce((s, d) => s + d.count, 0) / dailyUniques.length).toFixed(1))} نفر – بیشترین: {toPersianNum(Math.max(...dailyUniques.map(d => d.count)))} نفر
+                میانگین روزانه: {toPersianNum((dailyUniques.reduce((s, d) => s + d.count, 0) / dailyUniques.length).toFixed(1))} نفر - بیشترین: {toPersianNum(Math.max(...dailyUniques.map(d => d.count)))} نفر
               </div>
             </>
           )}

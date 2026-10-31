@@ -202,7 +202,7 @@ export default function FinancialReport({ embedded = false }) {
                 {byMethod.map((s, i) => (
                   <div key={s.name} className="flex items-center justify-between text-sm">
                     <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />{s.name}</span>
-                    <span className="font-medium">{formatCurrency(s.value)} – {formatPercent((s.value / totalMethod) * 100)}</span>
+                    <span className="font-medium">{formatCurrency(s.value)} - {formatPercent((s.value / totalMethod) * 100)}</span>
                   </div>
                 ))}
               </div>
@@ -265,7 +265,7 @@ export default function FinancialReport({ embedded = false }) {
               <div key={f.id} className="p-3 flex items-center justify-between text-sm">
                 <div className="min-w-0">
                   <p className="font-medium truncate">{f.title}</p>
-                  <p className="text-xs text-muted-foreground">{f.facNames || '-'} – {toPersianNum(f.percent)}٪</p>
+                  <p className="text-xs text-muted-foreground">{f.facNames || '-'} - {toPersianNum(f.percent)}٪</p>
                 </div>
                 <span className="font-medium text-[#B9834B]">{formatCurrency(f.due)}</span>
               </div>

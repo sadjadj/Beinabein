@@ -190,7 +190,7 @@ export default function PeoplePage({ embedded = false }) {
                       >
                         <span className={`w-2 h-2 rounded-full ${item.color}`} />
                         <span className="font-semibold">{formatPercent((item.count / total) * 100)}</span>
-                        <span className="text-muted-foreground">{item.label} – {toPersianNum(item.count)} نفر</span>
+                        <span className="text-muted-foreground">{item.label} - {toPersianNum(item.count)} نفر</span>
                       </button>
                     ))}
                   </div>
