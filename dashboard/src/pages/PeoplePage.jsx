@@ -155,32 +155,49 @@ export default function PeoplePage({ embedded = false }) {
       {people.length > 0 && (
         <div className="bg-white rounded-xl border border-border p-5">
           <h3 className="text-sm font-semibold mb-3">توزیع جنسیتی</h3>
-          <div className="grid grid-cols-3 gap-4">
-            {(() => {
-              const male = people.filter(p => p.gender === 'male').length;
-              const female = people.filter(p => p.gender === 'female').length;
-              const unknown = people.length - male - female;
-              const total = people.length;
-              const items = [
-                { key: 'male', label: 'آقا', count: male, color: 'bg-[#8CB9C0]', text: 'text-[#8CB9C0]' },
-                { key: 'female', label: 'خانم', count: female, color: 'bg-[#D98B94]', text: 'text-[#D98B94]' },
-                { key: 'unknown', label: 'نامشخص', count: unknown, color: 'bg-gray-300', text: 'text-gray-400' },
-              ];
-              return items.map(item => (
-                <button
-                  key={item.key}
-                  onClick={() => setGenderFilter(genderFilter === item.key ? '' : item.key)}
-                  className={`text-center rounded-lg p-2 transition-all ${genderFilter === item.key ? 'ring-2 ring-[#B74B40]/30 bg-[#FDF2F1]/50' : 'hover:bg-muted/50'}`}
-                >
-                  <div className="relative h-2 bg-muted rounded-full overflow-hidden mb-2">
-                    <div className={`absolute inset-y-0 right-0 ${item.color} rounded-full`} style={{ width: `${(item.count / total) * 100}%` }} />
-                  </div>
-                  <p className={`text-lg font-bold ${item.text}`}>{formatPercent((item.count / total) * 100)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{item.label} • {toPersianNum(item.count)} نفر</p>
-                </button>
-              ));
-            })()}
-          </div>
+          {(() => {
+            const male = people.filter(p => p.gender === 'male').length;
+            const female = people.filter(p => p.gender === 'female').length;
+            const unknown = people.length - male - female;
+            const total = people.length;
+            const items = [
+              { key: 'male', label: 'آقا', count: male, color: 'bg-[#8CB9C0]', text: 'text-[#8CB9C0]' },
+              { key: 'female', label: 'خانم', count: female, color: 'bg-[#D98B94]', text: 'text-[#D98B94]' },
+              { key: 'unknown', label: 'نامشخص', count: unknown, color: 'bg-gray-300', text: 'text-gray-400' },
+            ];
+            const toggle = (key) => setGenderFilter(genderFilter === key ? '' : key);
+            return (
+              <>
+                {/* One bar split into the three shares; a selected filter dims the others. */}
+                <div className="flex h-3 rounded-full overflow-hidden bg-muted gap-0.5 mb-3">
+                  {items.filter(item => item.count > 0).map(item => (
+                    <button
+                      key={item.key}
+                      onClick={() => toggle(item.key)}
+                      aria-label={`${item.label} ${formatPercent((item.count / total) * 100)}`}
+                      className={`${item.color} transition-opacity ${genderFilter && genderFilter !== item.key ? 'opacity-30' : ''}`}
+                      style={{ width: `${(item.count / total) * 100}%` }}
+                    />
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {items.map(item => (
+                    <button
+                      key={item.key}
+                      onClick={() => toggle(item.key)}
+                      className={`text-center rounded-lg p-2 transition-all ${genderFilter === item.key ? 'ring-2 ring-[#B74B40]/30 bg-[#FDF2F1]/50' : 'hover:bg-muted/50'}`}
+                    >
+                      <p className={`text-lg font-bold ${item.text} flex items-center justify-center gap-1.5`}>
+                        <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                        {formatPercent((item.count / total) * 100)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.label} • {toPersianNum(item.count)} نفر</p>
+                    </button>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
 
