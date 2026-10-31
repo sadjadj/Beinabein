@@ -62,6 +62,14 @@ export function currentJalaliMonthKey() {
   return gregorianToMonthKey(todayGregorian());
 }
 
+// The month a registration belongs to. Registering before the group starts
+// counts for its first month (older records were stamped with the month they
+// were entered, e.g. Mehr for a group starting in Aban). Keys compare as strings.
+export function registrationMonthKey(group, month = currentJalaliMonthKey()) {
+  const start = gregorianToMonthKey(group?.start_date);
+  return start && month < start ? start : month;
+}
+
 // Current week range (Saturday → Friday) as Gregorian strings
 export function getCurrentWeekRange() {
   const today = new Date();
