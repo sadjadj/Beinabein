@@ -588,7 +588,7 @@ export default function WorkshopProfile() {
                   {/* Session info */}
                   {activeRegSession && (
                     <div className="mb-2 text-xs text-muted-foreground">
-                      {formatJalali(activeRegSession.session_date)} • {toPersianNum(activeRegParticipants.length)} نفر
+                      {formatJalali(activeRegSession.session_date)} – {toPersianNum(activeRegParticipants.length)} نفر
                     </div>
                   )}
                   {/* Participant list for active session */}

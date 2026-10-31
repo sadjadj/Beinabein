@@ -284,7 +284,7 @@ export default function AccountingPage({ embedded = false }) {
                 <div key={w.id} className="bg-white rounded-lg p-3 flex items-center justify-between text-sm">
                   <div>
                     <p className="font-medium">{w.title}</p>
-                    <p className="text-xs text-muted-foreground">{toPersianNum(w.participantCount)} ثبت‌نام • درصد: {toPersianNum(w.facilitator_percentage || 0)}٪</p>
+                    <p className="text-xs text-muted-foreground">{toPersianNum(w.participantCount)} ثبت‌نام – درصد: {toPersianNum(w.facilitator_percentage || 0)}٪</p>
                     {settlementDate ? (
                       <p className={`text-xs mt-1 flex items-center gap-1 ${isDue ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
                         <Bell className="w-3 h-3" />

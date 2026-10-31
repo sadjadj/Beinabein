@@ -22,9 +22,9 @@ export function normalizeSchedule(w) {
   return slots.some(s => !isDefault(w, s)) ? slots : [];
 }
 
-// "17:00 - 19:00", followed by each session whose time differs: "• 28 مهر 10:00 - 12:30"
+// "17:00 - 19:00", followed by each session whose time differs: "، 28 مهر 10:00 - 12:30"
 export function workshopTimeLabel(w, sep = ' - ') {
   const range = (t) => (t.start_time || t.end_time ? `${t.start_time}${t.end_time ? sep + t.end_time : ''}` : '');
   const others = (w.schedule || []).filter(s => !isDefault(w, s)).map(s => `${formatJalaliShort(s.date)} ${range(s)}`);
-  return [range({ start_time: w.start_time || '', end_time: w.end_time || '' }), ...others].filter(Boolean).join(' • ');
+  return [range({ start_time: w.start_time || '', end_time: w.end_time || '' }), ...others].filter(Boolean).join('، ');
 }

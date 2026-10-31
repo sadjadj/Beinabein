@@ -182,7 +182,7 @@ export default function PersonProfile() {
                 <div>
                   <span className="font-medium">{formatJalaliShort(o.usage_date || o.purchase_date)}</span>
                   {o.entry_time && <span className="text-muted-foreground mr-2">ورود: {o.entry_time}</span>}
-                  {o.subscription_name && <span className="text-muted-foreground mr-2">• {o.subscription_name}</span>}
+                  {o.subscription_name && <span className="text-muted-foreground mr-2">– {o.subscription_name}</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">{paymentMethodLabels[o.payment_method] || o.payment_method}</span>
@@ -206,7 +206,7 @@ export default function PersonProfile() {
                 <div>
                   <span className="font-medium">{p.item_name}</span>
                   {p.quantity > 1 && <span className="text-muted-foreground mr-2">×{toPersianNum(p.quantity)}</span>}
-                  {p.purchase_reason && <span className="text-xs text-muted-foreground mr-2">• {purchaseReasonLabels[p.purchase_reason] || p.purchase_reason}</span>}
+                  {p.purchase_reason && <span className="text-xs text-muted-foreground mr-2">– {purchaseReasonLabels[p.purchase_reason] || p.purchase_reason}</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">{formatJalaliShort(p.purchase_date)}</span>
