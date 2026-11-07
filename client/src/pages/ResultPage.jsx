@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { allClubs, ClubsHeader, TAG } from '@/pages/ClubsPage';
 
 // Payment result pages, where Zarinpal sends people back after paying:
-// /test/result/success and /test/result/failed.
+// /result/success and /result/failed.
 // ponytail: sample workshop, member and tracking code until the gateway is wired.
 const sample = { club: allClubs.find((c) => c.id === 'dsdxqymgkps8qxl42274'), code: '۲۰۱۳۹۲۰۴۴۶', amount: 4500000, name: 'علیرضا خمسه', phone: '09121212121' };
 
@@ -43,7 +43,7 @@ function Success({ club, code, amount }) {
         <p className="mt-2 text-base">جای شما رزرو شد. منتظر دیدن‌تان هستیم!</p>
       </Header>
       <Rows rows={[...workshopRows(club), ['اولین جلسه', when(club)], ['نحوه برگزاری', club.venue], ['مبلغ پرداخت‌شده', `${fa(amount)} تومان`], ['کد پیگیری', codeSpan(code)]]} />
-      <div className="mt-10"><Link to="/test/panel" className={primary}>رفتن به کارگاه‌های من</Link></div>
+      <div className="mt-10"><Link to="/panel" className={primary}>رفتن به کارگاه‌های من</Link></div>
     </>
   );
 }
@@ -58,7 +58,7 @@ function Failed({ club, code, amount, name, phone }) {
       <Rows rows={[...workshopRows(club), ['مبلغ', `${fa(amount)} تومان`], ['کد پیگیری', codeSpan(code)]]} />
       <div className="mt-10 flex flex-col gap-3">
         {/* Already logged in, so straight back to the review step. */}
-        <Link to={`/test/join/${club.id}`} state={{ name, phone }} className={primary}>پرداخت دوباره</Link>
+        <Link to={`/join/${club.id}`} state={{ name, phone }} className={primary}>پرداخت دوباره</Link>
         {/* ponytail: support channel not decided yet */}
         <button className={secondary}>تماس با پشتیبانی</button>
       </div>

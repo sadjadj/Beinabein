@@ -13,7 +13,7 @@ export function ClubsHeader({ children }) {
   return (
     <header className="relative h-[60px] bg-[#F7F7F7]">
       <div className="mx-auto max-w-[480px] h-full px-7 pt-[14px] flex justify-between">
-        <Link to="/test/clubs"><img src="/images/clubs/logo.svg" width="31" height="36" alt="بینابین" /></Link>
+        <Link to="/"><img src="/images/clubs/logo.svg" width="31" height="36" alt="بینابین" /></Link>
         {children}
       </div>
     </header>
@@ -50,7 +50,7 @@ function ModePill({ className, children }) {
 
 function FeaturedCard({ club }) {
   return (
-    <Link to={`/test/clubs/${club.id}`} className="w-[160px] shrink-0">
+    <Link to={`/clubs/${club.id}`} className="w-[160px] shrink-0">
       <Poster club={club} className="h-[200px]">
         <ModePill className="left-[11px] top-[13px] text-[10px]">{club.mode}</ModePill>
       </Poster>
@@ -76,7 +76,7 @@ function FeaturedCard({ club }) {
 
 function ClubRow({ club }) {
   return (
-    <Link to={`/test/clubs/${club.id}`} className="flex gap-[10px] h-[148px]">
+    <Link to={`/clubs/${club.id}`} className="flex gap-[10px] h-[148px]">
       <Poster club={club} className="w-[118px] shrink-0">
         <ModePill className="left-[6px] top-[11px] text-[8px]">{club.mode}</ModePill>
       </Poster>
