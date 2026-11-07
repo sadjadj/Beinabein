@@ -8,11 +8,13 @@ import data from '@/data/clubs.json';
 export const allClubs = [...data].sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
 const featured = allClubs.filter((c) => c.featured);
 
-export function ClubsHeader() {
+// children sit at the far (left) end of the bar, e.g. the panel's menu buttons.
+export function ClubsHeader({ children }) {
   return (
-    <header className="h-[60px] bg-[#F7F7F7]">
-      <div className="mx-auto max-w-[480px] h-full px-7 pt-[14px]">
+    <header className="relative h-[60px] bg-[#F7F7F7]">
+      <div className="mx-auto max-w-[480px] h-full px-7 pt-[14px] flex justify-between">
         <Link to="/test/clubs"><img src="/images/clubs/logo.svg" width="31" height="36" alt="بینابین" /></Link>
+        {children}
       </div>
     </header>
   );
@@ -31,8 +33,19 @@ export function Poster({ club, className, children }) {
 const price = (n) => (n ? `ماهانه ${n.toLocaleString('fa-IR')} ت` : '');
 
 // Sizes and spacing follow the Figma "All Clubs Handoff" frame (402px wide).
+// Tag colors used across the workshop pages, panel and join flow.
+export const TAG = {
+  green: 'bg-[#E2F0E3] text-[#2F6B3A]', // open, active, paid
+  amber: 'bg-[#FCEEC4] text-[#7A5200]', // needs renewal
+  red: 'bg-[#F7E0DD] text-[#9C2F26]', // failed
+  grey: 'bg-[#EDEDED] text-[#8B8B8B]', // ended
+  blue: 'bg-[#DFEAF6] text-[#2A5582]', // online
+  sand: 'bg-[#F2E4D3] text-[#74461C]', // in person
+};
+const modeTone = (mode) => (mode?.includes('آنلاین') ? TAG.blue : TAG.sand);
+
 function ModePill({ className, children }) {
-  return <span className={`absolute rounded-[50px] bg-[#E6E6E6] px-2 py-0.5 leading-[10px] text-[#221E1F] ${className}`}>{children}</span>;
+  return <span className={`absolute rounded-[50px] px-2 py-0.5 leading-[10px] ${modeTone(children)} ${className}`}>{children}</span>;
 }
 
 function FeaturedCard({ club }) {
@@ -43,7 +56,7 @@ function FeaturedCard({ club }) {
       </Poster>
       <div className="mt-[10px] px-2 flex flex-col gap-2">
         <div className="flex flex-col gap-1">
-          <p className="text-[8px] leading-[6px] text-[#7A7879]">ثبت‌نام باز</p>
+          <p className="text-[8px] leading-[6px] text-[#2F6B3A]">ثبت‌نام باز</p>
           <div>
             <h3 className="font-display text-base text-[#221E1F]">{club.title}</h3>
             {club.facilitator_name && <p className="text-xs text-[#7A7879]">با {club.facilitator_name}</p>}
@@ -69,7 +82,7 @@ function ClubRow({ club }) {
       </Poster>
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div className="flex flex-col gap-0.5">
-          <p className="text-[8px] text-black/50">ثبت‌نام باز</p>
+          <p className="text-[8px] text-[#2F6B3A]">ثبت‌نام باز</p>
           <div>
             <h3 className="font-display text-[22px] text-black">{club.title}</h3>
             {club.facilitator_name && <p className="text-xs text-[#7A7879]">با {club.facilitator_name}</p>}
@@ -93,7 +106,7 @@ export default function ClubsPage() {
   return (
     <div className="min-h-full bg-white">
       <ClubsHeader />
-      <div className="mx-auto max-w-[480px] px-3 pb-32">
+      <div className="anim-rise mx-auto max-w-[480px] px-3 pb-32">
         <h2 className="font-display text-[40px] leading-[1.2] text-[#221E1F] mt-8">کارگاه‌های پیشنهادی</h2>
         <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-3 px-3 mt-[23px]">
           {featured.map((c) => <FeaturedCard key={c.id} club={c} />)}
