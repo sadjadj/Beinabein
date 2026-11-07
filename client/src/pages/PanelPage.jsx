@@ -50,7 +50,7 @@ function MembershipCard({ m }) {
   const c = club(m.clubId);
   const status = statusOf(m);
   const ended = status === 'ended';
-  const renewTo = `/test/clubs/${m.clubId}`; // ponytail: renewal flow not built yet; the workshop page stands in
+  const renewTo = `/clubs/${m.clubId}`; // ponytail: renewal flow not built yet; the workshop page stands in
   return (
     <div className={`border border-[#8B8B8B] bg-white px-[15px] pt-[23px] pb-[15px] ${ended ? 'text-[#8B8B8B]' : 'text-black'}`}>
       <div className="flex items-end justify-between gap-3">
@@ -95,7 +95,7 @@ function MyWorkshops({ empty }) {
       <div className="mx-auto mt-[125px] max-w-[296px] flex flex-col items-center gap-10 text-center">
         <p className="text-3xl">هنوز عضو هیچ کارگاهی نیستید!</p>
         <p className="text-xl">کارگاه‌ها را ببینید و به هرکدام که دوست داشتید بپیوندید.</p>
-        <Link to="/test/clubs" className="text-xl underline">مشاهده همه‌ی کارگاه‌ها ←</Link>
+        <Link to="/" className="text-xl underline">مشاهده همه‌ی کارگاه‌ها ←</Link>
       </div>
     );
   }
@@ -134,7 +134,7 @@ function Payments({ empty }) {
 
 // The two small cards that drop from the top bar: the section menu and the profile.
 function MenuCard({ onPick, onProfile }) {
-  const items = [['کارگاه‌های من', '/test/panel'], ['پرداخت‌ها', '/test/panel/payments']];
+  const items = [['کارگاه‌های من', '/panel'], ['پرداخت‌ها', '/panel/payments']];
   return (
     <nav className="w-[186px] bg-[#F8F8F8] px-6 py-[50px] flex flex-col text-xl">
       {items.map(([label, to]) => (
@@ -195,7 +195,7 @@ export default function PanelPage() {
             <div className="anim-rise absolute left-3 top-0 shadow-sm">
               {open === 'menu'
                 ? <MenuCard onPick={(to) => { setOpen(null); navigate(to + keep); }} onProfile={() => setOpen('profile')} />
-                : <ProfileCard onLogout={() => navigate('/test/clubs')} />}
+                : <ProfileCard onLogout={() => navigate('/')} />}
             </div>
           </div>
         </>

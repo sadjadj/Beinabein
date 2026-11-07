@@ -110,7 +110,7 @@ function Review({ club, name, phone, anim }) {
             <p className="text-sm text-[#828282]">ماهانه</p>
             <p className="text-base">{club.price ? `${club.price.toLocaleString('fa-IR')} تومان` : ''}</p>
           </div>
-          <button disabled={!agreed} onClick={() => navigate('/test/result/success')} className="shrink-0 bg-black px-6 py-3 text-sm text-white disabled:bg-[#A7A7A7]">
+          <button disabled={!agreed} onClick={() => navigate('/result/success')} className="shrink-0 bg-black px-6 py-3 text-sm text-white disabled:bg-[#A7A7A7]">
             تایید و پرداخت
           </button>
         </div>
@@ -134,7 +134,7 @@ export default function JoinPage() {
 
   const back = step && !retry
     ? <button onClick={() => go(step - 1)} className="contents">{'→ بازگشت'}</button>
-    : <Link to={club ? `/test/clubs/${id}` : '/test/clubs'}>{'→ بازگشت'}</Link>;
+    : <Link to={club ? `/clubs/${id}` : '/'}>{'→ بازگشت'}</Link>;
 
   return (
     <div className="min-h-full bg-white text-black">
