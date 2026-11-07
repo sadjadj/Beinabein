@@ -7,8 +7,8 @@ import { allClubs, ClubsHeader, Poster, TAG } from '@/pages/ClubsPage';
 const sections = [
   { title: 'جزییات' }, // body is the club's own details, see DetailRows
   { title: 'درباره این کارگاه', field: 'about' },
-  { title: 'کارگاه چیست؟', body: 'این یک متن آزمایشی است. توضیح کوتاهی درباره‌ی کارگاه‌های بینابین اینجا می‌آید.' },
-  { title: 'قوانین کارگاه‌ها', body: 'این یک متن آزمایشی است. هر عضویت شامل ۴ جلسه است و قوانین شرکت در جلسات اینجا می‌آید.' },
+  { title: 'کارگاه چیست؟', body: 'کارگاه‌های بینابین جمع‌های کوچکی‌اند که هر هفته دور یک موضوع مشترک، از کتاب و موسیقی تا هنر و گفت‌وگو، کنار هم می‌نشینند. هر کارگاه یک تسهیل‌گر دارد که جلسه‌ها را پیش می‌برد، اما بیشتر از هر چیز، کارگاه جایی برای یاد گرفتن از هم و ساختن چیزی با هم است.\nلازم نیست از قبل چیزی بلد باشید؛ کنجکاوی کافی است.' },
+  { title: 'قوانین کارگاه‌ها', body: 'هر عضویت شامل ۴ جلسه است و از اولین جلسه‌ای که در آن شرکت می‌کنید حساب می‌شود.\nاگر نتوانستید در جلسه‌ای شرکت کنید، لطفاً دست‌کم ۲۴ ساعت قبل به تسهیل‌گر خبر دهید.\nجلسه‌هایی که در آن‌ها غایب باشید به دوره‌ی بعد منتقل نمی‌شوند.\nبرای ادامه، پیش از پایان جلسه‌ی چهارم عضویت‌تان را تمدید کنید تا جای‌تان محفوظ بماند.\nلطفاً سر وقت برسید و به فضا و هم‌کارگاهی‌های‌تان احترام بگذارید.' },
 ];
 
 // Animating grid rows 0fr → 1fr opens to the content's real height; <details>
@@ -53,6 +53,19 @@ function DetailRows({ club }) {
   );
 }
 
+// ponytail: buying is off until Zarinpal is wired; the join flow stays at
+// /join/:id. Swap back to <Link to={`/join/${club.id}`}> then.
+function JoinButton() {
+  const [tip, setTip] = useState(false);
+  return (
+    <div className="relative">
+      {tip && <span className="absolute bottom-full left-0 mb-2 whitespace-nowrap bg-[#221E1F] px-3 py-2 text-sm text-white">خرید در حال حاضر امکان‌پذیر نیست.</span>}
+      <button onClick={() => { setTip(true); setTimeout(() => setTip(false), 2500); }} onMouseEnter={() => setTip(true)} onMouseLeave={() => setTip(false)}
+        className="bg-[#221E1F] px-6 py-2 text-base font-bold text-white">عضویت در این کارگاه</button>
+    </div>
+  );
+}
+
 export default function ClubDetailPage() {
   const { id } = useParams();
   const club = allClubs.find((c) => c.id === id);
@@ -61,7 +74,7 @@ export default function ClubDetailPage() {
     <div className="min-h-full bg-white">
       <ClubsHeader />
       <div className="anim-rise mx-auto max-w-[480px] px-3 pb-40">
-        <Link to="/test/clubs" className="mt-3 inline-flex items-center gap-1 text-[#7A7879]">
+        <Link to="/" className="mt-3 inline-flex items-center gap-1 text-[#7A7879]">
           <span className="text-[30px] leading-[1.2]">→</span>
           <span className="text-base">بازگشت</span>
         </Link>
@@ -96,7 +109,7 @@ export default function ClubDetailPage() {
             <p className="text-sm text-[#828282]">ماهانه</p>
             <p className="text-base text-[#221E1F]">{club.price ? `${club.price.toLocaleString('fa-IR')} تومان` : ''}</p>
           </div>
-          <Link to={`/test/join/${club.id}`} className="bg-[#221E1F] px-6 py-2 text-base font-bold text-white">عضویت در این کارگاه</Link>
+          <JoinButton />
         </div>
       )}
     </div>
