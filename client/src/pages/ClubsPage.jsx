@@ -56,6 +56,8 @@ export function Poster({ club, className, children }) {
   );
 }
 
+const ENAMAD_SEAL = `<a referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=8591917&Code=rrYGJNG9SIoe9ri0jOsKvytLoMqehosb'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=8591917&Code=rrYGJNG9SIoe9ri0jOsKvytLoMqehosb' alt='' style='cursor:pointer' code='rrYGJNG9SIoe9ri0jOsKvytLoMqehosb'></a>`;
+
 const price = (n) => (n ? `ماهانه ${n.toLocaleString('fa-IR')} ت` : '');
 
 // Sizes and spacing follow the Figma "All Clubs Handoff" frame (402px wide).
@@ -132,7 +134,7 @@ export default function ClubsPage() {
   return (
     <div className="min-h-full bg-white">
       <ClubsHeader />
-      <div className="anim-rise mx-auto max-w-[480px] px-3 pb-32">
+      <div className="anim-rise mx-auto max-w-[480px] px-3 pb-12">
         <h2 className="font-display text-[40px] leading-[1.2] text-[#221E1F] mt-8">کارگاه‌های پیشنهادی</h2>
         <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-3 px-3 mt-[23px]">
           {featured.map((c) => <FeaturedCard key={c.id} club={c} />)}
@@ -142,6 +144,8 @@ export default function ClubsPage() {
         <div className="flex flex-col gap-8 mt-[27px]">
           {allClubs.map((c) => <ClubRow key={c.id} club={c} />)}
         </div>
+        {/* Enamad trust seal, exactly as Enamad gave it: no rel attribute, or it stops showing. */}
+        <div className="mt-16 flex justify-center" dangerouslySetInnerHTML={{ __html: ENAMAD_SEAL }} />
       </div>
     </div>
   );
