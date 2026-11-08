@@ -7,6 +7,7 @@ import ClubDetailPage from '@/pages/ClubDetailPage';
 import PanelPage from '@/pages/PanelPage';
 import JoinPage from '@/pages/JoinPage';
 import ResultPage from '@/pages/ResultPage';
+import { AboutPage, ContactPage } from '@/pages/InfoPage';
 import StepWizard from '@/components/club-owner-call/wizard/StepWizard';
 
 // BrowserRouter keeps the previous page's scroll position, so a new page would
@@ -33,6 +34,8 @@ export default function App() {
         <Route path="/result/:kind" element={<ResultPage />} />
         <Route path="/panel" element={<PanelPage />} />
         <Route path="/panel/payments" element={<PanelPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route element={<Layout />}>
           <Route path="/workshops" element={<WorkshopsFlow />} />
         </Route>
