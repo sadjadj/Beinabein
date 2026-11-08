@@ -1,4 +1,5 @@
 // All Clubs page, from the "All Clubs Handoff" mobile design.
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 // Static until clubs come from the API: copied in from the "Beinabein Club
@@ -8,11 +9,36 @@ import data from '@/data/clubs.json';
 export const allClubs = [...data].sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
 const featured = allClubs.filter((c) => c.featured);
 
-// children sit at the far (left) end of the bar, e.g. the panel's menu buttons.
-export function ClubsHeader({ children }) {
+// The hamburger and its drop-down card, same look as the panel's menu.
+const SITE_LINKS = [['کارگاه‌ها', '/'], ['درباره ما', '/about'], ['تماس با ما', '/contact']];
+
+function SiteMenu() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => setOpen(!open)} aria-label="منو" aria-expanded={open} className="mt-[7px] w-[30px] h-fit flex flex-col gap-[5px] pt-[5px]">
+        {[0, 1, 2].map((i) => <span key={i} className="h-[3px] bg-[#A7A7A7]" />)}
+      </button>
+      {open && (
+        <>
+          <button className="fixed inset-0 z-10 cursor-default" aria-label="بستن" onClick={() => setOpen(false)} />
+          <nav className="anim-rise absolute left-3 top-full z-20 w-[186px] bg-[#F8F8F8] px-6 py-[50px] flex flex-col text-xl shadow-sm">
+            {SITE_LINKS.map(([label, to]) => (
+              <Link key={to} to={to} onClick={() => setOpen(false)} className="border-b border-[#8B8B8B] py-3 last:border-b-0">{label}</Link>
+            ))}
+          </nav>
+        </>
+      )}
+    </>
+  );
+}
+
+// children sit at the far (left) end of the bar; the panel passes its own
+// buttons, every other page gets the site menu.
+export function ClubsHeader({ children = <SiteMenu /> }) {
   return (
     <header className="relative h-[60px] bg-[#F7F7F7]">
-      <div className="mx-auto max-w-[480px] h-full px-7 pt-[14px] flex justify-between">
+      <div className="relative mx-auto max-w-[480px] h-full px-7 pt-[14px] flex justify-between">
         <Link to="/"><img src="/images/clubs/logo.svg" width="31" height="36" alt="بینابین" /></Link>
         {children}
       </div>
