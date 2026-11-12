@@ -62,6 +62,21 @@ async function initDb() {
     )
   `);
 
+  // Workshop join payments waiting on Zarinpal (src/join.js). The GroupPurchase
+  // is only created once the payment verifies; purchase_id points at it.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id           TEXT PRIMARY KEY,
+      authority    TEXT NOT NULL,
+      amount       INTEGER NOT NULL,
+      data         JSONB NOT NULL,
+      status       TEXT NOT NULL DEFAULT 'pending',
+      ref_id       TEXT,
+      purchase_id  TEXT,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+
   // Expense categories used to be a hardcoded enum; existing Expense rows
   // store these keys in `category`, so the seed reuses them as ids. Only runs
   // on an empty collection — otherwise a category an admin deleted would come

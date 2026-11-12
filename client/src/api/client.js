@@ -21,6 +21,12 @@ export const api = {
   createPerson: (data) => request('POST', '/entities/Person', data),
   createWorkshopPurchase: (data) => request('POST', '/entities/WorkshopPurchase', data),
   createApplication: (data) => request('POST', '/entities/Application', data),
+  // Workshop join flow (api/src/join.js).
+  joinConfig: () => request('GET', '/join/config'),
+  sendCode: (phone) => request('POST', '/join/code', { phone }),
+  verifyCode: (phone, code) => request('POST', '/join/verify', { phone, code }),
+  register: (data) => request('POST', '/join/register', data),
+  getPayment: (id) => request('GET', `/join/payment/${id}`),
   // XHR rather than fetch: it reports upload progress for the progress bar.
   uploadResume: (file, onProgress) => new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();

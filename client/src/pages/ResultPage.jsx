@@ -1,9 +1,12 @@
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { api } from '@/api/client';
 import { allClubs, ClubsHeader, TAG } from '@/pages/ClubsPage';
 
 // Payment result pages, where Zarinpal sends people back after paying:
 // /result/success and /result/failed.
-// ponytail: sample workshop, member and tracking code until the gateway is wired.
+// api/src/join.js redirects here with ?p=<payment id>; without one (design
+// preview) the sample below shows.
 const sample = { club: allClubs.find((c) => c.id === 'dsdxqymgkps8qxl42274'), code: '۲۰۱۳۹۲۰۴۴۶', amount: 4500000, name: 'علیرضا خمسه', phone: '09121212121' };
 
 function Rows({ rows }) {
@@ -69,11 +72,19 @@ function Failed({ club, code, amount, name, phone }) {
 export default function ResultPage() {
   const { kind } = useParams();
   const Body = kind === 'failed' ? Failed : Success;
+  const p = useSearchParams()[0].get('p');
+  const [data, setData] = useState(p ? null : sample);
+  useEffect(() => {
+    if (!p) return;
+    api.getPayment(p)
+      .then((r) => setData({ club: allClubs.find((c) => c.id === r.club_id), code: r.ref_id || '—', amount: r.amount, name: r.name, phone: r.phone }))
+      .catch(() => setData(sample));
+  }, [p]);
   return (
     <div className="min-h-full bg-white text-black">
       <ClubsHeader />
       <main className="mx-auto max-w-[480px] px-4 pb-16">
-        <Body {...sample} />
+        {data?.club && <Body {...data} />}
       </main>
     </div>
   );

@@ -22,6 +22,7 @@
 //  PATCH  /api/admin/password              admin only — body: { currentPassword, newPassword }
 //  POST   /api/files/resume                 PUBLIC, rate-limited — raw PDF body (≤5MB), X-Filename header → { id, filename }
 //  GET    /api/files/:id                    admin only — download an uploaded file (logged to admin_logs)
+//  /api/join/*                             PUBLIC workshop join flow: SMS code, Zarinpal, GroupPurchase (src/join.js)
 //  PUT    /api/files/:id                    admin only — restore a file under its id (raw PDF body, X-Filename)
 //
 //  Everything else serves the two static frontend builds the Dockerfile bakes
@@ -157,6 +158,7 @@ app.put('/api/files/:id', requireAdmin, pdfBody, async (req, res, next) => {
 });
 
 app.use('/api/entities', entitiesRouter);
+app.use('/api/join', require('./src/join'));
 
 // Anything else under /api is a bad route — 404 as JSON, not the client's
 // index.html (would otherwise fall through to the catch-alls below).
