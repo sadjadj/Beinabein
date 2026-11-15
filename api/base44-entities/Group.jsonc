@@ -71,6 +71,10 @@
       "type": "number",
       "title": "\u062f\u0631\u0635\u062f \u062a\u0633\u0647\u06cc\u0644\u06af\u0631"
     },
+    "facilitator_fixed_amount": {
+      "type": "number",
+      "title": "مبلغ ثابت تسهیلگر"
+    },
     "is_ended": {
       "type": "boolean",
       "default": false,

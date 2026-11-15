@@ -99,7 +99,8 @@ export default function GroupProfile() {
     schedule: (group.schedule || []).map(s => ({ day: s.day, start_time: s.start_time || '', end_time: s.end_time || '' })),
     start_date: group.start_date || '',
     capacity: group.capacity || '',
-    facilitator_percentage: group.facilitator_percentage || ''
+    facilitator_percentage: group.facilitator_percentage || '',
+    facilitator_fixed_amount: group.facilitator_fixed_amount || ''
   });
 
   const handleSaveEdit = async (form, submittedPlans) => {
@@ -108,6 +109,7 @@ export default function GroupProfile() {
       const payload = {
         ...form,
         facilitator_percentage: Number(form.facilitator_percentage) || 0,
+        facilitator_fixed_amount: Number(form.facilitator_fixed_amount) || 0,
         capacity: Number(form.capacity) || null,
         schedule: (form.schedule || []).map(s => ({ day: s.day, start_time: s.start_time, end_time: s.end_time }))
       };
