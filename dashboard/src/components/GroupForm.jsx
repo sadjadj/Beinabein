@@ -90,16 +90,17 @@ export default function GroupForm({
             <input type="text" placeholder="اسم گروه" value={form.title || ''} onChange={e => setForm({ ...form, title: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" required />
           </div>
           <div>
-            <div className="flex items-center gap-1 mb-1">
-              <label className="text-xs text-muted-foreground">سهم تسهیلگر:</label>
-              {[['percent', 'درصد'], ['fixed', 'مبلغ ثابت']].map(([k, l]) => (
-                <button key={k} type="button" onClick={() => setPayMode(k)}
-                  className={`text-[11px] px-2 py-0.5 rounded-full ${payMode === k ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground'}`}>{l}</button>
-              ))}
-            </div>
+            <label className="text-xs text-muted-foreground block mb-1">نوع سهم تسهیلگر</label>
+            <select value={payMode} onChange={e => setPayMode(e.target.value)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-32">
+              <option value="percent">درصدی</option>
+              <option value="fixed">مبلغ ثابت</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">{payMode === 'percent' ? 'درصد تسهیلگر' : 'مبلغ تسهیلگر (تومان)'}</label>
             {payMode === 'percent'
               ? <PersianNumberInput value={form.facilitator_percentage} onChange={v => setForm({ ...form, facilitator_percentage: v })} placeholder="درصد" className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-20 text-right" />
-              : <PriceInput value={form.facilitator_fixed_amount} onChange={v => setForm({ ...form, facilitator_fixed_amount: v })} placeholder="مبلغ (تومان)" />}
+              : <PriceInput value={form.facilitator_fixed_amount} onChange={v => setForm({ ...form, facilitator_fixed_amount: v })} placeholder="مبلغ" />}
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">تگ گروه (موضوعات)</label>
