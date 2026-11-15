@@ -277,6 +277,17 @@ export function computeWorkshopRevenue(workshop, workshopPurchases) {
   return { participantCount, totalRevenue, binabinRevenue, facilitatorRevenue, purchaseCount: purchases.length };
 }
 
+// ─── Group facilitator share for a set of registrations (one row = one person-month) ───
+// Fixed amount is per paying person per month; free (price 0) registrations earn nothing.
+export function groupFacilitatorShare(group, groupPurchases) {
+  const paid = groupPurchases.filter(p => p.group_id === group.id && (p.price || 0) > 0);
+  if (Number(group.facilitator_fixed_amount) > 0) {
+    return paid.reduce((s, p) => s + group.facilitator_fixed_amount * (p.quantity || 1), 0);
+  }
+  const priceRevenue = paid.reduce((s, p) => s + p.price * (p.quantity || 1), 0);
+  return Math.round(priceRevenue * (group.facilitator_percentage || 0) / 100);
+}
+
 // ─── Person activity summary ───
 export function computePersonActivity(person, workspaceOrders, itemPurchases, workshopPurchases) {
   const phone = person.phone;

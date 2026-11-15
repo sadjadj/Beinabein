@@ -21,6 +21,8 @@ WORKDIR /app
 COPY api/package*.json ./
 RUN npm ci --omit=dev
 COPY api/ ./
+# The join flow reads club prices server-side (src/join.js).
+COPY client/src/data/clubs.json ./clubs.json
 COPY --from=client-build /app/client/dist ./public
 COPY --from=dashboard-build /app/dashboard/dist ./public/dashboard
 EXPOSE 3000

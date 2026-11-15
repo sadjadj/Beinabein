@@ -54,6 +54,7 @@ export default function GroupsPage({ embedded = false }) {
       const payload = {
         ...form,
         facilitator_percentage: Number(form.facilitator_percentage) || 0,
+        facilitator_fixed_amount: Number(form.facilitator_fixed_amount) || 0,
         capacity: Number(form.capacity) || null,
         schedule: (form.schedule || []).map(s => ({ day: s.day, start_time: s.start_time, end_time: s.end_time }))
       };
@@ -72,7 +73,7 @@ export default function GroupsPage({ embedded = false }) {
 
   const blankForm = {
     title: '', description: '', tags: '', facilitator_ids: [], space: '',
-    schedule: [], start_date: '', capacity: '', facilitator_percentage: ''
+    schedule: [], start_date: '', capacity: '', facilitator_percentage: '', facilitator_fixed_amount: ''
   };
 
   const filteredGroups = groups.filter(g => {

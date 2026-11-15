@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { allClubs, ClubsHeader, Poster } from '@/pages/ClubsPage';
+import { api } from '@/api/client';
 
 // Join flow, from the Figma "Login-Signup-Separate Pages" wireframes:
 // phone → code → name → review and pay. Steps live in state, so "بازگشت"
 // walks back through them.
-// ponytail: no SMS, accounts or gateway yet — any code is accepted, the name
-// step always shows (a returning member would skip it), and paying lands on
-// the success page. Wire to the API and Zarinpal once they exist.
+// Backed by api/src/join.js: the code is checked there, a returning member
+// skips the name step, and paying goes to Zarinpal (a fake gateway locally).
 const RESEND_SECONDS = 90;
-const CODE_LENGTH = 5; // ponytail: set to the SMS provider's real code length
+const CODE_LENGTH = 5; // keep in sync with api/src/join.js
+const errorClass = 'mt-3 text-sm text-[#C0392B]';
 
 // Persian/Arabic digits → Latin, everything else dropped.
 const digits = (s) => s.replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g, '');
@@ -30,8 +31,15 @@ function Step({ title, hint, anim, children }) {
 const inputClass = 'h-12 w-full border border-[#C5C3C3] px-4 text-base placeholder:text-[#C5C3C3] focus:border-black focus:outline-none';
 const buttonClass = 'mt-[50px] h-12 w-full bg-black text-base text-white disabled:bg-[#A7A7A7]';
 
-function CodeStep({ phone, anim, onDone, onEditPhone }) {
+function CodeStep({ phone, anim, devCode, onDone, onEditPhone, onResend }) {
   const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const check = async (c) => {
+    setBusy(true); setError('');
+    try { onDone(await api.verifyCode(phone, c)); } catch (e) { setError(e.message); setCode(''); }
+    setBusy(false);
+  };
   const [left, setLeft] = useState(RESEND_SECONDS);
   useEffect(() => {
     if (!left) return;
@@ -40,7 +48,7 @@ function CodeStep({ phone, anim, onDone, onEditPhone }) {
   }, [left]);
   return (
     <Step title="تایید شماره موبایل" hint={`کد تایید ارسال‌شده به ${faDigits(phone)} را وارد کنید.`} anim={anim}>
-      <form onSubmit={(e) => { e.preventDefault(); onDone(); }}>
+      <form onSubmit={(e) => { e.preventDefault(); check(code); }}>
         {/* One real input stretched over the boxes, so typing, paste and SMS
             auto-fill all work; the boxes only display its digits. */}
         <div className="relative flex justify-center gap-2" dir="ltr">
@@ -52,24 +60,37 @@ function CodeStep({ phone, anim, onDone, onEditPhone }) {
           <input
             className="absolute inset-0 w-full text-transparent caret-transparent bg-transparent outline-none" aria-label="کد تایید"
             inputMode="numeric" autoComplete="one-time-code" autoFocus value={code}
-            onChange={(e) => { const c = digits(e.target.value).slice(0, CODE_LENGTH); setCode(c); if (c.length === CODE_LENGTH) onDone(); }}
+            onChange={(e) => { const c = digits(e.target.value).slice(0, CODE_LENGTH); setCode(c); if (c.length === CODE_LENGTH) check(c); }}
           />
         </div>
-        <button className={buttonClass} disabled={code.length < CODE_LENGTH}>تایید و ادامه</button>
+        {error && <p className={errorClass}>{error}</p>}
+        {devCode && <p className="mt-3 text-sm text-[#959595]">نسخه‌ی آزمایشی — کد: <span dir="ltr">{faDigits(devCode)}</span></p>}
+        <button className={buttonClass} disabled={code.length < CODE_LENGTH || busy}>تایید و ادامه</button>
       </form>
       <div className="mt-6 flex items-center justify-between text-sm text-[#959595]">
         {left
           ? <span>{clock(left)} تا درخواست مجدد کد</span>
-          : <button onClick={() => setLeft(RESEND_SECONDS)} className="underline">ارسال مجدد کد</button>}
+          : <button onClick={() => onResend().then(() => setLeft(RESEND_SECONDS), (e) => setError(e.message))} className="underline">ارسال مجدد کد</button>}
         <button onClick={onEditPhone} className="underline">اصلاح شماره موبایل</button>
       </div>
     </Step>
   );
 }
 
-function Review({ club, name, phone, anim }) {
-  const navigate = useNavigate();
+function Review({ club, name, phone, anim, onExpired }) {
   const [agreed, setAgreed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const pay = async () => {
+    setBusy(true); setError('');
+    try {
+      const { payUrl } = await api.register({ phone, name, club_id: club.id });
+      window.location.assign(payUrl);
+    } catch (e) {
+      setBusy(false);
+      if (/تایید/.test(e.message)) onExpired(); else setError(e.message);
+    }
+  };
   const rows = [
     ['زمان', club.schedule],
     ['نحوه برگزاری', club.venue],
@@ -105,12 +126,13 @@ function Review({ club, name, phone, anim }) {
           {/* ponytail: terms page not written yet */}
           <span><a href="#" className="underline">قوانین و شرایط</a> را خوانده‌ام و می‌پذیرم.</span>
         </label>
+        {error && <p className={`${errorClass} px-3 pb-3 mt-0`}>{error}</p>}
         <div className="flex items-center justify-between border-t border-black px-3 py-[10px]">
           <div className="flex flex-col gap-2">
             <p className="text-sm text-[#828282]">ماهانه</p>
             <p className="text-base">{club.price ? `${club.price.toLocaleString('fa-IR')} تومان` : ''}</p>
           </div>
-          <button disabled={!agreed} onClick={() => navigate('/result/success')} className="shrink-0 bg-black px-6 py-3 text-sm text-white disabled:bg-[#A7A7A7]">
+          <button disabled={!agreed || busy} onClick={pay} className="shrink-0 bg-black px-6 py-3 text-sm text-white disabled:bg-[#A7A7A7]">
             تایید و پرداخت
           </button>
         </div>
@@ -131,6 +153,15 @@ export default function JoinPage() {
   const [phone, setPhone] = useState(retry?.phone || '');
   const [name, setName] = useState(retry?.name || '');
   const phoneOk = /^09\d{9}$/.test(phone);
+  const [devCode, setDevCode] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const sendCode = () => api.sendCode(phone).then((r) => setDevCode(r.devCode || ''));
+  const submitPhone = async () => {
+    setBusy(true); setError('');
+    try { await sendCode(); go(1); } catch (e) { setError(e.message); }
+    setBusy(false);
+  };
 
   const back = step && !retry
     ? <button onClick={() => go(step - 1)} className="contents">{'→ بازگشت'}</button>
@@ -146,16 +177,18 @@ export default function JoinPage() {
           <p className="mt-10 text-base text-[#7A7879]">این کارگاه پیدا نشد.</p>
         ) : step === 0 ? (
           <Step key={step} title="ورود یا ثبت نام" hint="برای ادامه، شماره موبایل خود را وارد کنید." anim={anim}>
-            <form onSubmit={(e) => { e.preventDefault(); go(1); }}>
+            <form onSubmit={(e) => { e.preventDefault(); submitPhone(); }}>
               <input
                 className={inputClass} type="tel" inputMode="numeric" autoComplete="tel" autoFocus dir="ltr" style={{ textAlign: 'right' }}
                 placeholder="۰۹۱۲۱۲۱۲۱۲" value={faDigits(phone)} onChange={(e) => setPhone(digits(e.target.value).slice(0, 11))}
               />
-              <button className={buttonClass} disabled={!phoneOk}>دریافت کد تایید</button>
+              {error && <p className={errorClass}>{error}</p>}
+              <button className={buttonClass} disabled={!phoneOk || busy}>دریافت کد تایید</button>
             </form>
           </Step>
         ) : step === 1 ? (
-          <CodeStep key={step} anim={anim} phone={phone} onDone={() => go(2)} onEditPhone={() => go(0)} />
+          <CodeStep key={step} anim={anim} phone={phone} devCode={devCode} onResend={sendCode}
+            onDone={(r) => { if (r.name) { setName(r.name); go(3); } else go(2); }} onEditPhone={() => go(0)} />
         ) : step === 2 ? (
           <Step key={step} title="تکمیل اطلاعات" hint="نام و نام خانوادگی خود را وارد کنید." anim={anim}>
             <form onSubmit={(e) => { e.preventDefault(); go(3); }}>
@@ -164,7 +197,7 @@ export default function JoinPage() {
             </form>
           </Step>
         ) : (
-          <Review key={step} anim={anim} club={club} name={name.trim()} phone={phone} />
+          <Review key={step} anim={anim} club={club} name={name.trim()} phone={phone} onExpired={() => { setAnim('anim-back'); setStep(0); }} />
         )}
       </div>
     </div>

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { api } from '@/api/client';
 import { Link, useParams } from 'react-router-dom';
 import { allClubs, ClubsHeader, Poster, TAG } from '@/pages/ClubsPage';
 
@@ -55,8 +56,13 @@ function DetailRows({ club }) {
 
 // ponytail: buying is off until Zarinpal is wired; the join flow stays at
 // /join/:id. Swap back to <Link to={`/join/${club.id}`}> then.
-function JoinButton() {
+// Opens the join flow once the API says it can take registrations (SMS and
+// Zarinpal configured, or fake mode locally); until then a tooltip.
+function JoinButton({ id }) {
   const [tip, setTip] = useState(false);
+  const [open, setOpen] = useState(false);
+  useEffect(() => { api.joinConfig().then((c) => setOpen(c.open)).catch(() => {}); }, []);
+  if (open) return <Link to={`/join/${id}`} className="bg-[#221E1F] px-6 py-2 text-base font-bold text-white">عضویت در این کارگاه</Link>;
   return (
     <div className="relative">
       {tip && <span className="absolute bottom-full left-0 mb-2 whitespace-nowrap bg-[#221E1F] px-3 py-2 text-sm text-white">خرید در حال حاضر امکان‌پذیر نیست.</span>}
@@ -109,7 +115,7 @@ export default function ClubDetailPage() {
             <p className="text-sm text-[#828282]">ماهانه</p>
             <p className="text-base text-[#221E1F]">{club.price ? `${club.price.toLocaleString('fa-IR')} تومان` : ''}</p>
           </div>
-          <JoinButton />
+          <JoinButton id={club.id} />
         </div>
       )}
     </div>

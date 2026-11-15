@@ -4,7 +4,7 @@ import StatCard from '@/components/StatCard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { Wallet, TrendingUp, TrendingDown, AlertCircle, CheckCircle, Bell, Search, Plus } from 'lucide-react';
-import { computeWorkshopRevenue, toPersianNum, formatCurrency, findOrCreatePerson, currentJalaliMonthKey, gregorianToJalaliMonthKey } from '@/lib/stats';
+import { computeWorkshopRevenue, groupFacilitatorShare, toPersianNum, formatCurrency, findOrCreatePerson, currentJalaliMonthKey, gregorianToJalaliMonthKey } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { buildStoreInvoiceGroups } from '@/lib/storeInvoices';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
@@ -28,6 +28,7 @@ export default function AccountingPage({ embedded = false }) {
   const [workshops, setWorkshops] = useState([]);
   const [customIncomes, setCustomIncomes] = useState([]);
   const [groupPurchases, setGroupPurchases] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [eventPurchases, setEventPurchases] = useState([]);
   const [storePurchases, setStorePurchases] = useState([]);
   const [greenhousePurchases, setGreenhousePurchases] = useState([]);
@@ -47,7 +48,7 @@ export default function AccountingPage({ embedded = false }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [ws, items, wp, wsList, ci, gp, ep, sp, gh, se] = await Promise.all([
+      const [ws, items, wp, wsList, ci, gp, ep, sp, gh, se, grs] = await Promise.all([
         base44.entities.WorkspaceOrder.list('-purchase_date'),
         base44.entities.ItemPurchase.list('-purchase_date'),
         base44.entities.WorkshopPurchase.list('-purchase_date'),
@@ -57,7 +58,8 @@ export default function AccountingPage({ embedded = false }) {
         base44.entities.EventPurchase.list('-purchase_date'),
         base44.entities.StorePurchase.list('-purchase_date'),
         base44.entities.GreenhousePurchase.list('-purchase_date'),
-        base44.entities.SalesEventPurchase.list('-purchase_date')
+        base44.entities.SalesEventPurchase.list('-purchase_date'),
+        base44.entities.Group.list()
       ]);
       setWorkspaceOrders(ws);
       setItemPurchases(items);
@@ -69,6 +71,7 @@ export default function AccountingPage({ embedded = false }) {
       setStorePurchases(sp);
       setGreenhousePurchases(gh);
       setSalesEventPurchases(se);
+      setGroups(grs);
     } finally { setLoading(false); }
   };
 
@@ -148,8 +151,10 @@ export default function AccountingPage({ embedded = false }) {
     const rev = computeWorkshopRevenue(w, workshopPurchases);
     return s + rev.facilitatorRevenue;
   }, 0);
+  // Groups: this month's registrations (by purchase date, same as group revenue above)
+  const groupFacilitatorExpenses = groups.reduce((s, g) => s + groupFacilitatorShare(g, monthGp), 0);
 
-  const profit = totalIncome - facilitatorExpenses;
+  const profit = totalIncome - facilitatorExpenses - groupFacilitatorExpenses;
 
   // Unpaid items
   const invoiceGroups = buildStoreInvoiceGroups(storePurchases, greenhousePurchases, salesEventPurchases);
@@ -262,7 +267,7 @@ export default function AccountingPage({ embedded = false }) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {!hideFinancials && <StatCard label="درآمد این ماه" value={formatCurrency(totalIncome)} icon={TrendingUp} color="terracotta" info="مجموع درآمد حاصل از فضای کار، کافه، کارگاه‌ها، گروه‌ها، رخدادها، استور، ایونت‌ها، گلخانه و درآمدهای دلخواه در ماه جاری شمسی" />}
-        {!hideFinancials && <StatCard label="پرداخت تسهیلگران" value={formatCurrency(facilitatorExpenses)} icon={TrendingDown} color="pink" info="مجموع مبالغ پرداختی به تسهیلگران کارگاه‌های این ماه (بر اساس درصد تسهیلگر)" />}
+        {!hideFinancials && <StatCard label="پرداخت تسهیلگران" value={formatCurrency(facilitatorExpenses + groupFacilitatorExpenses)} icon={TrendingDown} color="pink" info="مجموع سهم تسهیلگران کارگاه‌های این ماه و ثبت‌نام‌های گروه‌های این ماه (درصدی یا مبلغ ثابت به ازای هر نفر؛ ثبت‌نام رایگان سهمی ندارد)" />}
         {!hideFinancials && <StatCard label="سود/زیان این ماه" value={formatCurrency(profit)} sublabel={profit >= 0 ? 'سود' : 'زیان'} icon={Wallet} color={profit >= 0 ? 'teal' : 'pink'} info="تفاضل درآمد این ماه و پرداختی تسهیلگران (سود مثبت، زیان منفی)" />}
         <StatCard label="پرداخت‌نشده" value={toPersianNum(totalUnpaid)} sublabel={hideFinancials ? undefined : formatCurrency(totalUnpaidAmount)} icon={AlertCircle} color="ochre" info="تعداد و مبلغ فاکتورهای پرداخت‌نشده در همه بخش‌ها" />
       </div>
