@@ -93,7 +93,8 @@ function Review({ club, name, phone, anim, onExpired }) {
   };
   const rows = [
     ['زمان', club.schedule],
-    ['نحوه برگزاری', club.venue],
+    // Hidden while every club is in person; bring back when one goes online.
+    // ['نحوه برگزاری', club.venue],
     ['اولین جلسه شما', club.first_session],
     ['نام و نام خانوادگی', name],
     ['شماره همراه', faDigits(phone)],
@@ -174,7 +175,7 @@ export default function JoinPage() {
         <div className="mt-[27px] text-base">{back}</div>
 
         {!club ? (
-          <p className="mt-10 text-base text-[#7A7879]">این کارگاه پیدا نشد.</p>
+          <p className="mt-10 text-base text-[#7A7879]">این انجمن پیدا نشد.</p>
         ) : step === 0 ? (
           <Step key={step} title="ورود یا ثبت نام" hint="برای ادامه، شماره موبایل خود را وارد کنید." anim={anim}>
             <form onSubmit={(e) => { e.preventDefault(); submitPhone(); }}>

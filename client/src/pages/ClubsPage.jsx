@@ -10,7 +10,7 @@ export const allClubs = [...data].sort((a, b) => (a.order ?? Infinity) - (b.orde
 const featured = allClubs.filter((c) => c.featured);
 
 // The hamburger and its drop-down card, same look as the panel's menu.
-const SITE_LINKS = [['کارگاه‌ها', '/'], ['درباره ما', '/about'], ['تماس با ما', '/contact']];
+const SITE_LINKS = [['انجمن‌ها', '/'], ['درباره ما', '/about'], ['تماس با ما', '/contact']];
 
 function SiteMenu() {
   const [open, setOpen] = useState(false);
@@ -80,7 +80,8 @@ function FeaturedCard({ club }) {
   return (
     <Link to={`/clubs/${club.id}`} className="w-[160px] shrink-0">
       <Poster club={club} className="h-[200px]">
-        <ModePill className="left-[11px] top-[13px] text-[10px]">{club.mode}</ModePill>
+        {/* Hidden while every club is in person; bring back when one goes online.
+        <ModePill className="left-[11px] top-[13px] text-[10px]">{club.mode}</ModePill> */}
       </Poster>
       <div className="mt-[10px] px-2 flex flex-col gap-2">
         <div className="flex flex-col gap-1">
@@ -106,7 +107,8 @@ function ClubRow({ club }) {
   return (
     <Link to={`/clubs/${club.id}`} className="flex gap-[10px] h-[148px]">
       <Poster club={club} className="w-[118px] shrink-0">
-        <ModePill className="left-[6px] top-[11px] text-[8px]">{club.mode}</ModePill>
+        {/* Hidden while every club is in person; bring back when one goes online.
+        <ModePill className="left-[6px] top-[11px] text-[8px]">{club.mode}</ModePill> */}
       </Poster>
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div className="flex flex-col gap-0.5">
@@ -135,12 +137,14 @@ export default function ClubsPage() {
     <div className="min-h-full bg-white">
       <ClubsHeader />
       <div className="anim-rise mx-auto max-w-[480px] px-3 pb-12">
-        <h2 className="font-display text-[40px] leading-[1.2] text-[#221E1F] mt-8">کارگاه‌های پیشنهادی</h2>
+        {/* Featured row is off for now; set "featured": true in clubs.json and restore this to bring it back.
+        <h2 className="font-display text-[40px] leading-[1.2] text-[#221E1F] mt-8">انجمن‌های پیشنهادی</h2>
         <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-3 px-3 mt-[23px]">
           {featured.map((c) => <FeaturedCard key={c.id} club={c} />)}
         </div>
+        */}
 
-        <h2 className="font-display text-[32px] leading-[1.2] text-[#1B1819] mt-[57px]">همه کارگاه‌ها</h2>
+        <h2 className="font-display text-[32px] leading-[1.2] text-[#1B1819] mt-8">همه انجمن‌ها</h2>
         <div className="flex flex-col gap-8 mt-[27px]">
           {allClubs.map((c) => <ClubRow key={c.id} club={c} />)}
         </div>
