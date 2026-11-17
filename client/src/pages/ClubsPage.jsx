@@ -10,7 +10,7 @@ export const allClubs = [...data].sort((a, b) => (a.order ?? Infinity) - (b.orde
 const featured = allClubs.filter((c) => c.featured);
 
 // The hamburger and its drop-down card, same look as the panel's menu.
-const SITE_LINKS = [['انجمن‌ها', '/'], ['درباره ما', '/about'], ['تماس با ما', '/contact']];
+const SITE_LINKS = [['انجمن‌ها', '/clubs'], ['درباره ما', '/about'], ['تماس با ما', '/contact']];
 
 function SiteMenu() {
   const [open, setOpen] = useState(false);

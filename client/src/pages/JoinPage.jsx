@@ -166,7 +166,7 @@ export default function JoinPage() {
 
   const back = step && !retry
     ? <button onClick={() => go(step - 1)} className="inline-flex items-center gap-1"><img src="/images/clubs/chevron.svg" width="24" height="24" alt="" className="-rotate-90 opacity-60" />بازگشت</button>
-    : <Link to={club ? `/clubs/${id}` : '/'} className="inline-flex items-center gap-1"><img src="/images/clubs/chevron.svg" width="24" height="24" alt="" className="-rotate-90 opacity-60" />بازگشت</Link>;
+    : <Link to={club ? `/clubs/${id}` : '/clubs'} className="inline-flex items-center gap-1"><img src="/images/clubs/chevron.svg" width="24" height="24" alt="" className="-rotate-90 opacity-60" />بازگشت</Link>;
 
   return (
     <div className="min-h-full bg-white text-black">

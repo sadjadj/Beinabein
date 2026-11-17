@@ -95,7 +95,7 @@ export default function ClubDetailPage() {
     <div className="min-h-full bg-white">
       <ClubsHeader />
       <div className="anim-rise mx-auto max-w-[480px] px-3 pb-40">
-        <Link to="/" className="mt-3 inline-flex items-center gap-1 text-[#7A7879]">
+        <Link to="/clubs" className="mt-3 inline-flex items-center gap-1 text-[#7A7879]">
           <img src="/images/clubs/chevron.svg" width="24" height="24" alt="" className="-rotate-90 opacity-60" />
           <span className="text-base">بازگشت</span>
         </Link>

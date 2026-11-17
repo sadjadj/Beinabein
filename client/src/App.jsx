@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes, useLocation, useNavigationType 
 import Layout from '@/components/Layout';
 import WorkshopsFlow from '@/pages/WorkshopsFlow';
 import ClubsPage from '@/pages/ClubsPage';
+import ComingSoonPage from '@/pages/ComingSoonPage';
 import ClubDetailPage from '@/pages/ClubDetailPage';
 import PanelPage from '@/pages/PanelPage';
 import JoinPage from '@/pages/JoinPage';
@@ -28,7 +29,8 @@ export default function App() {
       <Routes>
         {/* Placeholder path — final URL not decided yet. */}
         <Route path="/club-owner-call" element={<div className="club-owner-call"><StepWizard /></div>} />
-        <Route path="/" element={<ClubsPage />} />
+        <Route path="/" element={<ComingSoonPage />} />
+        <Route path="/clubs" element={<ClubsPage />} />
         <Route path="/clubs/:id" element={<ClubDetailPage />} />
         <Route path="/join/:id" element={<JoinPage />} />
         <Route path="/result/:kind" element={<ResultPage />} />

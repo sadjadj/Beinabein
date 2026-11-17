@@ -95,7 +95,7 @@ function MyWorkshops({ empty }) {
       <div className="mx-auto mt-[125px] max-w-[296px] flex flex-col items-center gap-10 text-center">
         <p className="text-3xl">هنوز عضو هیچ انجمنی نیستید!</p>
         <p className="text-xl">انجمن‌ها را ببینید و به هرکدام که دوست داشتید بپیوندید.</p>
-        <Link to="/" className="text-xl underline">مشاهده همه‌ی انجمن‌ها ←</Link>
+        <Link to="/clubs" className="text-xl underline">مشاهده همه‌ی انجمن‌ها ←</Link>
       </div>
     );
   }
