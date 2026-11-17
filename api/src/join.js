@@ -114,7 +114,7 @@ router.post('/register', limitPublicSubmissions, async (req, res, next) => {
     const e = codes.get(phone);
     if (!e?.verifiedUntil || e.verifiedUntil < Date.now()) return bad(res, 'لطفاً دوباره شماره موبایل را تایید کنید.', 401);
     const club = findClub(String(club_id || ''));
-    if (!club || !club.price) return bad(res, 'این کارگاه پیدا نشد.');
+    if (!club || !club.price) return bad(res, 'این انجمن پیدا نشد.');
     const fullName = String(name || '').trim().slice(0, 100);
     if (!fullName) return bad(res, 'نام را وارد کنید.');
 

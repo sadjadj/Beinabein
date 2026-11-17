@@ -93,9 +93,9 @@ function MyWorkshops({ empty }) {
   if (empty) {
     return (
       <div className="mx-auto mt-[125px] max-w-[296px] flex flex-col items-center gap-10 text-center">
-        <p className="text-3xl">هنوز عضو هیچ کارگاهی نیستید!</p>
-        <p className="text-xl">کارگاه‌ها را ببینید و به هرکدام که دوست داشتید بپیوندید.</p>
-        <Link to="/" className="text-xl underline">مشاهده همه‌ی کارگاه‌ها ←</Link>
+        <p className="text-3xl">هنوز عضو هیچ انجمنی نیستید!</p>
+        <p className="text-xl">انجمن‌ها را ببینید و به هرکدام که دوست داشتید بپیوندید.</p>
+        <Link to="/" className="text-xl underline">مشاهده همه‌ی انجمن‌ها ←</Link>
       </div>
     );
   }
@@ -134,7 +134,7 @@ function Payments({ empty }) {
 
 // The two small cards that drop from the top bar: the section menu and the profile.
 function MenuCard({ onPick, onProfile }) {
-  const items = [['کارگاه‌های من', '/panel'], ['پرداخت‌ها', '/panel/payments']];
+  const items = [['انجمن‌های من', '/panel'], ['پرداخت‌ها', '/panel/payments']];
   return (
     <nav className="w-[186px] bg-[#F8F8F8] px-6 py-[50px] flex flex-col text-xl">
       {items.map(([label, to]) => (
@@ -203,7 +203,7 @@ export default function PanelPage() {
 
       {/* key: the content rises in again when switching sections */}
       <main key={pathname} className="anim-rise mx-auto max-w-[480px] px-3 pb-20">
-        <h1 className="mt-11 text-[36px] leading-[1.2]">{onPayments ? 'پرداخت‌ها' : 'کارگاه‌های من'}</h1>
+        <h1 className="mt-11 text-[36px] leading-[1.2]">{onPayments ? 'پرداخت‌ها' : 'انجمن‌های من'}</h1>
         {onPayments ? <Payments empty={empty} /> : <MyWorkshops empty={empty} />}
       </main>
     </div>

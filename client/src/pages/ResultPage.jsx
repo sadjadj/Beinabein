@@ -27,7 +27,7 @@ const primary = 'block h-12 w-full bg-black text-center text-base leading-[48px]
 const when = (club) => `${club.first_session}، ${club.schedule.split('|')[1]?.trim() || ''}`;
 const codeSpan = (code) => <span key="c" dir="ltr" className="select-all">{code}</span>;
 const secondary = 'block h-12 w-full border border-black text-center text-base leading-[48px]';
-const workshopRows = (club) => [['کارگاه', club.title], ['تسهیل‌گر', club.facilitator_name]].filter(([, v]) => v);
+const workshopRows = (club) => [['انجمن', club.title], ['راهبر', club.facilitator_name]].filter(([, v]) => v);
 
 function Header({ tone, mark, title, children }) {
   return (
@@ -46,7 +46,7 @@ function Success({ club, code, amount }) {
         <p className="mt-2 text-base">جای شما رزرو شد. منتظر دیدن‌تان هستیم!</p>
       </Header>
       <Rows rows={[...workshopRows(club), ['اولین جلسه', when(club)], ['نحوه برگزاری', club.venue], ['مبلغ پرداخت‌شده', `${fa(amount)} تومان`], ['کد پیگیری', codeSpan(code)]]} />
-      <div className="mt-10"><Link to="/panel" className={primary}>رفتن به کارگاه‌های من</Link></div>
+      <div className="mt-10"><Link to="/panel" className={primary}>رفتن به انجمن‌های من</Link></div>
     </>
   );
 }

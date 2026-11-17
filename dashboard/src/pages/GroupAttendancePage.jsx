@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Check, X } from 'lucide-react';
-import { toPersianNum } from '@/lib/stats';
+import { ArrowRight, Check, X, Plus } from 'lucide-react';
+import { toPersianNum, findOrCreatePerson } from '@/lib/stats';
+import PersonSearch from '@/components/PersonSearch';
 import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian, getJalaliParts } from '@/lib/jalali';
 import { computeGroupSessions, gregorianToMonthKey, currentJalaliMonthKey, registrationMonthKey } from '@/lib/groupSessions';
@@ -23,6 +24,7 @@ export default function GroupAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [monthKey, setMonthKey] = useState(currentJalaliMonthKey());
   const [activeDate, setActiveDate] = useState('');
+  const [guestForm, setGuestForm] = useState(null); // { person_name, person_phone } while adding a guest
 
   const fetchData = async () => {
     setLoading(true);
@@ -46,15 +48,14 @@ export default function GroupAttendancePage() {
   // Available months from computed sessions
   const availableMonths = useMemo(() => {
     const set = new Set(allSessions.map(s => gregorianToMonthKey(s.date)));
-    set.add(currentJalaliMonthKey());
+    set.add(group ? registrationMonthKey(group) : currentJalaliMonthKey());
     return [...set].sort();
-  }, [allSessions]);
+  }, [allSessions, group]);
 
+  // A group that hasn't started yet opens on its start month, where its registrations are.
   useEffect(() => {
-    if (availableMonths.length > 0 && !availableMonths.includes(monthKey)) {
-      setMonthKey(availableMonths[availableMonths.length - 1]);
-    }
-  }, [availableMonths]);
+    if (group) setMonthKey(registrationMonthKey(group));
+  }, [group]);
 
   // Sessions in selected month
   const monthSessions = useMemo(() => {
@@ -84,10 +85,11 @@ export default function GroupAttendancePage() {
   const activeComputed = monthSessions.find(s => s.date === activeDate);
 
   // Saves the active date's present list, creating its GroupSession on first mark
-  const savePresent = async (update) => {
+  const savePresent = async (update, guests) => {
     if (!activeDate) return;
     const session = getSessionForDate(activeDate);
     const updated = update(session?.present_phones || []);
+    const extra = guests ? { guests: guests(session?.guests || []) } : {};
     if (!session) {
       const created = await base44.entities.GroupSession.create({
         group_id: groupId,
@@ -95,14 +97,29 @@ export default function GroupAttendancePage() {
         session_number: activeComputed?.session_number || 1,
         session_date: activeDate,
         month: gregorianToMonthKey(activeDate),
-        present_phones: updated
+        present_phones: updated,
+        ...extra
       });
       setSessions(prev => [...prev, created]);
       return;
     }
-    setSessions(prev => prev.map(s => s.id === session.id ? { ...s, present_phones: updated } : s));
-    await base44.entities.GroupSession.update(session.id, { present_phones: updated });
+    setSessions(prev => prev.map(s => s.id === session.id ? { ...s, present_phones: updated, ...extra } : s));
+    await base44.entities.GroupSession.update(session.id, { present_phones: updated, ...extra });
   };
+
+  // Someone who came to this one session without registering: saved on the
+  // session (not as a registration), marked present, and added to People.
+  const addGuest = async () => {
+    const { person_name, person_phone } = guestForm;
+    if (!person_phone) return;
+    await findOrCreatePerson(person_phone, person_name);
+    await savePresent(
+      present => [...new Set([...present, person_phone])],
+      guests => guests.some(g => g.phone === person_phone) ? guests : [...guests, { name: person_name, phone: person_phone }]
+    );
+    setGuestForm(null);
+  };
+  const removeGuest = (phone) => savePresent(present => present.filter(p => p !== phone), guests => guests.filter(g => g.phone !== phone));
 
   const toggleAttendance = (phone) => savePresent(present => present.includes(phone) ? present.filter(p => p !== phone) : [...present, phone]);
   const markAllPresent = (phones) => savePresent(present => [...new Set([...present, ...phones])]);
@@ -112,6 +129,12 @@ export default function GroupAttendancePage() {
 
   const presentSet = new Set(activeSession?.present_phones || []);
   const monthPhones = [...new Set(monthParticipants.map(p => p.person_phone).filter(Boolean))];
+  const registeredPhones = new Set(monthPhones);
+  const guests = (activeSession?.guests || []).filter(g => !registeredPhones.has(g.phone));
+  const rows = [
+    ...monthParticipants.map(p => ({ key: p.id, name: p.person_name, phone: p.person_phone })),
+    ...guests.map(g => ({ key: `guest-${g.phone}`, name: g.name, phone: g.phone, guest: true })),
+  ];
   const allPresent = monthPhones.length > 0 && monthPhones.every(ph => presentSet.has(ph));
 
   return (
@@ -162,7 +185,10 @@ export default function GroupAttendancePage() {
                 <p className="text-xs text-muted-foreground">{activeComputed ? dayLabels[activeComputed.day] : ''}</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">{toPersianNum(presentSet.size)} از {toPersianNum(monthParticipants.length)} نفر حاضر</span>
+                <span className="text-xs text-muted-foreground">{toPersianNum(presentSet.size)} از {toPersianNum(rows.length)} نفر حاضر</span>
+                <button onClick={() => setGuestForm({ person_name: '', person_phone: '' })} className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium border border-border hover:bg-muted">
+                  <Plus className="w-3.5 h-3.5" /> افزودن مهمان
+                </button>
                 {monthPhones.length > 0 && (
                   <button
                     onClick={() => markAllPresent(monthPhones)}
@@ -174,7 +200,16 @@ export default function GroupAttendancePage() {
                 )}
               </div>
             </div>
-            {monthParticipants.length === 0 ? (
+            {guestForm && (
+              <div className="p-4 border-b border-border flex flex-wrap items-end gap-2">
+                <div className="flex-1 min-w-[240px]">
+                  <PersonSearch personName={guestForm.person_name} personPhone={guestForm.person_phone} onNameChange={v => setGuestForm(prev => ({ ...prev, person_name: v }))} onPhoneChange={v => setGuestForm(prev => ({ ...prev, person_phone: v }))} />
+                </div>
+                <button onClick={addGuest} disabled={!guestForm.person_phone} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">افزودن و حاضر</button>
+                <button onClick={() => setGuestForm(null)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
+              </div>
+            )}
+            {rows.length === 0 ? (
               <div className="p-4 text-center text-sm text-muted-foreground">در این ماه کسی ثبت‌نام نکرده است</div>
             ) : (
               <div className="overflow-x-auto">
@@ -187,15 +222,19 @@ export default function GroupAttendancePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {monthParticipants.map(p => {
-                      const isPresent = presentSet.has(p.person_phone);
+                    {rows.map(p => {
+                      const isPresent = presentSet.has(p.phone);
                       return (
-                        <tr key={p.id} className="border-t border-border hover:bg-muted/20">
-                          <td className="p-3 font-medium">{p.person_name || '-'}</td>
-                          <td className="p-3 text-muted-foreground" dir="ltr">{p.person_phone}</td>
+                        <tr key={p.key} className="border-t border-border hover:bg-muted/20">
+                          <td className="p-3 font-medium">
+                            {p.name || '-'}
+                            {p.guest && <span className="mr-2 px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground">مهمان</span>}
+                            {p.guest && <button onClick={() => removeGuest(p.phone)} aria-label="حذف مهمان" className="mr-1 align-middle text-muted-foreground hover:text-red-600"><X className="w-3.5 h-3.5 inline" /></button>}
+                          </td>
+                          <td className="p-3 text-muted-foreground" dir="ltr">{p.phone}</td>
                           <td className="p-3 text-center">
                             <button
-                              onClick={() => toggleAttendance(p.person_phone)}
+                              onClick={() => toggleAttendance(p.phone)}
                               className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${isPresent ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
                             >
                               {isPresent ? <><Check className="w-3.5 h-3.5" /> حاضر</> : <><X className="w-3.5 h-3.5" /> غایب</>}

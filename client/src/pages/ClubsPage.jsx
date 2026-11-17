@@ -10,7 +10,7 @@ export const allClubs = [...data].sort((a, b) => (a.order ?? Infinity) - (b.orde
 const featured = allClubs.filter((c) => c.featured);
 
 // The hamburger and its drop-down card, same look as the panel's menu.
-const SITE_LINKS = [['کارگاه‌ها', '/'], ['درباره ما', '/about'], ['تماس با ما', '/contact']];
+const SITE_LINKS = [['انجمن‌ها', '/'], ['درباره ما', '/about'], ['تماس با ما', '/contact']];
 
 function SiteMenu() {
   const [open, setOpen] = useState(false);
@@ -46,10 +46,10 @@ export function ClubsHeader({ children = <SiteMenu /> }) {
   );
 }
 
-// The club's poster, filling its block; the color shows until a poster exists.
+// The club's poster, always 3:4 (the poster files' shape); the color shows until a poster exists.
 export function Poster({ club, className, children }) {
   return (
-    <div className={`relative overflow-hidden ${className}`} style={{ backgroundColor: club.color }}>
+    <div className={`relative overflow-hidden aspect-[3/4] ${className}`} style={{ backgroundColor: club.color }}>
       {club.image && <img src={club.image} alt="" className="absolute inset-0 h-full w-full object-cover" />}
       {children}
     </div>
@@ -79,12 +79,13 @@ function ModePill({ className, children }) {
 function FeaturedCard({ club }) {
   return (
     <Link to={`/clubs/${club.id}`} className="w-[160px] shrink-0">
-      <Poster club={club} className="h-[200px]">
-        <ModePill className="left-[11px] top-[13px] text-[10px]">{club.mode}</ModePill>
+      <Poster club={club}>
+        {/* Hidden while every club is in person; bring back when one goes online.
+        <ModePill className="left-[11px] top-[13px] text-[10px]">{club.mode}</ModePill> */}
       </Poster>
       <div className="mt-[10px] px-2 flex flex-col gap-2">
         <div className="flex flex-col gap-1">
-          <p className="text-[8px] leading-[6px] text-[#2F6B3A]">ثبت‌نام باز</p>
+          {/* <p className="text-[8px] leading-[6px] text-[#2F6B3A]">ثبت‌نام باز</p> */}
           <div>
             <h3 className="font-display text-base text-[#221E1F]">{club.title}</h3>
             {club.facilitator_name && <p className="text-xs text-[#7A7879]">با {club.facilitator_name}</p>}
@@ -105,12 +106,13 @@ function FeaturedCard({ club }) {
 function ClubRow({ club }) {
   return (
     <Link to={`/clubs/${club.id}`} className="flex gap-[10px] h-[148px]">
-      <Poster club={club} className="w-[118px] shrink-0">
-        <ModePill className="left-[6px] top-[11px] text-[8px]">{club.mode}</ModePill>
+      <Poster club={club} className="w-[111px] shrink-0">
+        {/* Hidden while every club is in person; bring back when one goes online.
+        <ModePill className="left-[6px] top-[11px] text-[8px]">{club.mode}</ModePill> */}
       </Poster>
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div className="flex flex-col gap-0.5">
-          <p className="text-[8px] text-[#2F6B3A]">ثبت‌نام باز</p>
+          {/* <p className="text-[8px] text-[#2F6B3A]">ثبت‌نام باز</p> */}
           <div>
             <h3 className="font-display text-[22px] text-black">{club.title}</h3>
             {club.facilitator_name && <p className="text-xs text-[#7A7879]">با {club.facilitator_name}</p>}
@@ -135,12 +137,14 @@ export default function ClubsPage() {
     <div className="min-h-full bg-white">
       <ClubsHeader />
       <div className="anim-rise mx-auto max-w-[480px] px-3 pb-12">
-        <h2 className="font-display text-[40px] leading-[1.2] text-[#221E1F] mt-8">کارگاه‌های پیشنهادی</h2>
+        {/* Featured row is off for now; set "featured": true in clubs.json and restore this to bring it back.
+        <h2 className="font-display text-[40px] leading-[1.2] text-[#221E1F] mt-8">انجمن‌های پیشنهادی</h2>
         <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-3 px-3 mt-[23px]">
           {featured.map((c) => <FeaturedCard key={c.id} club={c} />)}
         </div>
+        */}
 
-        <h2 className="font-display text-[32px] leading-[1.2] text-[#1B1819] mt-[57px]">همه کارگاه‌ها</h2>
+        <h2 className="font-display text-[32px] leading-[1.2] text-[#1B1819] mt-8">همه انجمن‌ها</h2>
         <div className="flex flex-col gap-8 mt-[27px]">
           {allClubs.map((c) => <ClubRow key={c.id} club={c} />)}
         </div>

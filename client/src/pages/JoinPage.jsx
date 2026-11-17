@@ -93,7 +93,8 @@ function Review({ club, name, phone, anim, onExpired }) {
   };
   const rows = [
     ['زمان', club.schedule],
-    ['نحوه برگزاری', club.venue],
+    // Hidden while every club is in person; bring back when one goes online.
+    // ['نحوه برگزاری', club.venue],
     ['اولین جلسه شما', club.first_session],
     ['نام و نام خانوادگی', name],
     ['شماره همراه', faDigits(phone)],
@@ -103,7 +104,7 @@ function Review({ club, name, phone, anim, onExpired }) {
       <div className={anim}>
       <h1 className="mt-8 text-[30px] leading-[1.2]">تایید عضویت</h1>
       <div className="mt-8 flex gap-4">
-        <Poster club={club} className="h-[167px] w-[133px] shrink-0" />
+        <Poster club={club} className="w-[133px] shrink-0" />
         <div className="min-w-0 flex flex-col gap-3">
           <h2 className="text-2xl">{club.title}</h2>
           {club.facilitator_name && <p className="text-base">با {club.facilitator_name}</p>}
@@ -164,8 +165,8 @@ export default function JoinPage() {
   };
 
   const back = step && !retry
-    ? <button onClick={() => go(step - 1)} className="contents">{'→ بازگشت'}</button>
-    : <Link to={club ? `/clubs/${id}` : '/'}>{'→ بازگشت'}</Link>;
+    ? <button onClick={() => go(step - 1)} className="inline-flex items-center gap-1"><img src="/images/clubs/chevron.svg" width="24" height="24" alt="" className="-rotate-90 opacity-60" />بازگشت</button>
+    : <Link to={club ? `/clubs/${id}` : '/'} className="inline-flex items-center gap-1"><img src="/images/clubs/chevron.svg" width="24" height="24" alt="" className="-rotate-90 opacity-60" />بازگشت</Link>;
 
   return (
     <div className="min-h-full bg-white text-black">
@@ -174,7 +175,7 @@ export default function JoinPage() {
         <div className="mt-[27px] text-base">{back}</div>
 
         {!club ? (
-          <p className="mt-10 text-base text-[#7A7879]">این کارگاه پیدا نشد.</p>
+          <p className="mt-10 text-base text-[#7A7879]">این انجمن پیدا نشد.</p>
         ) : step === 0 ? (
           <Step key={step} title="ورود یا ثبت نام" hint="برای ادامه، شماره موبایل خود را وارد کنید." anim={anim}>
             <form onSubmit={(e) => { e.preventDefault(); submitPhone(); }}>

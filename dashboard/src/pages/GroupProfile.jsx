@@ -17,8 +17,10 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { getPlanBounds, isFreePlan, isAmountPaid, formatPlanRange } from '@/lib/planPricing';
 
 const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+const ALL = 'all'; // month picker value that shows every month
 function monthLabel(key) {
   if (!key) return '';
+  if (key === ALL) return 'همه';
   const [jy, jm] = key.split('-').map(Number);
   return `${jMonths[jm - 1]} ${toPersianNum(jy)}`;
 }
@@ -73,20 +75,25 @@ export default function GroupProfile() {
   const allSessions = useMemo(() => group ? computeGroupSessions(group) : [], [group]);
   const totalSessions = group ? computeGroupTotalSessions(group) : 0;
 
+  // A group that hasn't started yet files new registrations under its start
+  // month, so open on that month and always list months that have registrations.
+  const startMonth = group ? registrationMonthKey(group) : currentJalaliMonthKey();
   const availableMonths = useMemo(() => {
     const set = new Set(allSessions.map(s => gregorianToMonthKey(s.date)));
-    set.add(currentJalaliMonthKey());
+    set.add(startMonth);
+    purchases.forEach(p => set.add(registrationMonthKey(group, p.month)));
     return [...set].sort();
-  }, [allSessions]);
+  }, [allSessions, purchases, startMonth]);
 
+  const [pickedMonth, setPickedMonth] = useState(false);
   useEffect(() => {
-    if (availableMonths.length > 0 && !availableMonths.includes(monthKey)) {
-      setMonthKey(availableMonths[availableMonths.length - 1]);
-    }
-  }, [availableMonths]);
+    if (group && !pickedMonth && monthKey !== startMonth) setMonthKey(startMonth);
+  }, [group, startMonth]);
 
-  const monthSessions = useMemo(() => allSessions.filter(s => gregorianToMonthKey(s.date) === monthKey), [allSessions, monthKey]);
-  const monthPurchases = purchases.filter(p => registrationMonthKey(group, p.month) === monthKey);
+  const monthSessions = useMemo(() => monthKey === ALL ? allSessions : allSessions.filter(s => gregorianToMonthKey(s.date) === monthKey), [allSessions, monthKey]);
+  const monthPurchases = purchases.filter(p => monthKey === ALL || registrationMonthKey(group, p.month) === monthKey);
+  // New registrations go to the picked month, or the current/start month under "همه".
+  const addMonth = monthKey === ALL ? startMonth : monthKey;
   const selectedRegPlan = plans.find(p => p.id === regForm.plan_id);
   const computedPaid = selectedRegPlan ? isAmountPaid(regForm.price, selectedRegPlan) : false;
 
@@ -155,7 +162,7 @@ export default function GroupProfile() {
     if (!regForm.plan_id) { setRegError('انتخاب مدل ثبت‌نام الزامی است'); return; }
     setRegError('');
     if (!regForm.person_phone) return;
-    const dup = monthPurchases.find(p => p.person_phone === regForm.person_phone);
+    const dup = purchases.find(p => registrationMonthKey(group, p.month) === addMonth && p.person_phone === regForm.person_phone);
     if (dup) { alert('این شخص در این ماه قبلاً ثبت‌نام شده است.'); return; }
     const plan = plans.find(p => p.id === regForm.plan_id);
     const { min, max } = getPlanBounds(plan);
@@ -178,7 +185,7 @@ export default function GroupProfile() {
       const newPurchase = await base44.entities.GroupPurchase.create({
         group_id: id,
         group_title: group.title,
-        month: monthKey,
+        month: addMonth,
         person_name: regForm.person_name,
         person_phone: regForm.person_phone,
         price: amount,
@@ -297,7 +304,8 @@ export default function GroupProfile() {
               <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
                 <h3 className="text-sm font-semibold flex items-center gap-2"><Users className="w-4 h-4 text-[#B74B40]" /> ثبت‌نامی‌ها ({toPersianNum(monthPurchases.length)})</h3>
                 <div className="flex items-center gap-2">
-                  <select value={monthKey} onChange={e => setMonthKey(e.target.value)} className="px-2 py-1 rounded-lg border border-input bg-background text-xs">
+                  <select value={monthKey} onChange={e => { setPickedMonth(true); setMonthKey(e.target.value); }} className="px-2 py-1 rounded-lg border border-input bg-background text-xs">
+                    <option value={ALL}>همه</option>
                     {availableMonths.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
                   </select>
                   <button onClick={() => setShowAddReg(!showAddReg)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B74B40] text-white text-xs font-medium hover:bg-[#A03D34]">
@@ -352,6 +360,7 @@ export default function GroupProfile() {
                         {p.plan_name && <span className="inline-block text-xs text-[#8CB9C0] mr-2">{p.plan_name}</span>}
                         {p.donation > 0 && <span className="text-xs text-[#8CB9C0] mr-2">دونیشین {formatCurrency(p.donation)}</span>}
                         <span className="text-xs text-muted-foreground mr-2">{formatJalaliShort(p.purchase_date)}</span>
+                        {monthKey === ALL && <span className="text-xs text-muted-foreground mr-2">({monthLabel(registrationMonthKey(group, p.month))})</span>}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-medium ${p.is_paid ? 'text-green-600' : 'text-[#B9834B]'}`}>{formatCurrency((p.price || 0) * (p.quantity || 1) + (p.donation || 0))}</span>
@@ -365,7 +374,7 @@ export default function GroupProfile() {
             </div>
             <div className="bg-white rounded-xl border border-border p-5">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-[#B74B40]" /> جلسات {monthLabel(monthKey)} ({toPersianNum(monthSessions.length)})</h3>
+                <h3 className="text-sm font-semibold flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-[#B74B40]" /> {monthKey === ALL ? 'همه جلسات' : `جلسات ${monthLabel(monthKey)}`} ({toPersianNum(monthSessions.length)})</h3>
               </div>
               {monthSessions.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">در این ماه جلسه‌ای برگزار نشده است</p>
