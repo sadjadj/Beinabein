@@ -62,18 +62,25 @@ function DetailRows({ club }) {
 // ponytail: buying is off until Zarinpal is wired; the join flow stays at
 // /join/:id. Swap back to <Link to={`/join/${club.id}`}> then.
 // Opens the join flow once the API says it can take registrations (SMS and
-// Zarinpal configured, or fake mode locally); until then a tooltip.
+// Zarinpal configured, or fake mode locally); until then a dialog pointing to Instagram.
 function JoinButton({ id }) {
-  const [tip, setTip] = useState(false);
   const [open, setOpen] = useState(false);
+  const [dialog, setDialog] = useState(false);
   useEffect(() => { api.joinConfig().then((c) => setOpen(c.open)).catch(() => {}); }, []);
   if (open) return <Link to={`/join/${id}`} className="bg-[#221E1F] px-6 py-2 text-base font-bold text-white">عضویت در این انجمن</Link>;
   return (
-    <div className="relative">
-      {tip && <span className="absolute bottom-full left-0 mb-2 whitespace-nowrap bg-[#221E1F] px-3 py-2 text-sm text-white">خرید در حال حاضر امکان‌پذیر نیست.</span>}
-      <button onClick={() => { setTip(true); setTimeout(() => setTip(false), 2500); }} onMouseEnter={() => setTip(true)} onMouseLeave={() => setTip(false)}
-        className="bg-[#221E1F] px-6 py-2 text-base font-bold text-white">عضویت در این انجمن</button>
-    </div>
+    <>
+      <button onClick={() => setDialog(true)} className="bg-[#221E1F] px-6 py-2 text-base font-bold text-white">عضویت در این انجمن</button>
+      {dialog && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-6" onClick={() => setDialog(false)}>
+          <div role="dialog" aria-modal="true" className="anim-rise w-full max-w-[360px] bg-white p-6 flex flex-col gap-5 text-[#221E1F]" onClick={(e) => e.stopPropagation()}>
+            <p className="text-base leading-7">ثبت‌نام آنلاین به‌زودی فعال می‌شه. برای ثبت‌نام فعلا به دایرکت اینستاگرام پیام بدید.</p>
+            <a href="https://ig.me/m/beinabein.space" target="_blank" rel="noreferrer" className="text-base underline">ارتباط با ما در اینستاگرام</a>
+            <button onClick={() => setDialog(false)} className="self-end text-sm text-[#7A7879]">بستن</button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
