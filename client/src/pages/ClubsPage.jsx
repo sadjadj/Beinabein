@@ -149,7 +149,7 @@ export default function ClubsPage() {
           {allClubs.map((c) => <ClubRow key={c.id} club={c} />)}
         </div>
         {/* Enamad trust seal, exactly as Enamad gave it: no rel attribute, or it stops showing. */}
-        <div className="mt-16 flex justify-center" dangerouslySetInnerHTML={{ __html: ENAMAD_SEAL }} />
+        {/* <div className="mt-16 flex justify-center" dangerouslySetInnerHTML={{ __html: ENAMAD_SEAL }} /> */}
       </div>
     </div>
   );
