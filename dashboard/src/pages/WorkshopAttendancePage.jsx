@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Check, X, Calendar as CalendarIcon, Users } from 'lucide-react';
-import { toPersianNum } from '@/lib/stats';
+import { ArrowRight, Check, X, Calendar as CalendarIcon, Users, Plus } from 'lucide-react';
+import { toPersianNum, findOrCreatePerson } from '@/lib/stats';
+import PersonSearch from '@/components/PersonSearch';
 import { dayLabels } from '@/lib/labels';
 import { toJalaliStr, todayGregorian } from '@/lib/jalali';
 import { workshopTimeLabel } from '@/lib/workshopSchedule';
@@ -15,6 +16,7 @@ export default function WorkshopAttendancePage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeSessionId, setActiveSessionId] = useState(null);
+  const [guestForm, setGuestForm] = useState(null); // { person_name, person_phone } while adding a guest
 
   const fetchData = async () => {
     setLoading(true);
@@ -49,6 +51,26 @@ export default function WorkshopAttendancePage() {
     await base44.entities.WorkshopSession.update(session.id, { present_phones: updated });
   };
 
+  // Someone who came to this one session without registering: saved on the
+  // session (not as a registration), marked present, and added to People.
+  const saveGuests = async (session, present_phones, guests) => {
+    setSessions(prev => prev.map(s => s.id === session.id ? { ...s, present_phones, guests } : s));
+    await base44.entities.WorkshopSession.update(session.id, { present_phones, guests });
+  };
+  const addGuest = async (session) => {
+    const { person_name, person_phone } = guestForm;
+    if (!person_phone) return;
+    await findOrCreatePerson(person_phone, person_name);
+    const guests = session.guests || [];
+    await saveGuests(session,
+      [...new Set([...(session.present_phones || []), person_phone])],
+      guests.some(g => g.phone === person_phone) ? guests : [...guests, { name: person_name, phone: person_phone }]);
+    setGuestForm(null);
+  };
+  const removeGuest = (session, phone) => saveGuests(session,
+    (session.present_phones || []).filter(p => p !== phone),
+    (session.guests || []).filter(g => g.phone !== phone));
+
   const markAllPresent = async (session, phones) => {
     const updated = [...new Set([...(session.present_phones || []), ...phones])];
     setSessions(prev => prev.map(s => s.id === session.id ? { ...s, present_phones: updated } : s));
@@ -72,6 +94,11 @@ export default function WorkshopAttendancePage() {
   const activeSession = sessions.find(s => s.id === activeSessionId);
   const activeParticipants = activeSession ? getSessionParticipants(activeSession) : [];
   const activePhones = [...new Set(activeParticipants.map(p => p.person_phone).filter(Boolean))];
+  const registeredPhones = new Set(activePhones);
+  const rows = [
+    ...activeParticipants.map(p => ({ key: p.id, name: p.person_name, phone: p.person_phone })),
+    ...(activeSession?.guests || []).filter(g => !registeredPhones.has(g.phone)).map(g => ({ key: `guest-${g.phone}`, name: g.name, phone: g.phone, guest: true })),
+  ];
   const allPresent = activePhones.length > 0 && activePhones.every(ph => (activeSession.present_phones || []).includes(ph));
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
@@ -133,7 +160,10 @@ export default function WorkshopAttendancePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">{toPersianNum((activeSession.present_phones || []).length)} از {toPersianNum(activeParticipants.length)} نفر حاضر</span>
+                  <span className="text-xs text-muted-foreground">{toPersianNum((activeSession.present_phones || []).length)} از {toPersianNum(rows.length)} نفر حاضر</span>
+                  <button onClick={() => setGuestForm({ person_name: '', person_phone: '' })} className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium border border-border hover:bg-muted">
+                    <Plus className="w-3.5 h-3.5" /> افزودن مهمان
+                  </button>
                   {activePhones.length > 0 && (
                     <button
                       onClick={() => markAllPresent(activeSession, activePhones)}
@@ -145,7 +175,16 @@ export default function WorkshopAttendancePage() {
                   )}
                 </div>
               </div>
-              {activeParticipants.length === 0 ? (
+              {guestForm && (
+                <div className="p-4 border-b border-border flex flex-wrap items-end gap-2">
+                  <div className="flex-1 min-w-[240px]">
+                    <PersonSearch personName={guestForm.person_name} personPhone={guestForm.person_phone} onNameChange={v => setGuestForm(prev => ({ ...prev, person_name: v }))} onPhoneChange={v => setGuestForm(prev => ({ ...prev, person_phone: v }))} />
+                  </div>
+                  <button onClick={() => addGuest(activeSession)} disabled={!guestForm.person_phone} className="px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34] disabled:opacity-50">افزودن و حاضر</button>
+                  <button onClick={() => setGuestForm(null)} className="px-4 py-2 rounded-lg border border-border text-sm">انصراف</button>
+                </div>
+              )}
+              {rows.length === 0 ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">هنوز کسی در این جلسه ثبت‌نام نکرده است</div>
               ) : (
                 <div className="overflow-x-auto">
@@ -158,16 +197,20 @@ export default function WorkshopAttendancePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {activeParticipants.map(p => {
+                      {rows.map(p => {
                         const presentSet = new Set(activeSession.present_phones || []);
-                        const isPresent = presentSet.has(p.person_phone);
+                        const isPresent = presentSet.has(p.phone);
                         return (
-                          <tr key={p.id} className="border-t border-border hover:bg-muted/20">
-                            <td className="p-3 font-medium">{p.person_name || '-'}</td>
-                            <td className="p-3 text-muted-foreground" dir="ltr">{p.person_phone}</td>
+                          <tr key={p.key} className="border-t border-border hover:bg-muted/20">
+                            <td className="p-3 font-medium">
+                              {p.name || '-'}
+                              {p.guest && <span className="mr-2 px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground">مهمان</span>}
+                              {p.guest && <button onClick={() => removeGuest(activeSession, p.phone)} aria-label="حذف مهمان" className="mr-1 align-middle text-muted-foreground hover:text-red-600"><X className="w-3.5 h-3.5 inline" /></button>}
+                            </td>
+                            <td className="p-3 text-muted-foreground" dir="ltr">{p.phone}</td>
                             <td className="p-3 text-center">
                               <button
-                                onClick={() => toggleAttendance(activeSession, p.person_phone)}
+                                onClick={() => toggleAttendance(activeSession, p.phone)}
                                 className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
                                   isPresent
                                     ? 'bg-green-100 text-green-700 hover:bg-green-200'

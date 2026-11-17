@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '@/api/client';
 import { Link, useParams } from 'react-router-dom';
 import { allClubs, ClubsHeader, Poster, TAG } from '@/pages/ClubsPage';
@@ -71,14 +72,16 @@ function JoinButton({ id }) {
   return (
     <>
       <button onClick={() => setDialog(true)} className="bg-[#221E1F] px-6 py-2 text-base font-bold text-white">عضویت در این انجمن</button>
-      {dialog && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-6" onClick={() => setDialog(false)}>
-          <div role="dialog" aria-modal="true" className="anim-rise w-full max-w-[360px] bg-white p-6 flex flex-col gap-5 text-[#221E1F]" onClick={(e) => e.stopPropagation()}>
+      {/* Portal: the bottom bar is animated (transformed), which would trap a fixed child inside it. */}
+      {dialog && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6" onClick={() => setDialog(false)}>
+          <div role="dialog" aria-modal="true" className="anim-rise w-full max-w-[360px] rounded-lg bg-white p-6 flex flex-col gap-5 text-center text-[#221E1F] shadow-xl" onClick={(e) => e.stopPropagation()}>
             <p className="text-base leading-7">ثبت‌نام آنلاین به‌زودی فعال می‌شه. برای ثبت‌نام فعلا به دایرکت اینستاگرام پیام بدید.</p>
-            <a href="https://ig.me/m/beinabein.space" target="_blank" rel="noreferrer" className="text-base underline">ارتباط با ما در اینستاگرام</a>
-            <button onClick={() => setDialog(false)} className="self-end text-sm text-[#7A7879]">بستن</button>
+            <a href="https://ig.me/m/beinabein.space" target="_blank" rel="noreferrer" className="text-base font-bold underline">ارتباط با ما در اینستاگرام</a>
+            <button onClick={() => setDialog(false)} className="text-sm text-[#7A7879]">بستن</button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
@@ -93,7 +96,7 @@ export default function ClubDetailPage() {
       <ClubsHeader />
       <div className="anim-rise mx-auto max-w-[480px] px-3 pb-40">
         <Link to="/" className="mt-3 inline-flex items-center gap-1 text-[#7A7879]">
-          <span className="text-[30px] leading-[1.2]">→</span>
+          <img src="/images/clubs/chevron.svg" width="24" height="24" alt="" className="-rotate-90 opacity-60" />
           <span className="text-base">بازگشت</span>
         </Link>
 
@@ -101,10 +104,10 @@ export default function ClubDetailPage() {
           <p className="mt-10 text-base text-[#7A7879]">این انجمن پیدا نشد.</p>
         ) : (
           <>
-            <Poster club={club} className="mt-[9px] h-[473px]" />
+            <Poster club={club} className="mt-[9px]" />
 
             <div className="mt-8 flex flex-col items-start gap-4">
-              <span className={`rounded-[50px] px-6 py-1 text-base ${TAG.green}`}>ثبت‌نام باز</span>
+              {/* <span className={`rounded-[50px] px-6 py-1 text-base ${TAG.green}`}>ثبت‌نام باز</span> */}
               <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-[9px] leading-[1.2]">
                   <h1 className="font-display text-[40px] text-[#221E1F]">{club.title}</h1>

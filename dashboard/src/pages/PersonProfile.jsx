@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowRight, Phone, User, Pencil, Check, X, GraduationCap, Briefcase, Coffee, Calendar, Trash2 } from 'lucide-react';
+import { ArrowRight, Phone, User, Pencil, Check, X, GraduationCap, Briefcase, Coffee, Calendar, Trash2, Users } from 'lucide-react';
 import { toPersianNum, formatCurrency } from '@/lib/stats';
 import { howMetLabels, genderLabels, paymentMethodLabels, purchaseReasonLabels } from '@/lib/labels';
 import HowMetBadge from '@/components/HowMetBadge';
 import { formatJalaliShort } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 
+const jMonths = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+const monthLabel = (key) => { const [jy, jm] = (key || '').split('-').map(Number); return jm ? `${jMonths[jm - 1]} ${toPersianNum(jy)}` : ''; };
+
 export default function PersonProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [person, setPerson] = useState(null);
-  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [] });
+  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], groupPurchases: [] });
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
@@ -24,12 +27,13 @@ export default function PersonProfile() {
     try {
       const p = await base44.entities.Person.get(id);
       setPerson(p);
-      const [wsOrders, itemPurchases, workshopPurchases] = await Promise.all([
+      const [wsOrders, itemPurchases, workshopPurchases, groupPurchases] = await Promise.all([
         base44.entities.WorkspaceOrder.list('-purchase_date'),
         base44.entities.ItemPurchase.list('-purchase_date'),
-        base44.entities.WorkshopPurchase.list('-purchase_date')
+        base44.entities.WorkshopPurchase.list('-purchase_date'),
+        base44.entities.GroupPurchase.list('-purchase_date')
       ]);
-      setData({ workspaceOrders: wsOrders, itemPurchases, workshopPurchases });
+      setData({ workspaceOrders: wsOrders, itemPurchases, workshopPurchases, groupPurchases });
     } finally { setLoading(false); }
   };
 
@@ -72,7 +76,15 @@ export default function PersonProfile() {
   const wsOrders = data.workspaceOrders.filter(o => o.person_phone === phone);
   const cafePurchases = data.itemPurchases.filter(p => p.person_phone === phone);
   const workshopPurchases = data.workshopPurchases.filter(w => w.person_phone === phone);
-  const totalCount = wsOrders.length + cafePurchases.length + workshopPurchases.length;
+  const groupPurchases = data.groupPurchases.filter(g => g.person_phone === phone);
+  // One row per group, with the months this person registered for it.
+  const groups = Object.values(groupPurchases.reduce((acc, g) => {
+    (acc[g.group_id] ||= { id: g.group_id, title: g.group_title, months: [], total: 0 });
+    acc[g.group_id].months.push(g.month);
+    acc[g.group_id].total += Number(g.price) || 0;
+    return acc;
+  }, {}));
+  const totalCount = wsOrders.length + cafePurchases.length + workshopPurchases.length + groupPurchases.length;
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
@@ -146,6 +158,26 @@ export default function PersonProfile() {
         )}
         {person.notes && !editing && <div className="mt-4 p-3 bg-muted/30 rounded-lg text-sm text-muted-foreground">{person.notes}</div>}
       </div>
+
+      {groups.length > 0 && (
+        <div className="bg-white rounded-xl border border-border overflow-hidden">
+          <div className="p-4 border-b border-border flex items-center gap-2">
+            <Users className="w-4 h-4 text-[#B74B40]" />
+            <h3 className="text-sm font-semibold">گروه‌ها ({toPersianNum(groups.length)})</h3>
+          </div>
+          <div className="divide-y divide-border">
+            {groups.map(g => (
+              <div key={g.id} className="p-3 flex items-center justify-between text-sm">
+                <Link to={`/groups/${g.id}`} className="font-medium text-[#B74B40] hover:underline">{g.title || '-'}</Link>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{[...new Set(g.months)].sort().map(monthLabel).join('، ')}</span>
+                  <span className="font-medium">{formatCurrency(g.total)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {workshopPurchases.length > 0 && (
         <div className="bg-white rounded-xl border border-border overflow-hidden">
