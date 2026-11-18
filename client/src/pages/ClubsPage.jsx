@@ -50,7 +50,7 @@ export function ClubsHeader({ children = <SiteMenu /> }) {
 export function Poster({ club, className, children }) {
   return (
     <div className={`relative overflow-hidden aspect-[3/4] ${className}`} style={{ backgroundColor: club.color }}>
-      {club.image && <img src={club.image} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+      {club.image && <img src={club.image} alt="" className="absolute inset-0 h-full w-full object-cover" style={club.is_full ? { filter: 'grayscale(1) brightness(1.18)' } : undefined} />}
       {children}
     </div>
   );
@@ -114,7 +114,10 @@ function ClubRow({ club }) {
         <div className="flex flex-col gap-0.5">
           {/* <p className="text-[8px] text-[#2F6B3A]">ثبت‌نام باز</p> */}
           <div>
-            <h3 className="font-display text-[22px] text-black">{club.title}</h3>
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-display text-[22px] text-black">{club.title}</h3>
+              {club.is_full && <span className="mt-3 shrink-0 rounded-[50px] bg-[#F7E0DD] px-3.5 py-1.5 text-sm text-[#9C2F26]">تکمیل ظرفیت</span>}
+            </div>
             {club.facilitator_name && <p className="text-xs text-[#7A7879]">با {club.facilitator_name}</p>}
           </div>
         </div>

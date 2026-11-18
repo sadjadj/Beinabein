@@ -107,7 +107,7 @@ export default function ClubDetailPage() {
             <Poster club={club} className="mt-[9px]" />
 
             <div className="mt-8 flex flex-col items-start gap-4">
-              {/* <span className={`rounded-[50px] px-6 py-1 text-base ${TAG.green}`}>ثبت‌نام باز</span> */}
+              {club.is_full && <span className="rounded-[50px] bg-[#F7E0DD] px-5 py-1.5 text-base text-[#9C2F26]">تکمیل ظرفیت</span>}
               <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-[9px] leading-[1.2]">
                   <h1 className="font-display text-[40px] text-[#221E1F]">{club.title}</h1>
@@ -130,7 +130,7 @@ export default function ClubDetailPage() {
             <p className="text-sm text-[#828282]">ماهانه</p>
             <p className="text-base text-[#221E1F]">{club.price ? `${club.price.toLocaleString('fa-IR')} تومان` : ''}</p>
           </div>
-          <JoinButton id={club.id} />
+          {club.is_full ? <button disabled className="bg-[#EDEDED] px-6 py-2 text-base text-[#8B8B8B]">تکمیل ظرفیت</button> : <JoinButton id={club.id} />}
         </div>
       )}
     </div>
