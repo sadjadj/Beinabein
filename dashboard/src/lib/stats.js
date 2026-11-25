@@ -122,13 +122,16 @@ export async function syncPeopleFromActivities(workspaceOrders, itemPurchases, w
 }
 
 // ─── Last non-cafe service for a person ───
-export function computeLastNonCafeService(phone, workspaceOrders, workshopPurchases) {
+export function computeLastNonCafeService(phone, workspaceOrders, workshopPurchases, registrations = []) {
   const activities = [];
   workspaceOrders.filter(o => o.person_phone === phone).forEach(o => {
     activities.push({ type: 'فضای کار', date: o.usage_date || o.purchase_date, label: o.usage_date || o.purchase_date });
   });
   workshopPurchases.filter(w => w.person_phone === phone).forEach(w => {
     activities.push({ type: 'کارگاه', date: w.purchase_date, label: w.workshop_title });
+  });
+  registrationRows(registrations).filter(r => r.person_phone === phone).forEach(r => {
+    activities.push({ type: r.sourceLabel, date: r.purchase_date, label: r.title });
   });
   if (activities.length === 0) return null;
   activities.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -147,11 +150,16 @@ export const EXTRA_INCOME_SOURCES = [
   { key: 'custom', entity: 'CustomIncome', label: 'درآمد دلخواه', amount: (p) => (p.amount || 0) * (p.quantity || 1), title: (p) => p.title },
 ];
 
-// Fetches every extra income table as flat rows: { ...record, source, sourceLabel, amount, title }
-export async function fetchExtraIncome() {
-  const lists = await Promise.all(EXTRA_INCOME_SOURCES.map(s => base44.entities[s.entity].list('-purchase_date')));
-  return EXTRA_INCOME_SOURCES.flatMap((s, i) => lists[i].map(p => ({ ...p, source: s.key, sourceLabel: s.label, amount: s.amount(p), title: s.title(p) })));
+// Fetches extra income tables (all, or only `keys`) as flat rows: { ...record, source, sourceLabel, amount, title }
+export async function fetchExtraIncome(keys) {
+  const sources = keys ? EXTRA_INCOME_SOURCES.filter(s => keys.includes(s.key)) : EXTRA_INCOME_SOURCES;
+  const lists = await Promise.all(sources.map(s => base44.entities[s.entity].list('-purchase_date')));
+  return sources.flatMap((s, i) => lists[i].map(p => ({ ...p, source: s.key, sourceLabel: s.label, amount: s.amount(p), title: s.title(p) })));
 }
+
+// Registration-type sources that count as people activity (like workshops); store purchases don't
+export const PEOPLE_SOURCES = ['group', 'event'];
+const registrationRows = (rows) => rows.filter(r => PEOPLE_SOURCES.includes(r.source));
 
 // { group: 0, event: 0, ... } summed from extra income rows
 export function sumExtraIncomeBySource(rows) {
@@ -165,11 +173,13 @@ export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurc
   const orders = filterByDate(workspaceOrders, 'purchase_date', range);
   const items = filterByDate(itemPurchases, 'purchase_date', range);
   const wp = filterByDate(workshopPurchases, 'purchase_date', range);
+  const regs = registrationRows(filterByDate(extraIncome, 'purchase_date', range));
 
   const sectionPhones = {
     workspace: new Set(orders.map(o => o.person_phone)),
     cafe: new Set(items.map(p => p.person_phone)),
     workshop: new Set(wp.map(p => p.person_phone)),
+    ...Object.fromEntries(PEOPLE_SOURCES.map(k => [k, new Set(regs.filter(r => r.source === k).map(r => r.person_phone))])),
   };
 
   const allPhones = new Set();
@@ -181,6 +191,7 @@ export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurc
   orders.forEach(o => addCount(o.person_phone));
   items.forEach(p => addCount(p.person_phone));
   wp.forEach(w => addCount(w.person_phone));
+  regs.forEach(r => addCount(r.person_phone));
 
   const totalPeople = Object.keys(phoneCounts).length;
   const returnCount = Object.values(phoneCounts).filter(c => c > 1).length;
@@ -188,11 +199,7 @@ export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurc
 
   let diversityCount = 0;
   allPhones.forEach(phone => {
-    let sections = 0;
-    if (sectionPhones.workspace.has(phone)) sections++;
-    if (sectionPhones.cafe.has(phone)) sections++;
-    if (sectionPhones.workshop.has(phone)) sections++;
-    if (sections > 1) diversityCount++;
+    if (Object.values(sectionPhones).filter(s => s.has(phone)).length > 1) diversityCount++;
   });
   const diversityRate = uniqueCount > 0 ? (diversityCount / uniqueCount) * 100 : 0;
 
@@ -208,7 +215,7 @@ export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurc
 }
 
 // ─── Daily unique visitors trend ───
-export function computeDailyUniques(workspaceOrders, itemPurchases, workshopPurchases, range) {
+export function computeDailyUniques(workspaceOrders, itemPurchases, workshopPurchases, range, extraIncome = []) {
   const days = {};
   const addEntry = (date, phone) => {
     if (!date || !phone || !inRange(date, range)) return;
@@ -218,6 +225,7 @@ export function computeDailyUniques(workspaceOrders, itemPurchases, workshopPurc
   workspaceOrders.forEach(o => addEntry(o.purchase_date, o.person_phone));
   itemPurchases.forEach(p => addEntry(p.purchase_date, p.person_phone));
   workshopPurchases.forEach(w => addEntry(w.purchase_date, w.person_phone));
+  registrationRows(extraIncome).forEach(r => addEntry(r.purchase_date, r.person_phone));
 
   // Fill in missing days within the range so the chart shows continuous data
   if (range && range.start && range.end) {
@@ -236,7 +244,7 @@ export function computeDailyUniques(workspaceOrders, itemPurchases, workshopPurc
 }
 
 // ─── Section distribution ───
-export function computeSectionDistribution(workspaceOrders, itemPurchases, workshopPurchases, range) {
+export function computeSectionDistribution(workspaceOrders, itemPurchases, workshopPurchases, range, extraIncome = []) {
   const orders = filterByDate(workspaceOrders, 'purchase_date', range);
   const items = filterByDate(itemPurchases, 'purchase_date', range);
   const wp = filterByDate(workshopPurchases, 'purchase_date', range);
@@ -244,6 +252,10 @@ export function computeSectionDistribution(workspaceOrders, itemPurchases, works
     { name: 'فضای کار', value: new Set(orders.map(o => o.person_phone)).size },
     { name: 'کافه', value: new Set(items.map(p => p.person_phone)).size },
     { name: 'کارگاه', value: new Set(wp.map(p => p.person_phone)).size },
+    ...EXTRA_INCOME_SOURCES.filter(s => PEOPLE_SOURCES.includes(s.key)).map(s => ({
+      name: s.label,
+      value: new Set(registrationRows(filterByDate(extraIncome, 'purchase_date', range)).filter(r => r.source === s.key).map(r => r.person_phone)).size,
+    })),
   ];
 }
 
