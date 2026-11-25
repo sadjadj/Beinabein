@@ -163,12 +163,12 @@ export default function PersonProfile() {
         <div className="bg-white rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border flex items-center gap-2">
             <Users className="w-4 h-4 text-[#B74B40]" />
-            <h3 className="text-sm font-semibold">گروه‌ها ({toPersianNum(groups.length)})</h3>
+            <h3 className="text-sm font-semibold">انجمن‌ها ({toPersianNum(groups.length)})</h3>
           </div>
           <div className="divide-y divide-border">
             {groups.map(g => (
               <div key={g.id} className="p-3 flex items-center justify-between text-sm">
-                <Link to={`/groups/${g.id}`} className="font-medium text-[#B74B40] hover:underline">{g.title || '-'}</Link>
+                <Link to={`/clubs/${g.id}`} className="font-medium text-[#B74B40] hover:underline">{g.title || '-'}</Link>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">{[...new Set(g.months)].sort().map(monthLabel).join('، ')}</span>
                   <span className="font-medium">{formatCurrency(g.total)}</span>

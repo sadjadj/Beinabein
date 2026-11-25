@@ -125,7 +125,7 @@ export default function GroupAttendancePage() {
   const markAllPresent = (phones) => savePresent(present => [...new Set([...present, ...phones])]);
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-gray-200 border-t-[#B74B40] rounded-full animate-spin"></div></div>;
-  if (!group) return <div className="p-6 text-center text-muted-foreground">گروهی یافت نشد</div>;
+  if (!group) return <div className="p-6 text-center text-muted-foreground">انجمنی یافت نشد</div>;
 
   const presentSet = new Set(activeSession?.present_phones || []);
   const monthPhones = [...new Set(monthParticipants.map(p => p.person_phone).filter(Boolean))];
@@ -144,7 +144,7 @@ export default function GroupAttendancePage() {
       </button>
 
       <div className="bg-white rounded-xl border border-border p-6">
-        <Link to={`/groups/${group.id}`} className="text-xl font-bold hover:text-[#B74B40] transition-colors">{group.title}</Link>
+        <Link to={`/clubs/${group.id}`} className="text-xl font-bold hover:text-[#B74B40] transition-colors">{group.title}</Link>
         <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
           {(group.schedule || []).map(s => <span key={s.day}>{dayLabels[s.day]} {s.start_time || ''}{s.end_time ? ` تا ${s.end_time}` : ''}</span>)}
           <span>{toPersianNum(monthParticipants.length)} ثبت‌نام در این ماه</span>
@@ -162,7 +162,7 @@ export default function GroupAttendancePage() {
 
       {monthSessions.length === 0 ? (
         <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground">
-          در {monthLabel(monthKey)} جلسه‌ای برای این گروه برگزار نشده است.
+          در {monthLabel(monthKey)} جلسه‌ای برای این انجمن برگزار نشده است.
         </div>
       ) : (
         <div>

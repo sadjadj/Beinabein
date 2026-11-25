@@ -139,7 +139,7 @@ export function computeLastNonCafeService(phone, workspaceOrders, workshopPurcha
 const itemAmount = (p) => (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100);
 const registrationAmount = (p) => (p.price || 0) * (p.quantity || 1) + (p.donation || 0);
 export const EXTRA_INCOME_SOURCES = [
-  { key: 'group', entity: 'GroupPurchase', label: 'گروه', amount: registrationAmount, title: (p) => p.group_title },
+  { key: 'group', entity: 'GroupPurchase', label: 'انجمن', amount: registrationAmount, title: (p) => p.group_title },
   { key: 'event', entity: 'EventPurchase', label: 'رخداد', amount: registrationAmount, title: (p) => p.event_title },
   { key: 'store', entity: 'StorePurchase', label: 'استور', amount: itemAmount, title: (p) => p.item_name },
   { key: 'greenhouse', entity: 'GreenhousePurchase', label: 'گلخانه', amount: itemAmount, title: (p) => p.item_name },

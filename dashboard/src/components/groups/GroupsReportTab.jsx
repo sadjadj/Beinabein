@@ -94,12 +94,12 @@ export default function GroupsReportTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-        <StatCard label="تعداد ثبت‌نام‌ها" value={toPersianNum(totalReg)} icon={Users} color="terracotta" info="تعداد کل ثبت‌نام‌های گروه‌ها در بازه انتخاب‌شده (بر اساس تاریخ ثبت‌نام)" />
-        <StatCard label="افراد یونیک" value={toPersianNum(uniquePeople)} icon={Users} color="teal" info="تعداد افراد یکتا بر اساس شماره تلفن که در بازه انتخاب‌شده در گروه‌ها ثبت‌نام کرده‌اند" />
-        <StatCard label="درآمد کل" value={formatCurrency(totalRevenue)} icon={TrendingUp} color="ochre" info="مجموع مبالغ تمام فاکتورهای گروه‌ها در بازه انتخاب‌شده (شامل قیمت و دونیشن، بدون در نظر گرفتن وضعیت پرداخت)" />
-        <StatCard label="تعداد فاکتورهای پرداخت نشده" value={toPersianNum(unpaidCount)} icon={AlertCircle} color="pink" info="تعداد فاکتورهای گروه‌ها در بازه انتخاب‌شده که هنوز پرداخت نشده‌اند" />
-        <StatCard label="گروه‌هایی که این ماه شروع می‌شوند" value={toPersianNum(groupsStartingThisMonth)} icon={CalendarDays} color="terracotta" info="تعداد گروه‌هایی که تاریخ شروع آن‌ها در ماه جاری شمسی قرار دارد" />
-        <StatCard label="گروه‌هایی که این ماه برگزار می‌شوند" value={toPersianNum(groupsHeldThisMonth)} icon={Layers} color="green" info="تعداد گروه‌هایی که در ماه جاری شمسی یک یا چند جلسه از آن‌ها برگزار می‌شود (بر اساس برنامه هفتگی)" />
+        <StatCard label="تعداد ثبت‌نام‌ها" value={toPersianNum(totalReg)} icon={Users} color="terracotta" info="تعداد کل ثبت‌نام‌های انجمن‌ها در بازه انتخاب‌شده (بر اساس تاریخ ثبت‌نام)" />
+        <StatCard label="افراد یونیک" value={toPersianNum(uniquePeople)} icon={Users} color="teal" info="تعداد افراد یکتا بر اساس شماره تلفن که در بازه انتخاب‌شده در انجمن‌ها ثبت‌نام کرده‌اند" />
+        <StatCard label="درآمد کل" value={formatCurrency(totalRevenue)} icon={TrendingUp} color="ochre" info="مجموع مبالغ تمام فاکتورهای انجمن‌ها در بازه انتخاب‌شده (شامل قیمت و دونیشن، بدون در نظر گرفتن وضعیت پرداخت)" />
+        <StatCard label="تعداد فاکتورهای پرداخت نشده" value={toPersianNum(unpaidCount)} icon={AlertCircle} color="pink" info="تعداد فاکتورهای انجمن‌ها در بازه انتخاب‌شده که هنوز پرداخت نشده‌اند" />
+        <StatCard label="انجمن‌هایی که این ماه شروع می‌شوند" value={toPersianNum(groupsStartingThisMonth)} icon={CalendarDays} color="terracotta" info="تعداد انجمن‌هایی که تاریخ شروع آن‌ها در ماه جاری شمسی قرار دارد" />
+        <StatCard label="انجمن‌هایی که این ماه برگزار می‌شوند" value={toPersianNum(groupsHeldThisMonth)} icon={Layers} color="green" info="تعداد انجمن‌هایی که در ماه جاری شمسی یک یا چند جلسه از آن‌ها برگزار می‌شود (بر اساس برنامه هفتگی)" />
       </div>
 
       <ReportToolbar
@@ -108,7 +108,7 @@ export default function GroupsReportTab() {
         customEnd={customEnd} setCustomEnd={setCustomEnd}
       />
 
-      <ChartCard title="درآمد" info="مجموع درآمد گروه‌ها در هر روز (شامل قیمت و دونیشن، بر اساس تاریخ ثبت‌نام)" todayLabel="درآمد امروز" todayValue={formatCurrency(todayRevenue)}>
+      <ChartCard title="درآمد" info="مجموع درآمد انجمن‌ها در هر روز (شامل قیمت و دونیشن، بر اساس تاریخ ثبت‌نام)" todayLabel="درآمد امروز" todayValue={formatCurrency(todayRevenue)}>
         {chartData.length === 0 ? (
           <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
         ) : (
@@ -124,7 +124,7 @@ export default function GroupsReportTab() {
         )}
       </ChartCard>
 
-      <ChartCard title="تعداد شرکت‌کنندگان" info="مجموع تعداد شرکت‌کنندگان گروه‌هایی که در آن روز ثبت‌نام کرده‌اند (بر اساس تاریخ ثبت‌نام)" todayLabel="شرکت‌کنندگان امروز" todayValue={toPersianNum(todayParticipants)}>
+      <ChartCard title="تعداد شرکت‌کنندگان" info="مجموع تعداد شرکت‌کنندگان انجمن‌هایی که در آن روز ثبت‌نام کرده‌اند (بر اساس تاریخ ثبت‌نام)" todayLabel="شرکت‌کنندگان امروز" todayValue={toPersianNum(todayParticipants)}>
         {chartData.length === 0 ? (
           <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
         ) : (
@@ -140,7 +140,7 @@ export default function GroupsReportTab() {
         )}
       </ChartCard>
 
-      <ChartCard title="تعداد گروه‌ها" info="تعداد گروه‌هایی که در آن روز جلسه برگزار می‌کنند (بر اساس برنامه هفتگی گروه)" todayLabel="گروه‌های امروز" todayValue={toPersianNum(todayGroupCount)}>
+      <ChartCard title="تعداد انجمن‌ها" info="تعداد انجمن‌هایی که در آن روز جلسه برگزار می‌کنند (بر اساس برنامه هفتگی انجمن)" todayLabel="انجمن‌های امروز" todayValue={toPersianNum(todayGroupCount)}>
         {chartData.length === 0 ? (
           <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">داده‌ای نیست</div>
         ) : (
@@ -149,7 +149,7 @@ export default function GroupsReportTab() {
               <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
               <XAxis dataKey="date" tickFormatter={tickFormatter} tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => Number(v).toLocaleString('fa-IR')} width={40} />
-              <Tooltip content={<ChartTooltip unitLabel="تعداد گروه" formatter={toPersianNum} />} />
+              <Tooltip content={<ChartTooltip unitLabel="تعداد انجمن" formatter={toPersianNum} />} />
               <Bar dataKey="groupCount" fill="#D98B94" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

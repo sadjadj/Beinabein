@@ -104,7 +104,7 @@ export default function GroupHistoryTab() {
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const exportColumns = [
-    { key: 'group', label: 'گروه' },
+    { key: 'group', label: 'انجمن' },
     { key: 'plan', label: 'مدل ثبت‌نام' },
     { key: 'name', label: 'نام' },
     { key: 'phone', label: 'تلفن' },
@@ -148,7 +148,7 @@ export default function GroupHistoryTab() {
             <RotateCcw className="w-3.5 h-3.5" /> بازگشت به پیش‌فرض
           </button>
           <select value={groupFilter} onChange={e => { setGroupFilter(e.target.value); setPage(1); }} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
-            <option value="">همه گروه‌ها</option>
+            <option value="">همه انجمن‌ها</option>
             {groups.map(g => <option key={g.id} value={g.id}>{g.title}</option>)}
           </select>
           <div className="flex items-center gap-1">
@@ -158,9 +158,9 @@ export default function GroupHistoryTab() {
           </div>
           <div className="relative flex-1 min-w-[140px]">
             <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="جستجوی نام / تلفن / گروه..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-full" />
+            <input type="text" placeholder="جستجوی نام / تلفن / انجمن..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pr-9 pl-3 py-1.5 rounded-lg border border-input bg-background text-sm w-full" />
           </div>
-          <ExportButton filename="تاریخچه-ثبت‌نام-گروه‌ها" columns={exportColumns} rows={exportRows} />
+          <ExportButton filename="تاریخچه-ثبت‌نام-انجمن‌ها" columns={exportColumns} rows={exportRows} />
         </div>
         <p className="text-xs text-muted-foreground">پیش‌فرض: از ابتدای {monthName} تا امروز</p>
         {dateError && <p className="text-xs text-red-600">{dateError}</p>}
@@ -177,7 +177,7 @@ export default function GroupHistoryTab() {
               <thead className="bg-muted/50">
                 <tr>
                   <th className="text-right p-3 font-medium">نام</th>
-                  <th className="text-right p-3 font-medium">گروه</th>
+                  <th className="text-right p-3 font-medium">انجمن</th>
                   <th className="text-center p-3 font-medium">تلفن</th>
                   <th className="text-center p-3 font-medium">تاریخ</th>
                   <th className="text-center p-3 font-medium">مبلغ</th>
@@ -188,10 +188,10 @@ export default function GroupHistoryTab() {
               <tbody>
                 {paginated.map(p => (
                   <React.Fragment key={p.id}>
-                  <tr className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => editId !== p.id && navigate(`/accounting/group/${p.id}`, { state: { from: '/groups' } })}>
+                  <tr className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => editId !== p.id && navigate(`/accounting/group/${p.id}`, { state: { from: '/clubs' } })}>
                     <td className="p-3"><span className="font-medium">{p.person_name || '-'}</span></td>
                     <td className="p-3">
-                      <Link to={`/groups/${p.group_id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.group_title || '-'}</Link>
+                      <Link to={`/clubs/${p.group_id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.group_title || '-'}</Link>
                       {p.plan_name && <span className="text-xs text-[#8CB9C0] block mt-0.5">{p.plan_name}</span>}
                     </td>
                     <td className="p-3 text-xs text-muted-foreground whitespace-nowrap text-center" dir="ltr">{p.person_phone || '-'}</td>

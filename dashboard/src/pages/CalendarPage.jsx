@@ -66,7 +66,7 @@ export default function CalendarPage() {
       const sessions = computeGroupSessions(g);
       sessions.forEach(s => {
         if (s.date >= week.start && s.date <= week.end) {
-          entries.push({ date: s.date, day: s.day, start_time: s.start_time || '', end_time: s.end_time || '', space: g.space || '', title: g.title, type: 'group', id: g.id, link: `/groups/${g.id}` });
+          entries.push({ date: s.date, day: s.day, start_time: s.start_time || '', end_time: s.end_time || '', space: g.space || '', title: g.title, type: 'group', id: g.id, link: `/clubs/${g.id}` });
         }
       });
     });
@@ -152,7 +152,7 @@ export default function CalendarPage() {
 
   const typeMeta = {
     workshop: { label: 'کارگاه', icon: GraduationCap, color: 'text-[#B74B40] bg-[#FDF2F1]' },
-    group: { label: 'گروه', icon: Layers, color: 'text-[#3B8A95] bg-[#F0F7F8]' },
+    group: { label: 'انجمن', icon: Layers, color: 'text-[#3B8A95] bg-[#F0F7F8]' },
     event: { label: 'رخداد', icon: Sparkles, color: 'text-[#B9834B] bg-[#FBF3EC]' },
     salesEvent: { label: 'ایونت', icon: ShoppingBag, color: 'text-[#5A9A5D] bg-[#F0F7F8]' },
   };
@@ -225,7 +225,7 @@ export default function CalendarPage() {
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">تقویم</h1>
-        <p className="text-sm text-muted-foreground mt-1">کارگاه‌ها، گروه‌ها، رخدادها و ایونت‌های هفته جاری</p>
+        <p className="text-sm text-muted-foreground mt-1">کارگاه‌ها، انجمن‌ها، رخدادها و ایونت‌های هفته جاری</p>
       </div>
 
       <div className="bg-white border-b border-border">
@@ -275,7 +275,7 @@ export default function CalendarPage() {
               <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'workshop').length)}</p>
             </div>
             <div className="bg-white rounded-xl border border-border p-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Layers className="w-4 h-4" /> جلسات گروه‌ها</div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Layers className="w-4 h-4" /> جلسات انجمن‌ها</div>
               <p className="text-2xl font-bold mt-1">{toPersianNum(weekEntries.filter(e => e.type === 'group').length)}</p>
             </div>
             <div className="bg-white rounded-xl border border-border p-4">

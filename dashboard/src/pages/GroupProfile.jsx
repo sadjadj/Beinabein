@@ -142,7 +142,7 @@ export default function GroupProfile() {
     await base44.entities.GroupSession.deleteMany({ group_id: id });
     await base44.entities.GroupPlan.deleteMany({ group_id: id });
     await base44.entities.Group.delete(id);
-    navigate('/groups');
+    navigate('/clubs');
   };
 
   const endGroup = async () => {
@@ -229,7 +229,7 @@ export default function GroupProfile() {
       </div>
     </div>
   );
-  if (!group) return <div className="p-6 text-center text-muted-foreground">گروهی یافت نشد</div>;
+  if (!group) return <div className="p-6 text-center text-muted-foreground">انجمنی یافت نشد</div>;
 
   const personByPhone = {};
   persons.forEach(per => { if (per.phone) personByPhone[per.phone] = per; });
@@ -285,7 +285,7 @@ export default function GroupProfile() {
               <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
                 {!group.is_ended ? (
                   <button onClick={endGroup} disabled={ending} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 disabled:opacity-50">
-                    <Ban className="w-3.5 h-3.5" /> پایان گروه
+                    <Ban className="w-3.5 h-3.5" /> پایان انجمن
                   </button>
                 ) : (
                   <button onClick={reactivateGroup} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-green-200 text-green-600 text-sm hover:bg-green-50">
@@ -352,7 +352,7 @@ export default function GroupProfile() {
               ) : (
                 <div className="divide-y divide-border">
                   {monthPurchases.map(p => (
-                    <div key={p.id} onClick={() => navigate(`/accounting/group/${p.id}`, { state: { from: `/groups/${id}` } })} className="py-2.5 flex items-center justify-between text-sm cursor-pointer hover:bg-muted/30 rounded-lg">
+                    <div key={p.id} onClick={() => navigate(`/accounting/group/${p.id}`, { state: { from: `/clubs/${id}` } })} className="py-2.5 flex items-center justify-between text-sm cursor-pointer hover:bg-muted/30 rounded-lg">
                       <div>
                         {personByPhone[p.person_phone]
                           ? <Link to={`/people/${personByPhone[p.person_phone].id}`} onClick={e => e.stopPropagation()} className="font-medium hover:text-[#B74B40]">{p.person_name || '-'}</Link>
@@ -396,7 +396,7 @@ export default function GroupProfile() {
                   })}
                 </div>
               )}
-              <Link to={`/groups/attendance/${group.id}`} className="block text-center text-sm text-[#B74B40] hover:underline mt-3">مدیریت حضور و غیاب</Link>
+              <Link to={`/clubs/attendance/${group.id}`} className="block text-center text-sm text-[#B74B40] hover:underline mt-3">مدیریت حضور و غیاب</Link>
             </div>
           </div>
         </>

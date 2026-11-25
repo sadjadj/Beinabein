@@ -214,7 +214,7 @@ export default function AccountingPage({ embedded = false }) {
       (t.person_phone || '').toLowerCase().includes(s);
   });
 
-  const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه', group: 'گروه', event: 'رخداد', store: 'استور', salesEvent: 'ایونت', greenhouse: 'گلخانه', custom: 'درآمد دلخواه' };
+  const typeLabels = { workspace: 'فضای کار', cafe: 'کافه', workshop: 'کارگاه', group: 'انجمن', event: 'رخداد', store: 'استور', salesEvent: 'ایونت', greenhouse: 'گلخانه', custom: 'درآمد دلخواه' };
 
   const fromPath = embedded ? '/finance' : '/accounting';
 
@@ -266,8 +266,8 @@ export default function AccountingPage({ embedded = false }) {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        {!hideFinancials && <StatCard label="درآمد این ماه" value={formatCurrency(totalIncome)} icon={TrendingUp} color="terracotta" info="مجموع درآمد حاصل از فضای کار، کافه، کارگاه‌ها، گروه‌ها، رخدادها، استور، ایونت‌ها، گلخانه و درآمدهای دلخواه در ماه جاری شمسی" />}
-        {!hideFinancials && <StatCard label="پرداخت تسهیلگران" value={formatCurrency(facilitatorExpenses + groupFacilitatorExpenses)} icon={TrendingDown} color="pink" info="مجموع سهم تسهیلگران کارگاه‌های این ماه و ثبت‌نام‌های گروه‌های این ماه (درصدی یا مبلغ ثابت به ازای هر نفر؛ ثبت‌نام رایگان سهمی ندارد)" />}
+        {!hideFinancials && <StatCard label="درآمد این ماه" value={formatCurrency(totalIncome)} icon={TrendingUp} color="terracotta" info="مجموع درآمد حاصل از فضای کار، کافه، کارگاه‌ها، انجمن‌ها، رخدادها، استور، ایونت‌ها، گلخانه و درآمدهای دلخواه در ماه جاری شمسی" />}
+        {!hideFinancials && <StatCard label="پرداخت تسهیلگران" value={formatCurrency(facilitatorExpenses + groupFacilitatorExpenses)} icon={TrendingDown} color="pink" info="مجموع سهم تسهیلگران کارگاه‌های این ماه و ثبت‌نام‌های انجمن‌های این ماه (درصدی یا مبلغ ثابت به ازای هر نفر؛ ثبت‌نام رایگان سهمی ندارد)" />}
         {!hideFinancials && <StatCard label="سود/زیان این ماه" value={formatCurrency(profit)} sublabel={profit >= 0 ? 'سود' : 'زیان'} icon={Wallet} color={profit >= 0 ? 'teal' : 'pink'} info="تفاضل درآمد این ماه و پرداختی تسهیلگران (سود مثبت، زیان منفی)" />}
         <StatCard label="پرداخت‌نشده" value={toPersianNum(totalUnpaid)} sublabel={hideFinancials ? undefined : formatCurrency(totalUnpaidAmount)} icon={AlertCircle} color="ochre" info="تعداد و مبلغ فاکتورهای پرداخت‌نشده در همه بخش‌ها" />
       </div>

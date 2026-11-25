@@ -84,14 +84,14 @@ export default function GroupRegistrationsPage({ embedded = false }) {
   };
 
   const addRegistration = async () => {
-    if (!regForm.group_id) { setFormError('انتخاب گروه الزامی است'); return; }
+    if (!regForm.group_id) { setFormError('انتخاب انجمن الزامی است'); return; }
     if (!regForm.plan_id) { setFormError('انتخاب مدل ثبت‌نام الزامی است'); return; }
     if (!regForm.person_name) { setFormError('نام مشتری الزامی است'); return; }
     if (!regForm.person_phone) { setFormError('شماره تلفن الزامی است'); return; }
     setFormError('');
     const monthKey = registrationMonthKey(groupById[regForm.group_id]);
     const dup = purchases.find(p => p.group_id === regForm.group_id && registrationMonthKey(groupById[regForm.group_id], p.month) === monthKey && p.person_phone === regForm.person_phone);
-    if (dup) { setDupWarning('این شخص در این ماه قبلاً در این گروه ثبت‌نام شده است.'); return; }
+    if (dup) { setDupWarning('این شخص در این ماه قبلاً در این انجمن ثبت‌نام شده است.'); return; }
     setDupWarning('');
     const plan = plans.find(p => p.id === regForm.plan_id);
     const { min, max } = getPlanBounds(plan);
@@ -149,8 +149,8 @@ export default function GroupRegistrationsPage({ embedded = false }) {
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       {!embedded && (
         <div>
-          <h1 className="text-2xl font-bold">ثبت نام گروه‌ها</h1>
-          <p className="text-sm text-muted-foreground mt-1">ثبت‌نام افراد در گروه‌ها و مشاهده ثبت‌نام‌های امروز</p>
+          <h1 className="text-2xl font-bold">ثبت نام انجمن‌ها</h1>
+          <p className="text-sm text-muted-foreground mt-1">ثبت‌نام افراد در انجمن‌ها و مشاهده ثبت‌نام‌های امروز</p>
         </div>
       )}
 
@@ -159,9 +159,9 @@ export default function GroupRegistrationsPage({ embedded = false }) {
         <h3 className="text-sm font-semibold mb-4">ثبت‌نام جدید</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">گروه *</label>
+            <label className="text-xs text-muted-foreground block mb-1">انجمن *</label>
             <select value={regForm.group_id} onChange={e => { setRegForm(prev => ({ ...prev, group_id: e.target.value, plan_id: '', price: '' })); setFormError(''); }} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" required>
-              <option value="">انتخاب گروه...</option>
+              <option value="">انتخاب انجمن...</option>
               {groups.filter(g => !g.is_ended).map(g => <option key={g.id} value={g.id}>{g.title}</option>)}
             </select>
           </div>
@@ -232,7 +232,7 @@ export default function GroupRegistrationsPage({ embedded = false }) {
         <div className="p-4 border-b border-border space-y-3">
           <h3 className="text-sm font-semibold">ثبت‌نام‌های امروز ({toPersianNum(filteredToday.length)})</h3>
           <div className="flex items-center gap-2 flex-wrap">
-            <input type="text" placeholder="فیلتر نام گروه..." value={searchGroup} onChange={e => setSearchGroup(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm w-44" />
+            <input type="text" placeholder="فیلتر نام انجمن..." value={searchGroup} onChange={e => setSearchGroup(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm w-44" />
             <div className="flex items-center gap-1">
               {[['', 'همه'], ['paid', 'پرداخت‌شده'], ['unpaid', 'پرداخت‌نشده']].map(([val, lbl]) => (
                 <button key={val} onClick={() => setPaidFilter(val)} className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${paidFilter === val ? 'bg-[#B74B40] text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>{lbl}</button>
@@ -245,7 +245,7 @@ export default function GroupRegistrationsPage({ embedded = false }) {
             <thead className="bg-muted/50">
               <tr>
                 <th className="text-right p-3 font-medium">نام</th>
-                <th className="text-right p-3 font-medium">گروه</th>
+                <th className="text-right p-3 font-medium">انجمن</th>
                 <th className="text-right p-3 font-medium">مدل</th>
                 <th className="text-center p-3 font-medium">تلفن</th>
                 <th className="text-center p-3 font-medium">مبلغ</th>
@@ -260,7 +260,7 @@ export default function GroupRegistrationsPage({ embedded = false }) {
               ) : filteredToday.map(p => {
                 const total = (p.price || 0) * (p.quantity || 1) + (p.donation || 0);
                 return (
-                  <tr key={p.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/accounting/group/${p.id}`, { state: { from: '/groups' } })}>
+                  <tr key={p.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/accounting/group/${p.id}`, { state: { from: '/clubs' } })}>
                     <td className="p-3 font-medium">{p.person_name || '-'}</td>
                     <td className="p-3">{p.group_title || groupById[p.group_id]?.title || '-'}</td>
                     <td className="p-3 text-xs">{p.plan_name || '-'}</td>

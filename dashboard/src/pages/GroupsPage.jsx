@@ -104,13 +104,13 @@ export default function GroupsPage({ embedded = false }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {!embedded && (
           <div>
-            <h1 className="text-2xl font-bold">گروه‌ها</h1>
-            <p className="text-sm text-muted-foreground mt-1">مدیریت گروه‌ها و ثبت‌نامی‌ها</p>
+            <h1 className="text-2xl font-bold">انجمن‌ها</h1>
+            <p className="text-sm text-muted-foreground mt-1">مدیریت انجمن‌ها و ثبت‌نامی‌ها</p>
           </div>
         )}
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#B74B40] text-white text-sm font-medium hover:bg-[#A03D34]">
-            <Plus className="w-4 h-4" /> ثبت گروه
+            <Plus className="w-4 h-4" /> ثبت انجمن
           </button>
         </div>
       </div>
@@ -124,12 +124,12 @@ export default function GroupsPage({ embedded = false }) {
           onSubmit={handleSubmit}
           onCancel={() => setShowForm(false)}
           submitting={submitting}
-          submitLabel="ثبت گروه"
+          submitLabel="ثبت انجمن"
         />
       )}
 
       <div className="flex items-center gap-2 flex-wrap">
-        <input type="text" placeholder="فیلتر نام گروه..." value={nameFilter} onChange={e => setNameFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm w-40" />
+        <input type="text" placeholder="فیلتر نام انجمن..." value={nameFilter} onChange={e => setNameFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm w-40" />
         <select value={facilitatorFilter} onChange={e => setFacilitatorFilter(e.target.value)} className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm">
           <option value="">همه تسهیلگرها</option>
           {facilitators.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
@@ -147,11 +147,11 @@ export default function GroupsPage({ embedded = false }) {
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">گروه‌های فعال ({toPersianNum(activeGroups.length)})</h3>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">انجمن‌های فعال ({toPersianNum(activeGroups.length)})</h3>
         {loading ? (
           <TableSkeleton rows={4} cols={4} />
         ) : activeGroups.length === 0 ? (
-          <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground text-sm">{facilitatorFilter || spaceFilter ? 'نتیجه‌ای یافت نشد' : 'هنوز گروه فعالی ثبت نشده است'}</div>
+          <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground text-sm">{facilitatorFilter || spaceFilter ? 'نتیجه‌ای یافت نشد' : 'هنوز انجمن فعالی ثبت نشده است'}</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeGroups.map(g => {
@@ -162,7 +162,7 @@ export default function GroupsPage({ embedded = false }) {
               const totalSessions = computeGroupTotalSessions(g);
               const dayText = (g.schedule || []).map(s => dayLabels[s.day]).join('، ');
               return (
-                <Link key={g.id} to={`/groups/${g.id}`} className="bg-white rounded-xl border border-border p-5 hover:shadow-md hover:border-[#B74B40]/30 transition-all flex flex-col">
+                <Link key={g.id} to={`/clubs/${g.id}`} className="bg-white rounded-xl border border-border p-5 hover:shadow-md hover:border-[#B74B40]/30 transition-all flex flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h3 className="font-bold text-gray-900 truncate">{g.title}</h3>
@@ -189,13 +189,13 @@ export default function GroupsPage({ embedded = false }) {
       {archivedGroups.length > 0 && (
         <div className="bg-white rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border">
-            <h3 className="text-sm font-semibold flex items-center gap-2"><Archive className="w-4 h-4 text-muted-foreground" /> گروه‌های پایان‌یافته ({toPersianNum(archivedGroups.length)})</h3>
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Archive className="w-4 h-4 text-muted-foreground" /> انجمن‌های پایان‌یافته ({toPersianNum(archivedGroups.length)})</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-right p-3 font-medium">گروه</th>
+                  <th className="text-right p-3 font-medium">انجمن</th>
                   <th className="text-right p-3 font-medium">تسهیلگر</th>
                   <th className="text-right p-3 font-medium">روز</th>
                   <th className="text-right p-3 font-medium">شروع</th>
@@ -212,7 +212,7 @@ export default function GroupsPage({ embedded = false }) {
                   return (
                     <tr key={g.id} className="border-t border-border hover:bg-muted/30">
                       <td className="p-3">
-                        <Link to={`/groups/${g.id}`} className="font-medium text-muted-foreground hover:text-[#B74B40]">{g.title}</Link>
+                        <Link to={`/clubs/${g.id}`} className="font-medium text-muted-foreground hover:text-[#B74B40]">{g.title}</Link>
                         {g.tags && <p className="text-xs text-muted-foreground mt-0.5">{g.tags}</p>}
                       </td>
                       <td className="p-3 text-muted-foreground text-xs">{facNames || '-'}</td>
