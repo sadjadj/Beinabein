@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
-import { Users, Wallet, Coffee, Briefcase, GraduationCap, ArrowRight } from 'lucide-react';
-import { toPersianNum, formatCurrency } from '@/lib/stats';
+import { Users, Wallet, Coffee, Briefcase, GraduationCap, ArrowRight, Receipt } from 'lucide-react';
+import { toPersianNum, formatCurrency, fetchExtraIncome, sumExtraIncomeBySource, EXTRA_INCOME_SOURCES } from '@/lib/stats';
 import { howMetLabels, howMetColors, paymentMethodLabels } from '@/lib/labels';
 import { todayGregorian, formatJalali } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
@@ -13,23 +13,25 @@ import { StatCardSkeleton } from '@/components/SkeletonPatterns';
 export default function DailyReport() {
   const [searchParams, setSearchParams] = useSearchParams();
   const date = searchParams.get('date') || todayGregorian();
-  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], people: [] });
+  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], extraIncome: [], people: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [wo, ip, wp, ppl] = await Promise.all([
+        const [wo, ip, wp, ppl, extra] = await Promise.all([
           base44.entities.WorkspaceOrder.list('-purchase_date'),
           base44.entities.ItemPurchase.list('-purchase_date'),
           base44.entities.WorkshopPurchase.list('-purchase_date'),
-          base44.entities.Person.list('-created_date')
+          base44.entities.Person.list('-created_date'),
+          fetchExtraIncome()
         ]);
         setData({
           workspaceOrders: wo.filter(o => o.purchase_date === date),
           itemPurchases: ip.filter(p => p.purchase_date === date),
           workshopPurchases: workshopIncomeRows(wp).filter(p => p.purchase_date === date),
+          extraIncome: extra.filter(p => p.purchase_date === date),
           people: ppl
         });
       } finally { setLoading(false); }
@@ -46,6 +48,7 @@ export default function DailyReport() {
   data.workspaceOrders.forEach(o => o.person_phone && dayPhones.add(o.person_phone));
   data.itemPurchases.forEach(p => p.person_phone && dayPhones.add(p.person_phone));
   data.workshopPurchases.forEach(w => w.person_phone && dayPhones.add(w.person_phone));
+  data.extraIncome.forEach(p => p.person_phone && dayPhones.add(p.person_phone));
 
   const howMetCounts = {};
   dayPhones.forEach(phone => {
@@ -58,12 +61,14 @@ export default function DailyReport() {
   const wsRev = data.workspaceOrders.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
   const cafeRev = data.itemPurchases.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
   const workshopRev = data.workshopPurchases.reduce((s, w) => s + (w.price || 0) * (w.quantity || 1) + (w.donation || 0), 0);
-  const totalRev = wsRev + cafeRev + workshopRev;
+  const extraRev = sumExtraIncomeBySource(data.extraIncome);
+  const totalRev = wsRev + cafeRev + workshopRev + data.extraIncome.reduce((s, p) => s + p.amount, 0);
 
   const activities = [
     ...data.workspaceOrders.map(o => ({ type: 'workspace', icon: Briefcase, label: o.subscription_name || 'فضای کار', phone: o.person_phone, name: o.person_name, amount: (o.price || 0) * (o.quantity || 1), method: o.payment_method })),
     ...data.itemPurchases.map(p => ({ type: 'cafe', icon: Coffee, label: p.item_name, phone: p.person_phone, name: p.person_name, amount: (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), method: p.payment_method })),
     ...data.workshopPurchases.map(w => ({ type: 'workshop', icon: GraduationCap, label: w.workshop_title, phone: w.person_phone, name: w.person_name, amount: (w.price || 0) * (w.quantity || 1), method: w.payment_method })),
+    ...data.extraIncome.map(p => ({ type: p.source, icon: Receipt, label: p.title || p.sourceLabel, phone: p.person_phone, name: p.person_name, amount: p.amount, method: p.payment_method })),
   ];
 
   return (
@@ -114,10 +119,13 @@ export default function DailyReport() {
 
           <div className="bg-white rounded-xl border border-border p-5">
             <h3 className="text-sm font-semibold mb-4">تفکیک درآمد</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-lg bg-[#FDF2F1] flex items-center justify-center"><Briefcase className="w-4 h-4 text-[#B74B40]" /></div><div><p className="text-xs text-muted-foreground">فضای کار</p><p className="text-sm font-bold">{formatCurrency(wsRev)}</p></div></div>
               <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-lg bg-[#FBF3EC] flex items-center justify-center"><Coffee className="w-4 h-4 text-[#B9834B]" /></div><div><p className="text-xs text-muted-foreground">کافه</p><p className="text-sm font-bold">{formatCurrency(cafeRev)}</p></div></div>
               <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-lg bg-[#F0F7F8] flex items-center justify-center"><GraduationCap className="w-4 h-4 text-[#8CB9C0]" /></div><div><p className="text-xs text-muted-foreground">کارگاه</p><p className="text-sm font-bold">{formatCurrency(workshopRev)}</p></div></div>
+              {EXTRA_INCOME_SOURCES.map(s => (
+                <div key={s.key} className="flex items-center gap-3"><div className="w-9 h-9 rounded-lg bg-[#FBF0F2] flex items-center justify-center"><Receipt className="w-4 h-4 text-[#D98B94]" /></div><div><p className="text-xs text-muted-foreground">{s.label}</p><p className="text-sm font-bold">{formatCurrency(extraRev[s.key])}</p></div></div>
+              ))}
             </div>
           </div>
 

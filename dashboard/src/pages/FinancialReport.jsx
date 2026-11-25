@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from 'recharts';
 import { Wallet, TrendingUp, TrendingDown, Users, ChevronDown, GraduationCap } from 'lucide-react';
-import { getDateRange, toPersianNum, formatCurrency, formatPercent } from '@/lib/stats';
+import { getDateRange, toPersianNum, formatCurrency, formatPercent, fetchExtraIncome, sumExtraIncomeBySource, EXTRA_INCOME_SOURCES } from '@/lib/stats';
 import { paymentMethodLabels, howMetLabels } from '@/lib/labels';
 import { getJalaliParts, jalaliToGregorianStr, jalaliDaysInMonth } from '@/lib/jalali';
 import { StatCardSkeleton } from '@/components/SkeletonPatterns';
@@ -22,7 +22,7 @@ const presets = [
 
 export default function FinancialReport({ embedded = false }) {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], expenses: [], expenseCategories: [], workshops: [], facilitators: [], people: [] });
+  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], extraIncome: [], expenses: [], expenseCategories: [], workshops: [], facilitators: [], people: [] });
   const [preset, setPreset] = useState('month');
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -30,7 +30,7 @@ export default function FinancialReport({ embedded = false }) {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [wo, ip, wp, exp, ws, facs, ppl, expCats] = await Promise.all([
+        const [wo, ip, wp, exp, ws, facs, ppl, expCats, extra] = await Promise.all([
           base44.entities.WorkspaceOrder.list('-purchase_date'),
           base44.entities.ItemPurchase.list('-purchase_date'),
           base44.entities.WorkshopPurchase.list('-purchase_date'),
@@ -38,9 +38,10 @@ export default function FinancialReport({ embedded = false }) {
           base44.entities.Workshop.list('-start_date'),
           base44.entities.Facilitator.list('-created_date'),
           base44.entities.Person.list('-created_date'),
-          base44.entities.ExpenseCategory.list()
+          base44.entities.ExpenseCategory.list(),
+          fetchExtraIncome()
         ]);
-        setData({ workspaceOrders: wo, itemPurchases: ip, workshopPurchases: wp, expenses: exp, expenseCategories: expCats, workshops: ws, facilitators: facs, people: ppl });
+        setData({ workspaceOrders: wo, itemPurchases: ip, workshopPurchases: wp, extraIncome: extra, expenses: exp, expenseCategories: expCats, workshops: ws, facilitators: facs, people: ppl });
       } finally { setLoading(false); }
     };
     fetchAll();
@@ -53,12 +54,14 @@ export default function FinancialReport({ embedded = false }) {
   // Instalment registrations count on the day each instalment is paid
   const workshopIncome = workshopIncomeRows(data.workshopPurchases);
   const wp = workshopIncome.filter(p => inRange(p.purchase_date));
+  const extra = data.extraIncome.filter(p => inRange(p.purchase_date));
   const exp = data.expenses.filter(e => inRange(e.date));
 
   const wsRev = wo.reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
   const cafeRev = ip.reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
   const workshopRev = wp.reduce((s, w) => s + (w.price || 0) * (w.quantity || 1) + (w.donation || 0), 0);
-  const totalRev = wsRev + cafeRev + workshopRev;
+  const extraRev = sumExtraIncomeBySource(extra);
+  const totalRev = wsRev + cafeRev + workshopRev + extra.reduce((s, p) => s + p.amount, 0);
   const totalExp = exp.reduce((s, e) => s + (e.amount || 0), 0);
   const netProfit = totalRev - totalExp;
 
@@ -66,12 +69,14 @@ export default function FinancialReport({ embedded = false }) {
   wo.forEach(o => uniquePhones.add(o.person_phone));
   ip.forEach(p => uniquePhones.add(p.person_phone));
   wp.forEach(w => uniquePhones.add(w.person_phone));
+  extra.forEach(p => p.person_phone && uniquePhones.add(p.person_phone));
 
   // Revenue by payment method
   const methodMap = {};
   wo.forEach(o => { const m = o.payment_method || 'cash'; methodMap[m] = (methodMap[m] || 0) + (o.price || 0) * (o.quantity || 1); });
   ip.forEach(p => { const m = p.payment_method || 'cash'; methodMap[m] = (methodMap[m] || 0) + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100); });
   wp.forEach(w => { const m = w.payment_method || 'cash'; methodMap[m] = (methodMap[m] || 0) + (w.price || 0) * (w.quantity || 1) + (w.donation || 0); });
+  extra.forEach(p => { const m = p.payment_method || 'cash'; methodMap[m] = (methodMap[m] || 0) + p.amount; });
   const byMethod = Object.entries(methodMap).map(([k, v]) => ({ name: paymentMethodLabels[k] || k, value: v })).sort((a, b) => b.value - a.value);
 
   // Revenue by acquisition channel (how_met)
@@ -79,6 +84,7 @@ export default function FinancialReport({ embedded = false }) {
   wo.forEach(o => { phoneToRev[o.person_phone] = (phoneToRev[o.person_phone] || 0) + (o.price || 0) * (o.quantity || 1); });
   ip.forEach(p => { phoneToRev[p.person_phone] = (phoneToRev[p.person_phone] || 0) + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100); });
   wp.forEach(w => { phoneToRev[w.person_phone] = (phoneToRev[w.person_phone] || 0) + (w.price || 0) * (w.quantity || 1) + (w.donation || 0); });
+  extra.forEach(p => { if (p.person_phone) phoneToRev[p.person_phone] = (phoneToRev[p.person_phone] || 0) + p.amount; });
   const howMetMap = {};
   data.people.forEach(p => {
     if (phoneToRev[p.phone]) {
@@ -103,8 +109,9 @@ export default function FinancialReport({ embedded = false }) {
     const wr = data.workspaceOrders.filter(o => r(o.purchase_date)).reduce((s, o) => s + (o.price || 0) * (o.quantity || 1), 0);
     const cr = data.itemPurchases.filter(p => r(p.purchase_date)).reduce((s, p) => s + (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100), 0);
     const wpr = workshopIncome.filter(w => r(w.purchase_date)).reduce((s, w) => s + (w.price || 0) * (w.quantity || 1) + (w.donation || 0), 0);
+    const xr = data.extraIncome.filter(p => r(p.purchase_date)).reduce((s, p) => s + p.amount, 0);
     const ex = data.expenses.filter(e => r(e.date)).reduce((s, e) => s + (e.amount || 0), 0);
-    return { label: jMonths[m - 1], درآمد: wr + cr + wpr, هزینه: ex };
+    return { label: jMonths[m - 1], درآمد: wr + cr + wpr + xr, هزینه: ex };
   });
 
   // Facilitator payments due
@@ -162,7 +169,7 @@ export default function FinancialReport({ embedded = false }) {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="درآمد کل" value={formatCurrency(totalRev)} icon={TrendingUp} color="terracotta" info="مجموع درآمد فضای کار، کافه و کارگاه‌ها در بازه انتخاب‌شده (بدون درآمد دلخواه)" />
+        <StatCard label="درآمد کل" value={formatCurrency(totalRev)} icon={TrendingUp} color="terracotta" info="مجموع درآمد همه بخش‌ها (فضای کار، کافه، کارگاه، گروه، رخداد، استور، گلخانه، ایونت و درآمد دلخواه) در بازه انتخاب‌شده" />
         <StatCard label="هزینه‌ها" value={formatCurrency(totalExp)} icon={TrendingDown} color="pink" info="مجموع کل هزینه‌های ثبت‌شده در بازه انتخاب‌شده" />
         <StatCard label="سود خالص" value={formatCurrency(netProfit)} icon={Wallet} color={netProfit >= 0 ? 'teal' : 'pink'} info="تفاضل درآمد کل و هزینه‌ها در بازه انتخاب‌شده" />
         <StatCard label="مشتریان یونیک" value={toPersianNum(uniquePhones.size)} icon={Users} color="ochre" info="تعداد افراد یکتا بر اساس شماره تلفن که در بازه انتخاب‌شده از خدمات استفاده کرده‌اند" />
@@ -238,6 +245,9 @@ export default function FinancialReport({ embedded = false }) {
             <div className="flex items-center justify-between text-sm"><span>فضای کار</span><span className="font-medium">{formatCurrency(wsRev)}</span></div>
             <div className="flex items-center justify-between text-sm"><span>کافه</span><span className="font-medium">{formatCurrency(cafeRev)}</span></div>
             <div className="flex items-center justify-between text-sm"><span>کارگاه</span><span className="font-medium">{formatCurrency(workshopRev)}</span></div>
+            {EXTRA_INCOME_SOURCES.map(s => (
+              <div key={s.key} className="flex items-center justify-between text-sm"><span>{s.label}</span><span className="font-medium">{formatCurrency(extraRev[s.key])}</span></div>
+            ))}
           </div>
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground mb-1">هزینه</p>
