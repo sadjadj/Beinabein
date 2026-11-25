@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import StatCard from '@/components/StatCard';
 import { useNavigate } from 'react-router-dom';
 import { Users, Repeat, Layers, ChevronDown, Wallet } from 'lucide-react';
-import { computeOverallStats, computeDailyUniques, computeSectionDistribution, getDateRange, toPersianNum, formatPercent, formatCurrency } from '@/lib/stats';
+import { computeOverallStats, fetchExtraIncome, EXTRA_INCOME_SOURCES, computeDailyUniques, computeSectionDistribution, getDateRange, toPersianNum, formatPercent, formatCurrency } from '@/lib/stats';
 import { toJalaliStr } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
@@ -24,7 +24,7 @@ const presets = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [] });
+  const [data, setData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], extraIncome: [] });
   const [preset, setPreset] = useState('week');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [customStart, setCustomStart] = useState(new Date().toISOString().split('T')[0]);
@@ -37,18 +37,19 @@ export default function Dashboard() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [workspaceOrders, itemPurchases, workshopPurchases] = await Promise.all([
+        const [workspaceOrders, itemPurchases, workshopPurchases, extraIncome] = await Promise.all([
           base44.entities.WorkspaceOrder.list('-created_date'),
           base44.entities.ItemPurchase.list('-created_date'),
           base44.entities.WorkshopPurchase.list('-created_date'),
+          fetchExtraIncome(),
         ]);
-        setData({ workspaceOrders, itemPurchases, workshopPurchases });
+        setData({ workspaceOrders, itemPurchases, workshopPurchases, extraIncome });
       } finally { setLoading(false); }
     };
     fetchAll();
   }, []);
 
-  const stats = computeOverallStats(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
+  const stats = computeOverallStats(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range, data.extraIncome);
   const dailyUniques = computeDailyUniques(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
   const sectionDist = computeSectionDistribution(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
   const totalSection = sectionDist.reduce((s, d) => s + d.value, 0) || 1;
@@ -189,7 +190,7 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-xl border border-border p-5">
         <h3 className="text-sm font-semibold mb-4">تفکیک درآمد</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-[#FDF2F1] flex items-center justify-center flex-shrink-0">
               <Wallet className="w-5 h-5 text-[#B74B40]" />
@@ -217,6 +218,17 @@ export default function Dashboard() {
               <p className="text-sm font-bold">{formatCurrency(stats.workshopRevenue)}</p>
             </div>
           </div>
+          {EXTRA_INCOME_SOURCES.map(s => (
+            <div key={s.key} className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#FBF0F2] flex items-center justify-center flex-shrink-0">
+                <Wallet className="w-5 h-5 text-[#D98B94]" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+                <p className="text-sm font-bold">{formatCurrency(stats.extraRevenue[s.key])}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

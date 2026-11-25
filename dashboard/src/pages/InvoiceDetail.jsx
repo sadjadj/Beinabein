@@ -23,7 +23,7 @@ const entityMap = {
   greenhouse: { entity: 'GreenhousePurchase', label: 'گلخانه', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
   salesEvent: { entity: 'SalesEventPurchase', label: 'ایونت', amountField: 'item_price', labelField: 'item_name', hasHowMet: false, labelFieldLabel: 'نام آیتم', multiItem: true },
   workshop: { entity: 'WorkshopPurchase', label: 'کارگاه', amountField: 'price', labelField: 'workshop_title', hasHowMet: true, labelFieldLabel: 'نام کارگاه', multiItem: false, hasDonation: true },
-  group: { entity: 'GroupPurchase', label: 'گروه', amountField: 'price', labelField: 'group_title', hasHowMet: true, labelFieldLabel: 'نام گروه', multiItem: false, hasDonation: true },
+  group: { entity: 'GroupPurchase', label: 'انجمن', amountField: 'price', labelField: 'group_title', hasHowMet: true, labelFieldLabel: 'نام انجمن', multiItem: false, hasDonation: true },
   event: { entity: 'EventPurchase', label: 'رخداد', amountField: 'price', labelField: 'event_title', hasHowMet: true, labelFieldLabel: 'نام رخداد', multiItem: false, hasDonation: true },
   custom: { entity: 'CustomIncome', label: 'درآمد دلخواه', amountField: 'amount', labelField: 'title', hasHowMet: true, labelFieldLabel: 'شرح درآمد', multiItem: false },
 };
@@ -46,7 +46,7 @@ export default function InvoiceDetail() {
   const installment = type === 'workshop' && isInstallment(invoice);
 
   const fromPath = location.state?.from || '/accounting';
-  const fromLabels = { '/cafe': 'کافه', '/accounting': 'حسابداری', '/workspace': 'فضای کار', '/groups': 'گروه‌ها', '/workshops': 'کارگاه‌ها', '/finance': 'مالی' };
+  const fromLabels = { '/cafe': 'کافه', '/accounting': 'حسابداری', '/workspace': 'فضای کار', '/clubs': 'انجمن‌ها', '/workshops': 'کارگاه‌ها', '/finance': 'مالی' };
   const fromLabel = fromLabels[fromPath] || 'حسابداری';
 
   const fetchData = async () => {

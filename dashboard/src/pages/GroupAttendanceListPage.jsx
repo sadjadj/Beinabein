@@ -47,12 +47,12 @@ export default function GroupAttendanceListPage({ embedded = false }) {
     return (
       <button
         key={g.id}
-        onClick={() => navigate(`/groups/attendance/${g.id}`)}
+        onClick={() => navigate(`/clubs/attendance/${g.id}`)}
         className="bg-white rounded-xl border border-border p-5 text-right hover:shadow-md hover:border-[#B74B40]/30 transition-all"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <Link to={`/groups/${g.id}`} className="font-semibold text-sm hover:text-[#B74B40] transition-colors">{g.title}</Link>
+            <Link to={`/clubs/${g.id}`} className="font-semibold text-sm hover:text-[#B74B40] transition-colors">{g.title}</Link>
             {g.tags && <p className="text-xs text-muted-foreground mt-1">{g.tags}</p>}
           </div>
           <ClipboardCheck className="w-5 h-5 text-[#B74B40] flex-shrink-0" />
@@ -91,13 +91,13 @@ export default function GroupAttendanceListPage({ embedded = false }) {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         {!embedded && (
           <div>
-            <h1 className="text-2xl font-bold">حضور غیاب گروه‌ها</h1>
-            <p className="text-sm text-muted-foreground mt-1">برای ثبت حضور غیاب، روی گروه مورد نظر کلیک کنید</p>
+            <h1 className="text-2xl font-bold">حضور غیاب انجمن‌ها</h1>
+            <p className="text-sm text-muted-foreground mt-1">برای ثبت حضور غیاب، روی انجمن مورد نظر کلیک کنید</p>
           </div>
         )}
         <div className="relative flex-1 sm:flex-none min-w-[150px]">
           <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-          <input type="text" placeholder="جستجوی گروه..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-56" />
+          <input type="text" placeholder="جستجوی انجمن..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 pl-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-56" />
         </div>
       </div>
 
@@ -105,13 +105,13 @@ export default function GroupAttendanceListPage({ embedded = false }) {
         <CardGridSkeleton count={6} />
       ) : groups.length === 0 ? (
         <div className="bg-white rounded-xl border border-border p-8 text-center text-muted-foreground">
-          هنوز گروهی ثبت نشده است
+          هنوز انجمنی ثبت نشده است
         </div>
       ) : (
         <>
           {active.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">گروه‌های فعال</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">انجمن‌های فعال</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {active.map(renderCard)}
               </div>
@@ -119,7 +119,7 @@ export default function GroupAttendanceListPage({ embedded = false }) {
           )}
           {ended.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">گروه‌های پایان‌یافته</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">انجمن‌های پایان‌یافته</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 opacity-75">
                 {ended.map(renderCard)}
               </div>

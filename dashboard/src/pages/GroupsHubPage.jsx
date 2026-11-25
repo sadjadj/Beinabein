@@ -8,9 +8,9 @@ import GroupHistoryTab from '@/components/groups/GroupHistoryTab';
 import GroupsReportTab from '@/components/groups/GroupsReportTab';
 
 const tabs = [
-  { key: 'registrations', label: 'ثبت نام گروه‌ها', icon: ClipboardList, Component: GroupRegistrationsPage },
+  { key: 'registrations', label: 'ثبت نام انجمن‌ها', icon: ClipboardList, Component: GroupRegistrationsPage },
   { key: 'attendance', label: 'حضور غیاب', icon: ClipboardCheck, Component: GroupAttendanceListPage },
-  { key: 'manage', label: 'مدیریت گروه‌ها', icon: Layers, Component: GroupsPage },
+  { key: 'manage', label: 'مدیریت انجمن‌ها', icon: Layers, Component: GroupsPage },
   { key: 'history', label: 'تاریخچه ثبت نام‌ها', icon: History, Component: GroupHistoryTab, isPlain: true },
   { key: 'report', label: 'گزارش', icon: BarChart3, Component: GroupsReportTab, isPlain: true },
 ];
@@ -23,8 +23,8 @@ export default function GroupsHubPage() {
   return (
     <div>
       <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-6 pb-4">
-        <h1 className="text-2xl font-bold">گروه‌ها</h1>
-        <p className="text-sm text-muted-foreground mt-1">مدیریت گروه‌ها، ثبت‌نامی‌ها و حضور غیاب</p>
+        <h1 className="text-2xl font-bold">انجمن‌ها</h1>
+        <p className="text-sm text-muted-foreground mt-1">مدیریت انجمن‌ها، ثبت‌نامی‌ها و حضور غیاب</p>
       </div>
       <div className="bg-white border-b border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-6">

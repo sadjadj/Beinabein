@@ -255,9 +255,9 @@ Seeded on first boot with the old enum keys as ids (`repairs`, `daily`, `facilit
 
 | Field | Type | Required | Title (fa) | Notes |
 |---|---|---|---|---|
-| `title` | string | yes | اسم گروه |  |
-| `description` | string |  | توضیحات گروه |  |
-| `tags` | string |  | تگ گروه |  |
+| `title` | string | yes | اسم انجمن |  |
+| `description` | string |  | توضیحات انجمن |  |
+| `tags` | string |  | تگ انجمن |  |
 | `facilitator_ids` | array<string> |  | تسهیلگران | default: [] |
 | `space` | string |  | فضای برگزاری |  |
 | `schedule` | array<object> |  | برنامه هفتگی | default: [] |
@@ -271,7 +271,7 @@ Seeded on first boot with the old enum keys as ids (`repairs`, `daily`, `facilit
 
 | Field | Type | Required | Title (fa) | Notes |
 |---|---|---|---|---|
-| `group_id` | string | yes | گروه |  |
+| `group_id` | string | yes | انجمن |  |
 | `name` | string | yes | نام مدل ثبت‌نام |  |
 | `price_min` | number | yes | کران پایین قیمت | default: 0 |
 | `price_max` | number | yes | کران بالای قیمت | default: 0 |
@@ -281,8 +281,8 @@ Seeded on first boot with the old enum keys as ids (`repairs`, `daily`, `facilit
 
 | Field | Type | Required | Title (fa) | Notes |
 |---|---|---|---|---|
-| `group_id` | string | yes | گروه |  |
-| `group_title` | string |  | اسم گروه |  |
+| `group_id` | string | yes | انجمن |  |
+| `group_title` | string |  | اسم انجمن |  |
 | `month` | string | yes | ماه ثبت‌نام |  |
 | `price` | number |  | قیمت | default: 0 |
 | `donation` | number |  | دونیشن | default: 0 |
@@ -300,8 +300,8 @@ Seeded on first boot with the old enum keys as ids (`repairs`, `daily`, `facilit
 
 | Field | Type | Required | Title (fa) | Notes |
 |---|---|---|---|---|
-| `group_id` | string | yes | گروه |  |
-| `group_title` | string |  | اسم گروه |  |
+| `group_id` | string | yes | انجمن |  |
+| `group_title` | string |  | اسم انجمن |  |
 | `session_number` | number | yes | شماره جلسه |  |
 | `session_date` | string | yes | تاریخ جلسه | format: date |
 | `month` | string | yes | ماه |  |

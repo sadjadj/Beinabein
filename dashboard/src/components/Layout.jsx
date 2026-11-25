@@ -10,7 +10,7 @@ const standaloneItems = [
   { path: '/cafe', label: 'کافه', icon: Coffee },
   { path: '/workspace', label: 'فضای کار', icon: Briefcase },
   { path: '/workshops', label: 'کارگاه‌ها', icon: GraduationCap },
-  { path: '/groups', label: 'گروه‌ها', icon: Layers },
+  { path: '/clubs', label: 'انجمن‌ها', icon: Layers },
   { path: '/store', label: 'فروشگاه', icon: ShoppingBag },
   { path: '/people', label: 'افراد', icon: Users },
   { path: '/applications', label: 'فراخوان', icon: Megaphone },

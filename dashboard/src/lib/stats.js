@@ -135,8 +135,33 @@ export function computeLastNonCafeService(phone, workspaceOrders, workshopPurcha
   return activities[0];
 }
 
+// ─── Income beyond workspace / cafe / workshop (same formulas as AccountingPage) ───
+const itemAmount = (p) => (p.item_price || 0) * (p.quantity || 1) * (1 - (p.discount || 0) / 100);
+const registrationAmount = (p) => (p.price || 0) * (p.quantity || 1) + (p.donation || 0);
+export const EXTRA_INCOME_SOURCES = [
+  { key: 'group', entity: 'GroupPurchase', label: 'انجمن', amount: registrationAmount, title: (p) => p.group_title },
+  { key: 'event', entity: 'EventPurchase', label: 'رخداد', amount: registrationAmount, title: (p) => p.event_title },
+  { key: 'store', entity: 'StorePurchase', label: 'استور', amount: itemAmount, title: (p) => p.item_name },
+  { key: 'greenhouse', entity: 'GreenhousePurchase', label: 'گلخانه', amount: itemAmount, title: (p) => p.item_name },
+  { key: 'salesEvent', entity: 'SalesEventPurchase', label: 'ایونت', amount: itemAmount, title: (p) => p.event_title || p.item_name },
+  { key: 'custom', entity: 'CustomIncome', label: 'درآمد دلخواه', amount: (p) => (p.amount || 0) * (p.quantity || 1), title: (p) => p.title },
+];
+
+// Fetches every extra income table as flat rows: { ...record, source, sourceLabel, amount, title }
+export async function fetchExtraIncome() {
+  const lists = await Promise.all(EXTRA_INCOME_SOURCES.map(s => base44.entities[s.entity].list('-purchase_date')));
+  return EXTRA_INCOME_SOURCES.flatMap((s, i) => lists[i].map(p => ({ ...p, source: s.key, sourceLabel: s.label, amount: s.amount(p), title: s.title(p) })));
+}
+
+// { group: 0, event: 0, ... } summed from extra income rows
+export function sumExtraIncomeBySource(rows) {
+  const out = Object.fromEntries(EXTRA_INCOME_SOURCES.map(s => [s.key, 0]));
+  rows.forEach(r => { out[r.source] += r.amount; });
+  return out;
+}
+
 // ─── Overall Binabin metrics ───
-export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurchases, range) {
+export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurchases, range, extraIncome = []) {
   const orders = filterByDate(workspaceOrders, 'purchase_date', range);
   const items = filterByDate(itemPurchases, 'purchase_date', range);
   const wp = filterByDate(workshopPurchases, 'purchase_date', range);
@@ -176,9 +201,10 @@ export function computeOverallStats(workspaceOrders, itemPurchases, workshopPurc
   // Instalment registrations count on the day each instalment is paid
   const workshopRevenue = filterByDate(workshopIncomeRows(workshopPurchases), 'purchase_date', range)
     .reduce((s, w) => s + (w.price || 0) * (w.quantity || 1) + (w.donation || 0), 0);
-  const totalRevenue = workspaceRevenue + cafeRevenue + workshopRevenue;
+  const extraRevenue = sumExtraIncomeBySource(filterByDate(extraIncome, 'purchase_date', range));
+  const totalRevenue = workspaceRevenue + cafeRevenue + workshopRevenue + Object.values(extraRevenue).reduce((s, v) => s + v, 0);
 
-  return { uniqueCount, returnRate, diversityRate, totalRevenue, workspaceRevenue, cafeRevenue, workshopRevenue, totalPeople };
+  return { uniqueCount, returnRate, diversityRate, totalRevenue, workspaceRevenue, cafeRevenue, workshopRevenue, extraRevenue, totalPeople };
 }
 
 // ─── Daily unique visitors trend ───

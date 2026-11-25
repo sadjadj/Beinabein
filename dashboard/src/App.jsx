@@ -2,7 +2,13 @@ import { lazy } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+
+// Old /groups links and bookmarks → /clubs
+function LegacyGroupsRedirect() {
+  const { pathname, search } = useLocation();
+  return <Navigate to={pathname.replace(/^\/groups/, '/clubs') + search} replace />;
+}
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
@@ -62,9 +68,10 @@ const AuthenticatedApp = () => {
       <Route path="/cafe" element={<CafePage />} />
       <Route path="/workshops" element={<WorkshopsHubPage />} />
       <Route path="/workshop-registrations" element={<WorkshopRegistrationsPage />} />
-      <Route path="/groups" element={<GroupsHubPage />} />
-      <Route path="/groups/:id" element={<GroupProfile />} />
-      <Route path="/groups/attendance/:groupId" element={<GroupAttendancePage />} />
+      <Route path="/clubs" element={<GroupsHubPage />} />
+      <Route path="/clubs/:id" element={<GroupProfile />} />
+      <Route path="/clubs/attendance/:groupId" element={<GroupAttendancePage />} />
+      <Route path="/groups/*" element={<LegacyGroupsRedirect />} />
       <Route path="/store" element={<StorePage />} />
       <Route path="/store/event-items/:id" element={<EventItemsPage />} />
       <Route path="/store/event-categories/:id" element={<EventCategoriesPage />} />

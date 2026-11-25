@@ -21,7 +21,7 @@ export default function GroupForm({
   onSubmit,
   onCancel,
   submitting = false,
-  submitLabel = 'ثبت گروه',
+  submitLabel = 'ثبت انجمن',
   showDelete = false,
   onDelete
 }) {
@@ -86,8 +86,8 @@ export default function GroupForm({
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">اسم گروه</label>
-            <input type="text" placeholder="اسم گروه" value={form.title || ''} onChange={e => setForm({ ...form, title: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" required />
+            <label className="text-xs text-muted-foreground block mb-1">اسم انجمن</label>
+            <input type="text" placeholder="اسم انجمن" value={form.title || ''} onChange={e => setForm({ ...form, title: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-48" required />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">نوع سهم تسهیلگر</label>
@@ -103,7 +103,7 @@ export default function GroupForm({
               : <PriceInput value={form.facilitator_fixed_amount} onChange={v => setForm({ ...form, facilitator_fixed_amount: v })} placeholder="مبلغ" />}
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">تگ گروه (موضوعات)</label>
+            <label className="text-xs text-muted-foreground block mb-1">تگ انجمن (موضوعات)</label>
             <input type="text" placeholder="موضوعات" value={form.tags || ''} onChange={e => setForm({ ...form, tags: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-32" />
           </div>
           <div>
@@ -157,7 +157,7 @@ export default function GroupForm({
           </div>
         </div>
 
-        <textarea placeholder="توضیحات گروه" value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+        <textarea placeholder="توضیحات انجمن" value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm" />
         <div>
           <label className="text-xs text-muted-foreground block mb-2">تسهیلگران:</label>
           <FacilitatorMultiSearch selectedIds={form.facilitator_ids || []} onChange={ids => setForm({ ...form, facilitator_ids: ids })} />
@@ -219,7 +219,7 @@ export default function GroupForm({
         <div className="flex justify-between gap-2">
           {showDelete && onDelete && (
             <button type="button" onClick={() => setShowDeleteConfirm(true)} className="flex items-center gap-1 px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50">
-              <Trash2 className="w-4 h-4" /> حذف گروه
+              <Trash2 className="w-4 h-4" /> حذف انجمن
             </button>
           )}
           <div className="flex gap-2 mr-auto">
@@ -236,9 +236,9 @@ export default function GroupForm({
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent className="text-center">
           <AlertDialogHeader className="text-center">
-            <AlertDialogTitle className="text-center">حذف گروه</AlertDialogTitle>
+            <AlertDialogTitle className="text-center">حذف انجمن</AlertDialogTitle>
             <AlertDialogDescription className="text-center block">
-              آیا از حذف این گروه و تمام ثبت‌نام‌ها و جلسات وابسته به آن اطمینان دارید؟ این عملیات قابل بازگشت نیست.
+              آیا از حذف این انجمن و تمام ثبت‌نام‌ها و جلسات وابسته به آن اطمینان دارید؟ این عملیات قابل بازگشت نیست.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex items-center justify-center gap-3 sm:justify-center">
