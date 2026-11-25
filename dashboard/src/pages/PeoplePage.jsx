@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import { Users, Calendar, Search, Sparkles, Plus, X } from 'lucide-react';
-import { computeLastNonCafeService, countNewThisMonth, advancedPersonSearch, toPersianNum, formatPercent } from '@/lib/stats';
+import { fetchExtraIncome, PEOPLE_SOURCES, computeLastNonCafeService, countNewThisMonth, advancedPersonSearch, toPersianNum, formatPercent } from '@/lib/stats';
 import { howMetLabels, genderLabels } from '@/lib/labels';
 import HowMetBadge from '@/components/HowMetBadge';
 import { formatJalaliShort, todayGregorian } from '@/lib/jalali';
@@ -17,7 +17,7 @@ import TablePager, { usePaged } from '@/components/TablePager';
 export default function PeoplePage({ embedded = false }) {
   const navigate = useNavigate();
   const [people, setPeople] = useState([]);
-  const [allData, setAllData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], workshops: [], facilitators: [], sessions: [] });
+  const [allData, setAllData] = useState({ workspaceOrders: [], itemPurchases: [], workshopPurchases: [], workshops: [], facilitators: [], sessions: [], registrations: [] });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
@@ -31,16 +31,17 @@ export default function PeoplePage({ embedded = false }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [persons, wsOrders, itemPurchases, workshopPurchases, workshops, facilitators, sessions] = await Promise.all([
+      const [persons, wsOrders, itemPurchases, workshopPurchases, workshops, facilitators, sessions, registrations] = await Promise.all([
         base44.entities.Person.list('-created_date'),
         base44.entities.WorkspaceOrder.list('-purchase_date'),
         base44.entities.ItemPurchase.list('-purchase_date'),
         base44.entities.WorkshopPurchase.list('-purchase_date'),
         base44.entities.Workshop.list('-start_date'),
         base44.entities.Facilitator.list('-created_date'),
-        base44.entities.WorkshopSession.list('-created_date')
+        base44.entities.WorkshopSession.list('-created_date'),
+        fetchExtraIncome(PEOPLE_SOURCES)
       ]);
-      setAllData({ workspaceOrders: wsOrders, itemPurchases, workshopPurchases, workshops, facilitators, sessions });
+      setAllData({ workspaceOrders: wsOrders, itemPurchases, workshopPurchases, workshops, facilitators, sessions, registrations });
       setPeople(persons);
     } finally { setLoading(false); }
   };
@@ -83,11 +84,15 @@ export default function PeoplePage({ embedded = false }) {
   if (howMetFilter) filtered = filtered.filter(p => p.how_met === howMetFilter);
   if (lastServiceFilter) {
     filtered = filtered.filter(p => {
-      const ls = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases);
+      const ls = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases, allData.registrations);
       return ls && ls.type === lastServiceFilter;
     });
   }
   const newThisMonth = countNewThisMonth(people);
+
+  // مجموع خدمات: workspace, cafe, workshop, club and event records for a phone
+  const activityCount = (phone) => [allData.workspaceOrders, allData.itemPurchases, allData.workshopPurchases, allData.registrations]
+    .reduce((n, list) => n + list.filter(r => r.person_phone === phone).length, 0);
 
   const isComplete = (p) => !!(p.full_name && p.phone && p.how_met && p.gender);
   const sortedFiltered = [...filtered].sort((a, b) => {
@@ -102,12 +107,8 @@ export default function PeoplePage({ embedded = false }) {
     const bComplete = isComplete(b);
     if (sortBy === 'date_desc' && aComplete !== bComplete) return aComplete ? -1 : 1;
     if (sortBy === 'activity') {
-      const aCount = (allData.workspaceOrders.filter(o => o.person_phone === a.phone).length) +
-        (allData.itemPurchases.filter(i => i.person_phone === a.phone).length) +
-        (allData.workshopPurchases.filter(w => w.person_phone === a.phone).length);
-      const bCount = (allData.workspaceOrders.filter(o => o.person_phone === b.phone).length) +
-        (allData.itemPurchases.filter(i => i.person_phone === b.phone).length) +
-        (allData.workshopPurchases.filter(w => w.person_phone === b.phone).length);
+      const aCount = activityCount(a.phone);
+      const bCount = activityCount(b.phone);
       return bCount - aCount;
     }
     return 0;
@@ -122,10 +123,8 @@ export default function PeoplePage({ embedded = false }) {
     { key: 'total', label: 'مجموع خدمات' },
   ];
   const peopleExportRows = sortedFiltered.map(p => {
-    const lastService = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases);
-    const totalActivity = (allData.workspaceOrders.filter(o => o.person_phone === p.phone).length) +
-      (allData.itemPurchases.filter(i => i.person_phone === p.phone).length) +
-      (allData.workshopPurchases.filter(w => w.person_phone === p.phone).length);
+    const lastService = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases, allData.registrations);
+    const totalActivity = activityCount(p.phone);
     return {
       name: p.full_name || '',
       phone: p.phone || '',
@@ -319,10 +318,8 @@ export default function PeoplePage({ embedded = false }) {
                 </thead>
                 <tbody>
                   {paged.pageRows.map(p => {
-                    const lastService = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases);
-                    const totalActivity = (allData.workspaceOrders.filter(o => o.person_phone === p.phone).length) +
-                      (allData.itemPurchases.filter(i => i.person_phone === p.phone).length) +
-                      (allData.workshopPurchases.filter(w => w.person_phone === p.phone).length);
+                    const lastService = computeLastNonCafeService(p.phone, allData.workspaceOrders, allData.workshopPurchases, allData.registrations);
+                    const totalActivity = activityCount(p.phone);
                     return (
                       <tr key={p.id} className="border-t border-border hover:bg-[#FDF2F1]/30 cursor-pointer" onClick={() => navigate(`/people/${p.id}`)}>
                         <td className="p-3 font-medium text-gray-800">{p.full_name || '-'}</td>

@@ -9,7 +9,7 @@ import { toJalaliStr } from '@/lib/jalali';
 import JalaliDateInput from '@/components/JalaliDateInput';
 import { Skeleton, StatCardSkeleton } from '@/components/SkeletonPatterns';
 
-const COLORS = ['#B74B40', '#D4A574', '#E8B4B0', '#D98B94'];
+const COLORS = ['#B74B40', '#D4A574', '#E8B4B0', '#D98B94', '#8CB9C0'];
 const presets = [
   { key: 'today', label: 'امروز' },
   { key: 'week', label: 'این هفته' },
@@ -50,8 +50,8 @@ export default function Dashboard() {
   }, []);
 
   const stats = computeOverallStats(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range, data.extraIncome);
-  const dailyUniques = computeDailyUniques(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
-  const sectionDist = computeSectionDistribution(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range);
+  const dailyUniques = computeDailyUniques(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range, data.extraIncome);
+  const sectionDist = computeSectionDistribution(data.workspaceOrders, data.itemPurchases, data.workshopPurchases, range, data.extraIncome);
   const totalSection = sectionDist.reduce((s, d) => s + d.value, 0) || 1;
 
   if (loading) {
