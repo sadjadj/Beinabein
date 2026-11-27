@@ -156,6 +156,18 @@ function secretMatches(given) {
 
 const router = express.Router();
 
+// One line per connector request (never the secret), to debug Claude connecting.
+router.use((req, res, next) => {
+  res.on('finish', () => {
+    const rpc = Array.isArray(req.body) ? req.body.map((m) => m?.method).join(',') : req.body?.method;
+    console.log('[mcp]', JSON.stringify({
+      method: req.method, secretOk: secretMatches(req.path.slice(1)), rpc, version: req.body?.params?.protocolVersion,
+      status: res.statusCode, accept: req.get('accept'), type: req.get('content-type'), ua: req.get('user-agent'), ip: req.ip,
+    }));
+  });
+  next();
+});
+
 router.all('/:secret', async (req, res, next) => {
   if (!secretMatches(req.params.secret)) return res.status(404).json({ error: 'not found' });
   if (req.method !== 'POST') return res.status(405).set('Allow', 'POST').end(); // no server-initiated stream
