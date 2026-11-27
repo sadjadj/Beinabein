@@ -165,7 +165,10 @@ app.use('/api/join', require('./src/join'));
 // clients probe OAuth discovery URLs; 404 them as JSON so the SPA catch-all
 // doesn't answer with index.html and make the server look like it wants OAuth.
 app.use('/mcp', require('./src/mcp'));
-app.get('/.well-known/oauth-*', (req, res) => res.status(404).json({ error: 'not found' }));
+app.get('/.well-known/oauth-*', (req, res) => {
+  console.log('[mcp]', JSON.stringify({ wellKnown: req.path.split('/mcp/')[0], ua: req.get('user-agent'), ip: req.ip }));
+  res.status(404).json({ error: 'not found' });
+});
 
 // Anything else under /api is a bad route — 404 as JSON, not the client's
 // index.html (would otherwise fall through to the catch-alls below).
