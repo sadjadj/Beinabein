@@ -26,7 +26,7 @@ export async function exportAllData() {
   const lists = await Promise.all(ENTITY_NAMES.map(name => base44.entities[name].list()));
   const tables = Object.fromEntries(ENTITY_NAMES.map((name, i) => [name, lists[i]]));
   const file = { exported_at: new Date().toISOString(), guide: GUIDE, tables };
-  const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }));
+  const url = URL.createObjectURL(new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }));
   const a = document.createElement('a');
   a.href = url;
   a.download = `beinabein-data-${todayGregorian()}.json`;
