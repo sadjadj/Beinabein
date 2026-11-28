@@ -24,7 +24,6 @@
 //  GET    /api/files/:id                    admin only — download an uploaded file (logged to admin_logs)
 //  /api/join/*                             PUBLIC workshop join flow: SMS code, Zarinpal, GroupPurchase (src/join.js)
 //  PUT    /api/files/:id                    admin only — restore a file under its id (raw PDF body, X-Filename)
-//  POST   /mcp/:secret                      read-only Claude connector (MCP); off unless MCP_SECRET is set (src/mcp.js)
 //
 //  Everything else serves the two static frontend builds the Dockerfile bakes
 //  into public/ and public/dashboard/ (client and dashboard respectively) —
@@ -160,15 +159,6 @@ app.put('/api/files/:id', requireAdmin, pdfBody, async (req, res, next) => {
 
 app.use('/api/entities', entitiesRouter);
 app.use('/api/join', require('./src/join'));
-
-// Read-only Claude connector (src/mcp.js), at /mcp/<MCP_SECRET>. Connector
-// clients probe OAuth discovery URLs; 404 them as JSON so the SPA catch-all
-// doesn't answer with index.html and make the server look like it wants OAuth.
-app.use('/mcp', require('./src/mcp'));
-app.get('/.well-known/oauth-*', (req, res) => {
-  console.log('[mcp]', JSON.stringify({ wellKnown: req.path.split('/mcp/')[0], ua: req.get('user-agent'), ip: req.ip }));
-  res.status(404).json({ error: 'not found' });
-});
 
 // Anything else under /api is a bad route — 404 as JSON, not the client's
 // index.html (would otherwise fall through to the catch-alls below).
