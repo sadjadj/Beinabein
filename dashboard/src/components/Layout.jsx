@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText, Layers, ShoppingBag, LogOut, KeyRound, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Coffee, GraduationCap, Calendar, Wallet, MapPin, Menu, X, ChevronDown, FileText, Layers, ShoppingBag, LogOut, KeyRound, Megaphone, Download } from 'lucide-react';
+import { exportAllData } from '@/lib/exportAllData';
 import { useAuth } from '@/lib/AuthContext';
 import { useInstallmentDueCount } from '@/hooks/useInstallmentDueCount';
 import { toPersianNum } from '@/lib/stats';
@@ -121,6 +122,12 @@ export default function Layout() {
   // Full-width, padded rows (same hit-area treatment as renderNav's items) —
   // the previous version packed a bare, unpadded text link right against the
   // username and the logout button with no breathing room, an easy miss-click.
+  const [exporting, setExporting] = useState(false);
+  const handleExportAll = async () => {
+    setExporting(true);
+    try { await exportAllData(); } catch { alert('دانلود داده‌ها انجام نشد. دوباره امتحان کنید.'); } finally { setExporting(false); }
+  };
+
   const renderUserFooter = () => (
     <div className="p-3 border-t border-border flex-shrink-0 space-y-1">
       <p className="px-3 pb-1 text-sm text-muted-foreground truncate">{user?.email}</p>
@@ -131,6 +138,14 @@ export default function Layout() {
         <KeyRound className="w-5 h-5 flex-shrink-0" />
         تغییر رمز عبور
       </Link>
+      <button
+        onClick={handleExportAll}
+        disabled={exporting}
+        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground w-full text-right whitespace-nowrap disabled:opacity-60"
+      >
+        <Download className="w-5 h-5 flex-shrink-0" />
+        {exporting ? 'در حال آماده‌سازی...' : 'دانلود همه داده‌ها'}
+      </button>
       <button
         onClick={handleLogout}
         className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[#B74B40] hover:bg-[#FDF2F1] w-full text-right"
