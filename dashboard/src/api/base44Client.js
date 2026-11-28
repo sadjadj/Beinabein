@@ -90,7 +90,7 @@ function makeEntityClient(name) {
 // Mirrors base44/entities/*.jsonc (also the backend's allowlist) — kept as a
 // plain list here since a browser bundle can't read the filesystem at
 // runtime. Re-sync both lists if entities are added/removed.
-const ENTITY_NAMES = [
+export const ENTITY_NAMES = [
   'Application', 'Artist', 'Brand', 'CafeTag', 'Category', 'CustomIncome', 'Event',
   'EventPlan', 'EventPurchase', 'Expense', 'ExpenseCategory', 'Facilitator', 'GreenhouseCategory',
   'GreenhouseItem', 'GreenhousePurchase', 'Group', 'GroupPlan', 'GroupPurchase',
